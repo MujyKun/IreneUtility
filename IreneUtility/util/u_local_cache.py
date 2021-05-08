@@ -263,6 +263,21 @@ class Cache(Base):
             'tiktok': ['[TikTok](https://www.tiktok.com/', ')'],
         }
 
+        self.interaction_list = [
+            'slap',
+            'kiss',
+            'lick',
+            'hug',
+            'punch',
+            'spit',
+            'pat',
+            'cuddle',
+            'pullhair',
+            'choke',
+            'stepon',
+            'stab'
+        ]
+
         self.eight_ball_responses = [
             # Positive 13
             "It is certain.",

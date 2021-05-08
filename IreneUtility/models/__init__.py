@@ -17,4 +17,5 @@ from .user import User
 from .idolcard import IdolCard
 from .album import Album
 from .gachavalue import GachaValues
+from .keys import Keys
 
