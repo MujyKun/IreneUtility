@@ -51,7 +51,7 @@ class Utility:
         self.temp_patrons_loaded = False
         self.running_loop = None  # current asyncio running loop
         self.thread_pool = None  # ThreadPoolExecutor for operations that block the event loop.
-        self.keys = keys  # access to keys file
+        self.keys: models.Keys = keys  # access to keys file
 
         self.api: tweepy.API = None
         self.loop_count = 0
