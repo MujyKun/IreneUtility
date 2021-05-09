@@ -35,7 +35,6 @@ class Utility:
         :param aiohttp_session: Aiohttp client session
         :param weverse_client: Weverse client
         """
-
         # A lot of these properties may be created via client side
         # in order to make Utility more portable when needed and client friendly.
         self.test_bot = None  # this is changed on the client side in run.py
@@ -71,6 +70,7 @@ class Utility:
         The intended use is to allow a singular object to manage the entire Utility.
         """
         # Sub-Utils to allow branching methods from this individual Utility object.
+
         self.u_database = util.u_database.DataBase(*util_args)
         self.u_cache = util.u_cache.Cache(*util_args)
         self.u_miscellaneous = util.u_miscellaneous.Miscellaneous(*util_args)
@@ -160,10 +160,10 @@ class Utility:
         if events:
             self.events = events
 
-    async def get_user(self, user_id):
+    async def get_user(self, user_id) -> models.User:
         """Creates a user if not created and adds it to the cache, then returns the user object.
 
-        :rtype: util.objects.User
+        :rtype: models.User
         """
         user = self.cache.users.get(user_id)
         if not user:
@@ -413,10 +413,6 @@ class Utility:
         # convert the input to a list of lists if it is not already.
         if not isinstance(inputs_to_change[0], list):
             inputs_to_change = [[inputs_to_change[0], inputs_to_change[1]]]
-
-        async def get_inputs_to_change():
-            for in_list in inputs_to_change:
-                yield in_list
 
         # custom input is always surrounded by curly braces {}
         for input_list in inputs_to_change:

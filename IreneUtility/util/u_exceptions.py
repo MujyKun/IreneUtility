@@ -36,7 +36,7 @@ class ShouldNotBeHere(Exception):
 
 class InvalidParamsPassed(Exception):
     """
-    Raised when IDs are invalid for an add/remove method.
+    Raised when IDs are invalid for an add/remove/set method.
     """
     def __init__(self, msg):
         super(InvalidParamsPassed, self).__init__(f" -> {msg}")

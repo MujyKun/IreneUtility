@@ -2,6 +2,7 @@ from decimal import Decimal
 from math import log10
 from random import randint
 import IreneUtility.s_sql as sql
+import IreneUtility.util.u_exceptions as exceptions
 
 
 # noinspection PyBroadException
@@ -39,29 +40,26 @@ class User:
         await self.ensure_level()
         return await self.update_level_in_db("profilexp", xp_amount)
 
-    async def set_profile_level(self, level):
-        """Set the profile level."""
-        await self.ensure_level()
-        await self.update_level_in_db("profile", level)
-        self.profile_level = level
+    async def set_level(self, level, command_name):
+        """Set the level of a command/feature."""
+        await self.ensure_level()  # confirm the user has a row in the levels table.
+        possible_options = ["profile", "beg", "rob", "daily"]
 
-    async def set_beg_level(self, level):
-        """Set the beg level."""
-        await self.ensure_level()
-        await self.update_level_in_db("beg", level)
-        self.beg_level = level
+        if command_name.lower() not in possible_options:  # do not allow false input.
+            raise exceptions.InvalidParamsPassed(f"{command_name} was given for setting a level when it is not an "
+                                                 f"option. -> IreneUtility.models.user.User.set_level()")
 
-    async def set_rob_level(self, level):
-        """Set the rob level."""
-        await self.ensure_level()
-        await self.update_level_in_db("rob", level)
-        self.rob_level = level
+        await self.update_level_in_db(command_name.lower(), level)  # update level in DB.
 
-    async def set_daily_level(self, level):
-        """Set the daily level."""
-        await self.ensure_level()
-        await self.update_level_in_db("daily", level)
-        self.daily_level = level
+        # set local user level attribute.
+        if command_name == "profile":
+            self.profile_level = level
+        elif command_name == "beg":
+            self.beg_level = level
+        elif command_name == "rob":
+            self.rob_level = level
+        elif command_name == "daily":
+            self.daily_level = level
 
     async def ensure_level(self):
         """Ensure the user has a row in the levels table."""
@@ -77,7 +75,7 @@ class User:
             await sql.s_levels.update_level(self.id, column_name, level)
 
     @staticmethod
-    async def get_xp_needed(level: int, column_name: str):
+    async def get_needed_for_level(level: int, column_name: str):
         """Returns money/experience needed for a certain level."""
         if column_name == "profile":
             return 250 * level
