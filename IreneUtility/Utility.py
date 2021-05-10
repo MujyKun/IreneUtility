@@ -377,7 +377,7 @@ class Utility:
             return False
 
         if game:
-            if ctx.author.id == game.host or is_moderator:
+            if ctx.author.id == game.host_id or is_moderator:
                 return await game.end_game()
             else:
                 return await ctx.send("> You must be a moderator or the host of the game in order to end the game.")

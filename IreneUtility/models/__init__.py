@@ -14,6 +14,7 @@ base_util = BaseUtil()
 from .group import Group
 from .idol import Idol
 from .user import User
+from .game import Game
 from .idolcard import IdolCard
 from .album import Album
 from .gachavalue import GachaValues
