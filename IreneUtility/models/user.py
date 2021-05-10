@@ -1,3 +1,4 @@
+import random
 from decimal import Decimal
 from math import log10
 from random import randint
@@ -87,6 +88,23 @@ class User:
         if chance > 16:
             chance = 16
         return chance
+
+    async def try_to_rob_user(self, user) -> bool:
+        """
+        Attempt to rob a user.
+
+        :param user: User to rob
+        :return: True if the user successfully robbed.
+        """
+        rob_percentage = await self.get_rob_percentage()
+
+        # we need to create a list for proper probability.
+        selector_values = (rob_percentage * [rob_percentage]) + [i for i in range(21) if i != rob_percentage]
+
+        # if our random number equals to the rob percentage value that was added,
+        # then the user succeeded in robbing the user.
+        return rob_percentage == random.choice(selector_values)
+
 
     async def register_currency(self):
         """Registers the user to the currency system."""

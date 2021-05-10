@@ -414,7 +414,7 @@ class Utility:
         if not isinstance(inputs_to_change[0], list):
             inputs_to_change = [[inputs_to_change[0], inputs_to_change[1]]]
 
-        # custom input is always surrounded by curly braces {}
+        # custom input is always surrounded by curly braces {} unless mentioning a user.
         for input_list in inputs_to_change:
             await asyncio.sleep(0)  # bare yield to not block main thread
             # make sure braces do not already exist in the input
@@ -427,12 +427,13 @@ class Utility:
 
         return text
 
-    async def get_msg(self, user, module, keyword) -> str:
+    async def get_msg(self, user, module, keyword, inputs_to_change: list = None) -> str:
         """Get a msg from a user's language.
 
         :param user: User ID, Irene User object, or Context object
         :param module: Module name (Case Sensitive)
         :param keyword: Key attached to the string
+        :param inputs_to_change: Optional to change inputs with a nested list. ex: ["keyword", "input"]
         :return: message string from language pack.
         """
 
@@ -444,4 +445,8 @@ class Utility:
         if not isinstance(user, self.u_objects.User):
             user = await self.get_user(user)
 
-        return self.cache.languages[user.language][module][keyword]
+        msg = self.cache.languages[user.language][module][keyword]
+
+        if inputs_to_change:
+            msg = await self.replace(msg, inputs_to_change)
+        return msg
