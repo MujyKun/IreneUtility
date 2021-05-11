@@ -395,6 +395,9 @@ class Utility:
             return True
         if support_server.get_member(ctx.author.id):
             return True
+        if ctx.author.id in self.cache.member_ids_in_support_server:
+            return True
+
         user = await self.get_user(ctx.author.id)
         msg = await self.replace(self.cache.languages[user.language]['utility']['join_support_server_feature'],
                                  [['bot_name', self.keys.bot_name],

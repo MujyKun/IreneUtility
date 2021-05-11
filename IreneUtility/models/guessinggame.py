@@ -212,8 +212,10 @@ class GuessingGame(Game_Base):
                 try:
                     await self.create_new_question()
                 except LookupError as e:
+                    filter_msg = "Type `ggfilter` to disable your filter." if self.host_user.gg_filter else ""
+
                     await self.channel.send(f"The gender, difficulty, and filtered settings selected have no idols. "
-                                            f"Ending Game.")
+                                            f"Ending Game. {filter_msg}")
                     log.console(e)
                     return
                 await self.check_message()

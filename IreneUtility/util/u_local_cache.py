@@ -182,6 +182,8 @@ class Cache(Base):
 
         self.playing_cards = {}  # {card_id: [custom playing card 1, custom playing card 2]}
 
+        self.member_ids_in_support_server = []  # [userids]
+
         # bracket position for bias game stored due to annoyance when using previous x and y values.
         # counting starts from left to right, bottom to top
         self.stored_bracket_positions = {
