@@ -95,24 +95,30 @@ class BlackJackGame(Game_Base):
         return True
 
     async def hit(self, first_player=True):
-        """Let a player hit
+        """
+        Let a player hit
 
         :param first_player: True if it is the first player that wants to hit. Otherwise its the second player.
         """
+        if await self.check_standing(first_player):
+            return await self.stand(first_player)  # msg that the user is already standing will be sent.
+
         random_card = await self.choose_random_card()
         self.first_player_cards.append(random_card) if first_player else self.second_player_cards.append(random_card)
 
         user_score = await self.calculate_score(self.first_player_cards if first_player else self.second_player_cards)
         user_id = self.first_player.id if first_player else self.second_player.id
-        player_score = await self.calculate_score(self.first_player_cards if first_player else self.second_player_cards)
         msg = await self.ex.get_msg(self.host_ctx, "blackjack", "hit", [
             ["mention", f"<@{user_id}>"],
             ["string", random_card.card_name],
-            ["integer", f"0{player_score}" if len(str(player_score)) == 1 else player_score]])
+            ["integer", f"0{user_score}" if len(str(user_score)) == 1 else user_score]])
         await random_card.send_file(self.channel, message=msg, url=False)
+        if user_score >= 35:
+            await self.stand(first_player)
 
     async def stand(self, first_player=True):
-        """Let a player stand
+        """
+        Let a player stand
 
         :param first_player: True if it is the first player that wants to stand. Otherwise its the second player.
         """
@@ -132,6 +138,15 @@ class BlackJackGame(Game_Base):
             self.second_player_stand = True
         return await self.channel.send(await self.ex.get_msg(self.host_ctx, "blackjack", "now_standing",
                                                              ["name", name]))
+
+    async def check_standing(self, first_player=True):
+        """
+        Check if a player is standing.
+
+        :param first_player: True if it is the first player that wants to stand. Otherwise its the second player.
+        :return: True if the user is standing.
+        """
+        return self.first_player_stand if first_player else self.second_player_stand
 
 
     async def choose_random_card(self) -> PlayingCard:
