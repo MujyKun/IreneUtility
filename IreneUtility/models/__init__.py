@@ -11,6 +11,7 @@ class BaseUtil:
 
 base_util = BaseUtil()
 
+from .file import File
 from .group import Group
 from .idol import Idol
 from .user import User

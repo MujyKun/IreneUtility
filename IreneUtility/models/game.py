@@ -1,4 +1,5 @@
 import IreneUtility.Utility
+import discord.ext.commands
 
 
 class Game:
@@ -13,8 +14,8 @@ class Game:
         :param difficulty: Easy/Medium/Hard difficulty of the game.
         """
         self.ex: IreneUtility.Utility.Utility = utility_obj
-        self.host_ctx = ctx
-        self.host_id = ctx.author.id
+        self.host_ctx: discord.ext.commands.Context = ctx
+        self.host_id: int = ctx.author.id
         self.host_user = None  # Utility user object
         self.channel = ctx.channel
         self.force_ended = False

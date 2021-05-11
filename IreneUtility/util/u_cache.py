@@ -92,7 +92,7 @@ class Cache(Base):
         for custom_card_id, file_name, card_id, card_name, value, bg_idol_id in await self.ex.sql.s_blackjack.fetch_playing_cards():
             await asyncio.sleep(0)  # bare yield
             idol = await self.ex.u_group_members.get_member(bg_idol_id)
-            card = self.ex.u_objects.PlayingCard(custom_card_id, file_name, card_name,
+            card = self.ex.u_objects.PlayingCard(custom_card_id, file_name, card_id, card_name,
                                           f"{self.ex.keys.playing_card_location}{file_name}",
                                           f"{self.ex.keys.image_host}cards/{file_name}", idol, value)
             similar_cards = self.ex.cache.playing_cards.get(card_id)
