@@ -133,6 +133,9 @@ class Keys:
         self.datadog_api_key: str = self.get_kwarg("datadog_api_key")  # datadog api key
         self.datadog_app_key: str = self.get_kwarg("datadog_app_key")  # datadog app key
 
+        """BlackJack"""
+        self.playing_card_location: str = self.get_kwarg("playing_card_location")
+
         """Bot API"""
         self.api_port: str = self.get_kwarg("api_port")  # port of Bot API
 

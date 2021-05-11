@@ -60,6 +60,7 @@ class Cache(Base):
             [self.create_currency_cache, "Currency"],
             [self.create_levels_cache, "Levels"],
             [self.create_language_cache, "User Language"],
+            [self.create_playing_cards, "Playing Cards"],
             [self.create_patreons, "Reload Patreon Cache"],
             [self.create_guild_cache, "DB Guild"],
             [self.ex.weverse_client.start, "Weverse"]
@@ -85,6 +86,20 @@ class Cache(Base):
         log.console(
             f"Cache Completely Created in {await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)}.")
         self.ex.irene_cache_loaded = True
+
+    async def create_playing_cards(self):
+        """Crache cache for playing cards."""
+        for custom_card_id, file_name, card_id, card_name, value, bg_idol_id in await self.ex.sql.s_blackjack.fetch_playing_cards():
+            await asyncio.sleep(0)  # bare yield
+            idol = await self.ex.u_group_members.get_member(bg_idol_id)
+            card = self.ex.u_objects.PlayingCard(custom_card_id, file_name, card_name,
+                                          f"{self.ex.keys.playing_card_location}{file_name}",
+                                          f"{self.ex.keys.image_host}cards/{file_name}", idol, value)
+            similar_cards = self.ex.cache.playing_cards.get(card_id)
+            if similar_cards:
+                similar_cards.append(card)
+            else:
+                self.ex.cache.playing_cards[card_id] = [card]
 
     async def create_language_cache(self):
         """Create cache for user languages."""

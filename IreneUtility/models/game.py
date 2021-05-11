@@ -1,3 +1,6 @@
+import IreneUtility.Utility
+
+
 class Game:
     def __init__(self, utility_obj, ctx):
         """
@@ -9,7 +12,7 @@ class Game:
         :param gender: Male/Female/All Gender of the idols in the photos.
         :param difficulty: Easy/Medium/Hard difficulty of the game.
         """
-        self.ex = utility_obj
+        self.ex: IreneUtility.Utility.Utility = utility_obj
         self.host_ctx = ctx
         self.host_id = ctx.author.id
         self.host_user = None  # Utility user object
