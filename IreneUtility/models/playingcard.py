@@ -1,18 +1,11 @@
-import random
-from decimal import Decimal
-from math import log10
-from random import randint
-
 import IreneUtility.models
-import IreneUtility.s_sql as sql
-import IreneUtility.util.u_exceptions as exceptions
 from . import File
 
 
 # noinspection PyBroadException
 class PlayingCard(File):
     """Represents a custom playing card."""
-    def __init__(self, id, file_name, card_id, card_name, file_location, image_url, background_idol, value):
+    def __init__(self, p_id, file_name, card_id, card_name, file_location, image_url, background_idol, value):
         """
 
         :param id: Custom Card ID
@@ -25,7 +18,7 @@ class PlayingCard(File):
         :param value: the card's worth.
         """
         super().__init__(file_location, image_url)
-        self.id: int = id
+        self.id: int = p_id
         self.file_name: str = file_name
         self.card_id: int = card_id
         self.card_name: str = card_name

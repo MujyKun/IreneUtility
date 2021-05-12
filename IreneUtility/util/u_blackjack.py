@@ -2,6 +2,7 @@ import asyncio
 from PIL import Image
 from IreneUtility.Base import Base
 from IreneUtility.models import BlackJackGame
+from . import u_logger as log
 from discord.ext import commands
 from os import unlink, listdir
 
@@ -32,17 +33,24 @@ class BlackJack(Base):
         """Generate custom playing cards with the background as an idol avatar."""
         # delete all cards to not have duplicates and to properly regenerate avatar changes.
         await self.ex.sql.s_blackjack.delete_playing_cards()
-        # remove all player cards existing on OS.
-        (self.ex.thread_pool.submit(self.remove_all_card_files)).result()
+        try:
+            # remove all player cards existing on OS.
+            (self.ex.thread_pool.submit(self.remove_all_card_files)).result()
+        except Exception as e:
+            log.console(e)
 
         for idol in self.ex.cache.idols:
-            for i in range(52):
-                await asyncio.sleep(0)
-                await self.ex.sql.s_blackjack.generate_playing_card(i+1, idol.id)
+            try:
+                for i in range(52):
+                    await asyncio.sleep(0)
+                    await self.ex.sql.s_blackjack.generate_playing_card(i+1, idol.id)
 
-                (self.ex.thread_pool.submit(self.merge_images, f"{i+1}.png", f"{idol.id}_IDOL.png")).result()
+                    (self.ex.thread_pool.submit(self.merge_images, f"{i+1}.png", f"{idol.id}_IDOL.png")).result()
+            except Exception as e:
+                log.console(e)
 
         await self.ex.u_cache.create_playing_cards()  # reset playing card cache.
+        await self.ex.u_cache.process_cache_time(self.ex.u_cache.create_playing_cards, "Playing Cards")
 
     def remove_all_card_files(self):
         """Remove all card files from OS."""
