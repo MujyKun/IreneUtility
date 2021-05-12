@@ -89,6 +89,8 @@ class Cache(Base):
 
     async def create_playing_cards(self):
         """Crache cache for playing cards."""
+        self.ex.cache.playing_cards = {}
+
         for custom_card_id, file_name, card_id, card_name, value, bg_idol_id in await self.ex.sql.s_blackjack.fetch_playing_cards():
             await asyncio.sleep(0)  # bare yield
             idol = await self.ex.u_group_members.get_member(bg_idol_id)
