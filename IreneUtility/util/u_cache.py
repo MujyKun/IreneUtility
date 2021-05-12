@@ -56,14 +56,14 @@ class Cache(Base):
             [self.create_timezone_cache, "Timezones"],
             [self.create_guessing_game_cache, "Guessing Game Scores"],
             [self.create_twitch_cache, "Twitch Channels"],
-            [self.create_gg_filter_cache, "Guessing Game Filter"],
             [self.create_currency_cache, "Currency"],
             [self.create_levels_cache, "Levels"],
             [self.create_language_cache, "User Language"],
             [self.create_playing_cards, "Playing Cards"],
             [self.create_patreons, "Reload Patreon Cache"],
             [self.create_guild_cache, "DB Guild"],
-            [self.ex.weverse_client.start, "Weverse"]
+            [self.ex.weverse_client.start, "Weverse"],
+            [self.create_gg_filter_cache, "Guessing Game Filter"]
 
         ]
         for method, cache_name in cache_info:
