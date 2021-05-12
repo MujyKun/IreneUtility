@@ -98,6 +98,13 @@ class GuessingGame(Game_Base):
     async def create_new_question(self):
         """Create a new question and send it to the channel."""
         # noinspection PyBroadException
+        if self not in self.ex.cache.guessing_games.values():
+            # This is a double check in case the user tried to force end the game but the game is still going on.
+            # just in case, since we do not want the channel to be spammed with posts.
+            self.force_ended = True
+            self.rounds = self.max_rounds + 1
+            return
+
         question_posted = False
         while not question_posted:
             try:
