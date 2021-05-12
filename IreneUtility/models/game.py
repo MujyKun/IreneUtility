@@ -8,10 +8,6 @@ class Game:
 
         :param utility_obj: Utility object.
         :param ctx: Context
-        :param max_rounds: The amount of rounds to stop at.
-        :param timeout: Amount of time to guess a phoot.
-        :param gender: Male/Female/All Gender of the idols in the photos.
-        :param difficulty: Easy/Medium/Hard difficulty of the game.
         """
         self.ex: IreneUtility.Utility.Utility = utility_obj
         self.host_ctx: discord.ext.commands.Context = ctx

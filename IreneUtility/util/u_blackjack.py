@@ -1,8 +1,5 @@
-import os
-
-from . import u_logger as log
-import random
-import discord
+import asyncio
+from PIL import Image
 from IreneUtility.Base import Base
 from IreneUtility.models import BlackJackGame
 from discord.ext import commands
@@ -22,7 +19,7 @@ class BlackJack(Base):
         :return: BlackJack Game
         """
         if isinstance(user, commands.Context):
-            user = await self.ex.get_user(user.id)
+            user = await self.ex.get_user(user.author.id)
         elif isinstance(user, int):
             # transform into Utility Object
             user = await self.ex.get_user(user)
