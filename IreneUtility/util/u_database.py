@@ -24,7 +24,6 @@ class DataBase(Base):
         try:
             self.ex.conn = await self.get_db_connection()  # set the db connection
             self.ex.sql.self.conn = self.ex.conn
-            await self.ex.u_blackjack.delete_all_games() # Delete all active blackjack games
             self.ex.running_loop = asyncio.get_running_loop()  # set running asyncio loop
             await self.create_thread_pool()  # set new thread pool
         except Exception as e:

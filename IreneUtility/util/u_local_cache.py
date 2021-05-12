@@ -1,4 +1,6 @@
+import IreneUtility.models
 from IreneUtility.Base import Base
+from typing import List
 import time
 import json
 
@@ -97,6 +99,8 @@ class Cache(Base):
         self.guessing_games = {}  # {channelid: Game}
         # Bias Game Objects
         self.bias_games = {}  # {channelid: Game}
+        # BlackJack Game Objects
+        self.blackjack_games: List[IreneUtility.models.BlackJackGame] = []
 
         # Text channels to send Weverse updates to.
         self.weverse_channels = {}  # { community_name: [ [channel_id, role_id, comments_disabled] ] }
@@ -176,6 +180,10 @@ class Cache(Base):
 
         self.languages = {}  # language packs
 
+        self.playing_cards = {}  # {card_id: [custom playing card 1, custom playing card 2]}
+
+        self.member_ids_in_support_server = []  # [userids]
+
         # bracket position for bias game stored due to annoyance when using previous x and y values.
         # counting starts from left to right, bottom to top
         self.stored_bracket_positions = {
@@ -195,6 +203,7 @@ class Cache(Base):
             14: {'img_size': (100, 100), 'pos': (390, 225)},
             15: {'img_size': (134, 130), 'pos': (235, 55)}
         }
+
 
         # Equivalent keyword for translate languages
         # { papago_code : lang_keyword_aliases }
@@ -262,6 +271,21 @@ class Cache(Base):
             'facebook': ['[Facebook](https://www.facebook.com/', ')'],
             'tiktok': ['[TikTok](https://www.tiktok.com/', ')'],
         }
+
+        self.interaction_list = [
+            'slap',
+            'kiss',
+            'lick',
+            'hug',
+            'punch',
+            'spit',
+            'pat',
+            'cuddle',
+            'pullhair',
+            'choke',
+            'stepon',
+            'stab'
+        ]
 
         self.eight_ball_responses = [
             # Positive 13

@@ -9,7 +9,7 @@ async def register_currency(user_id: int, starting_balance: int):
     :param starting_balance: Amount of money a user should start with.
     """
     await self.conn.execute("INSERT INTO currency.currency (userid, money) VALUES ($1, $2)",
-                            user_id, starting_balance)
+                            user_id, str(starting_balance))
 
 
 async def update_user_balance(user_id: int, money: str):

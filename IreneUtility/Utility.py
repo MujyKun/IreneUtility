@@ -35,7 +35,6 @@ class Utility:
         :param aiohttp_session: Aiohttp client session
         :param weverse_client: Weverse client
         """
-
         # A lot of these properties may be created via client side
         # in order to make Utility more portable when needed and client friendly.
         self.test_bot = None  # this is changed on the client side in run.py
@@ -51,7 +50,7 @@ class Utility:
         self.temp_patrons_loaded = False
         self.running_loop = None  # current asyncio running loop
         self.thread_pool = None  # ThreadPoolExecutor for operations that block the event loop.
-        self.keys = keys  # access to keys file
+        self.keys: models.Keys = keys  # access to keys file
 
         self.api: tweepy.API = None
         self.loop_count = 0
@@ -71,6 +70,7 @@ class Utility:
         The intended use is to allow a singular object to manage the entire Utility.
         """
         # Sub-Utils to allow branching methods from this individual Utility object.
+
         self.u_database = util.u_database.DataBase(*util_args)
         self.u_cache = util.u_cache.Cache(*util_args)
         self.u_miscellaneous = util.u_miscellaneous.Miscellaneous(*util_args)
@@ -160,10 +160,10 @@ class Utility:
         if events:
             self.events = events
 
-    async def get_user(self, user_id):
+    async def get_user(self, user_id) -> models.User:
         """Creates a user if not created and adds it to the cache, then returns the user object.
 
-        :rtype: util.objects.User
+        :rtype: models.User
         """
         user = self.cache.users.get(user_id)
         if not user:
@@ -377,7 +377,7 @@ class Utility:
             return False
 
         if game:
-            if ctx.author.id == game.host or is_moderator:
+            if ctx.author.id == game.host_id or is_moderator:
                 return await game.end_game()
             else:
                 return await ctx.send("> You must be a moderator or the host of the game in order to end the game.")
@@ -395,6 +395,9 @@ class Utility:
             return True
         if support_server.get_member(ctx.author.id):
             return True
+        if ctx.author.id in self.cache.member_ids_in_support_server:
+            return True
+
         user = await self.get_user(ctx.author.id)
         msg = await self.replace(self.cache.languages[user.language]['utility']['join_support_server_feature'],
                                  [['bot_name', self.keys.bot_name],
@@ -414,11 +417,7 @@ class Utility:
         if not isinstance(inputs_to_change[0], list):
             inputs_to_change = [[inputs_to_change[0], inputs_to_change[1]]]
 
-        async def get_inputs_to_change():
-            for in_list in inputs_to_change:
-                yield in_list
-
-        # custom input is always surrounded by curly braces {}
+        # custom input is always surrounded by curly braces {} unless mentioning a user.
         for input_list in inputs_to_change:
             await asyncio.sleep(0)  # bare yield to not block main thread
             # make sure braces do not already exist in the input
@@ -431,12 +430,13 @@ class Utility:
 
         return text
 
-    async def get_msg(self, user, module, keyword) -> str:
+    async def get_msg(self, user, module, keyword, inputs_to_change: list = None) -> str:
         """Get a msg from a user's language.
 
         :param user: User ID, Irene User object, or Context object
         :param module: Module name (Case Sensitive)
         :param keyword: Key attached to the string
+        :param inputs_to_change: Optional to change inputs with a nested list. ex: ["keyword", "input"]
         :return: message string from language pack.
         """
 
@@ -448,4 +448,8 @@ class Utility:
         if not isinstance(user, self.u_objects.User):
             user = await self.get_user(user)
 
-        return self.cache.languages[user.language][module][keyword]
+        msg = self.cache.languages[user.language][module][keyword]
+
+        if inputs_to_change:
+            msg = await self.replace(msg, inputs_to_change)
+        return msg

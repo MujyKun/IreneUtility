@@ -11,10 +11,16 @@ class BaseUtil:
 
 base_util = BaseUtil()
 
+from .file import File
 from .group import Group
 from .idol import Idol
 from .user import User
+from .game import Game
 from .idolcard import IdolCard
 from .album import Album
 from .gachavalue import GachaValues
-
+from .keys import Keys
+from .playingcard import PlayingCard
+from .guessinggame import GuessingGame
+from .biasgame import BiasGame
+from .blackjackgame import BlackJackGame

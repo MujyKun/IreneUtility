@@ -121,6 +121,7 @@ class Miscellaneous(Base):
         message_sender = message.author
         if message_sender.bot:
             return
+
         message_content = message.clean_content
         message_channel = message.channel
         server_prefix = await self.ex.get_server_prefix(message)

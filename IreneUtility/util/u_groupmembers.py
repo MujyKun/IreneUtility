@@ -1,3 +1,4 @@
+import IreneUtility.models
 from IreneUtility.Base import Base
 from . import u_logger as log
 import datetime
@@ -73,7 +74,7 @@ class GroupMembers(Base):
             "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND serverid = $3 AND objectid = $4",
             alias, is_group, server_id, obj.id)
 
-    async def get_member(self, idol_id):
+    async def get_member(self, idol_id) -> IreneUtility.models.Idol:
         """Get a member by the idol id."""
         try:
             idol_id = int(idol_id)
@@ -85,7 +86,7 @@ class GroupMembers(Base):
             if idol.id == idol_id:
                 return idol
 
-    async def get_group(self, group_id):
+    async def get_group(self, group_id) -> IreneUtility.models.Group:
         """Get a group by the group id."""
         try:
             group_id = int(group_id)
@@ -264,10 +265,12 @@ class GroupMembers(Base):
         return [group[0] for group in groups]
 
     async def add_idol_to_group(self, member_id: int, group_id: int):
+        (await self.ex.u_group_members.get_group(group_id)).members.append(member_id)
         return await self.ex.conn.execute("INSERT INTO groupmembers.idoltogroup(idolid, groupid) VALUES($1, $2)",
                                      member_id, group_id)
 
     async def remove_idol_from_group(self, member_id: int, group_id: int):
+        (await self.ex.u_group_members.get_group(group_id)).members.remove(member_id)
         return await self.ex.conn.execute("DELETE FROM groupmembers.idoltogroup WHERE idolid = $1 AND groupid = $2",
                                      member_id, group_id)
 
