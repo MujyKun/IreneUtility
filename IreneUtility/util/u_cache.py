@@ -106,7 +106,6 @@ class Cache(Base):
     async def create_language_cache(self):
         """Create cache for user languages."""
         for user_id, language in await self.ex.sql.s_user.fetch_languages():
-            await asyncio.sleep(0)  # bare yield
             user = await self.ex.get_user(user_id)
             user.language = language
 
@@ -143,7 +142,6 @@ class Cache(Base):
     async def create_levels_cache(self):
         """Create the cache for user levels."""
         for user_id, rob, daily, beg, profile_level in await self.ex.sql.s_levels.fetch_levels():
-            await asyncio.sleep(0)  # bare yield
             user = await self.ex.get_user(user_id)
             if rob:
                 user.rob_level = rob
@@ -157,14 +155,12 @@ class Cache(Base):
     async def create_currency_cache(self):
         """Create cache for currency"""
         for user_id, money in await self.ex.sql.s_currency.fetch_currency():
-            await asyncio.sleep(0)  # bare yield
             user = await self.ex.get_user(user_id)
             user.balance = int(money)
 
     async def create_gg_filter_cache(self):
         """Create filtering of guessing game cache."""
         for user_info in await self.ex.sql.s_guessinggame.fetch_filter_enabled():
-            await asyncio.sleep(0)  # bare yield
             user_id = user_info[0]
             user = await self.ex.get_user(user_id)
             user.gg_filter = True
@@ -177,7 +173,6 @@ class Cache(Base):
         # go through all filtered groups regardless if it is enabled
         # so we do not have to change during filter toggle.
         for user_id, group_id in await self.ex.sql.s_guessinggame.fetch_filtered_groups():
-            await asyncio.sleep(0)  # bare yield
             user = await self.ex.get_user(user_id)
             group = await self.ex.u_group_members.get_group(group_id)
             user.gg_groups.append(group)
@@ -212,14 +207,12 @@ class Cache(Base):
     async def create_timezone_cache(self):
         """Create cache for timezones"""
         for user_id, timezone in await self.ex.sql.s_user.fetch_timezones():
-            await asyncio.sleep(0)  # bare yield
             user = await self.ex.get_user(user_id)
             user.timezone = timezone
 
     async def create_reminder_cache(self):
         """Create cache for reminders"""
         for reason_id, user_id, reason, time_stamp in await self.ex.sql.s_reminder.fetch_reminders():
-            await asyncio.sleep(0)  # bare yield
             user = await self.ex.get_user(user_id)
             reason_list = [reason_id, reason, time_stamp]
             if user.reminders:
@@ -389,7 +382,6 @@ class Cache(Base):
     async def create_n_word_counter(self):
         """Update NWord Cache"""
         for user_id, n_word_counter in await self.ex.sql.s_general.fetch_n_word():
-            await asyncio.sleep(0)  # bare yield
             user = await self.ex.get_user(user_id)
             user.n_word = n_word_counter
 
@@ -441,7 +433,6 @@ class Cache(Base):
     async def create_bot_bans(self):
         """Create the cache for banned users from the bot."""
         for user in await self.ex.sql.s_general.fetch_bot_bans():
-            await asyncio.sleep(0)  # bare yield
             user_id = user[0]
             user_obj = await self.ex.get_user(user_id)
             user_obj.bot_banned = True
@@ -451,7 +442,6 @@ class Cache(Base):
         self.ex.cache.mod_mail = {}
 
         for user_id, channel_id in await self.ex.sql.s_general.fetch_mod_mail():
-            await asyncio.sleep(0)  # bare yield
             user = await self.ex.get_user(user_id)
             user.mod_mail_channel_id = channel_id
             self.ex.cache.mod_mail[user_id] = [channel_id]  # full list
@@ -486,7 +476,6 @@ class Cache(Base):
 
             # fix db cache and live Irene cache
             for patron in normal_patrons:
-                await asyncio.sleep(0)  # bare yield
                 if patron not in cached_patrons:
                     # patron includes both normal and super patrons.
                     await self.ex.sql.s_patreon.add_patron(patron, 0)
@@ -494,7 +483,6 @@ class Cache(Base):
                 user.patron = True
 
             for patron in super_patrons:
-                await asyncio.sleep(0)  # bare yield
                 if patron not in cached_patrons:
                     await self.ex.sql.s_patreon.update_patron(patron, 1)
                 user = await self.ex.get_user(patron)
@@ -502,7 +490,6 @@ class Cache(Base):
                 user.super_patron = True
 
             for patron in permanent_patrons:
-                await asyncio.sleep(0)  # bare yield
                 user = await self.ex.get_user(patron[0])
                 user.patron = True
                 user.super_patron = True

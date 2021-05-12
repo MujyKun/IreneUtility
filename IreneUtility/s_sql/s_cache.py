@@ -15,6 +15,7 @@ async def add_guild(guild):
     input_param = ",".join([f"${i+1}" for i in range(len(guild_info))])
     await self.conn.execute(f"INSERT INTO stats.guilds VALUES ({input_param})", *guild_info)
 
+
 async def remove_guild(guild):
     """
     Removes a guild from the guild table.
