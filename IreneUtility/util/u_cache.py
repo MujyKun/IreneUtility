@@ -166,7 +166,6 @@ class Cache(Base):
 
         # reset cache for filtered groups
         for user in self.ex.cache.users.values():
-            await asyncio.sleep(0)  # bare yield
             user.gg_groups = []
 
         # go through all filtered groups regardless if it is enabled
