@@ -328,12 +328,12 @@ class Cache(Base):
                 self.ex.cache.idols_female.add(idol_obj)
             if idol_obj.gender == 'm':
                 self.ex.cache.idols_male.add(idol_obj)
-            # add all idols to the easy difficulty
-            self.ex.cache.idols_easy.add(idol_obj)
-            if idol_obj.difficulty == 'medium':
+            # add all idols to the hard difficulty
+            self.ex.cache.idols_hard.add(idol_obj)
+            if idol_obj.difficulty in ['medium', 'easy']:
                 self.ex.cache.idols_medium.add(idol_obj)
-            if idol_obj.difficulty == 'hard':
-                self.ex.cache.idols_hard.add(idol_obj)
+            if idol_obj.difficulty == 'easy':
+                self.ex.cache.idols_easy.add(idol_obj)
 
         self.ex.cache.gender_selection['all'] = set(self.ex.cache.idols)
 
