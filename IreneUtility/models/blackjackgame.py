@@ -20,7 +20,6 @@ class BlackJackGame(Game_Base):
         self.first_player: User = first_player
         self.second_player: User = None
 
-
         self.first_player.in_currency_game = True  # set first person to be in a game.
 
         # cards the users have

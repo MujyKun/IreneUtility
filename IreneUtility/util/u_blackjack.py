@@ -43,9 +43,10 @@ class BlackJack(Base):
             try:
                 for i in range(52):
                     await asyncio.sleep(0)
-                    await self.ex.sql.s_blackjack.generate_playing_card(i+1, idol.id)
+                    unique_id = await self.ex.sql.s_blackjack.generate_playing_card(i+1, idol.id)
 
-                    (self.ex.thread_pool.submit(self.merge_images, f"{i+1}.png", f"{idol.id}_IDOL.png")).result()
+                    (self.ex.thread_pool.submit(self.merge_images, f"{i+1}.png", f"{idol.id}_IDOL.png", unique_id
+                                                )).result()
             except Exception as e:
                 log.console(e)
 
@@ -57,12 +58,13 @@ class BlackJack(Base):
         for file in listdir(self.ex.keys.playing_card_location):
             unlink(file)
 
-    def merge_images(self, card_file_name, idol_file_name):
+    def merge_images(self, card_file_name, idol_file_name, unique_id):
         """
         Merges a template card with an idol avatar.
 
         :param card_file_name: A Card's File name & type without the directory.
         :param idol_file_name: An Idol's File name & type without the directory.
+        :param unique_id: The unique row id in the database table that will be the merged file name.
         """
         # Open Files
         with Image.open(f"Cards/{card_file_name}") as card_file, \
@@ -78,4 +80,4 @@ class BlackJack(Base):
             idol_file.paste(card_file, None, card_file)
 
             # Save this image
-            idol_file.save(f"{self.ex.keys.playing_card_location}{card_file_name}")
+            idol_file.save(f"{self.ex.keys.playing_card_location}{unique_id}.png")
