@@ -38,7 +38,7 @@ class BlackJack(Base):
         for idol in self.ex.cache.idols:
             for i in range(52):
                 await asyncio.sleep(0)
-                await self.ex.sql.s_blackjack.add_playing_card(i+1, idol.id)
+                await self.ex.sql.s_blackjack.generate_playing_card(i+1, idol.id)
 
                 (self.ex.thread_pool.submit(self.merge_images, f"{i+1}.png", f"{idol.id}_IDOL.png")).result()
 
