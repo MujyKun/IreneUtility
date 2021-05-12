@@ -8,6 +8,7 @@ import IreneUtility.s_sql as sql
 import IreneUtility.util.u_exceptions as exceptions
 from . import File
 
+
 # noinspection PyBroadException
 class PlayingCard(File):
     """Represents a custom playing card."""

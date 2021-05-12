@@ -19,7 +19,7 @@ async def generate_playing_card(card_value_id, bg_idol_id) -> int:
     :param bg_idol_id: Idol ID of the background.
     :return: Custom ID of card.
     """
-    await self.conn.execute("INSERT INTO blackjack.playingcards(cardvalueid, bgidolid, filename) VALUES ($1 , $2, $3)",
+    await self.conn.execute("INSERT INTO blackjack.playingcards(cardvalueid, bgidolid) VALUES ($1 , $2)",
                             card_value_id, bg_idol_id)
     custom_id = (await self.conn.fetchrow("SELECT id FROM blackjack.playingcards WHERE cardvalueid = $1 AND "
                                          "bgidolid = $2 AND filename IS NULL ORDER BY id DESC", card_value_id,
