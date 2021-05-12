@@ -67,7 +67,6 @@ class Cache(Base):
 
         ]
         for method, cache_name in cache_info:
-            await asyncio.sleep(0)
             if cache_name in ["DB Guild", "Reload Patreon Cache"]:
                 # if the discord cache is loaded, make sure to update the patreon cache since our user objects
                 # are reset every time this function is called.
