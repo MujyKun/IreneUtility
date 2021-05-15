@@ -190,7 +190,7 @@ class Cache(Base):
             await asyncio.sleep(0)  # bare yield
             guilds_in_channel = self.ex.cache.twitch_channels.get(username)
             if guilds_in_channel:
-                guilds_in_channel.append(username)
+                guilds_in_channel.append(guild_id)
             else:
                 self.ex.cache.twitch_channels[username] = [guild_id]
 
