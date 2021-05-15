@@ -6,9 +6,10 @@ async def fetch_bot_statuses():
     return await self.conn.fetch("SELECT status FROM general.botstatus")
 
 
-async def fetch_n_word():
+async def fetch_n_word(ordered_by_greatest=False):
     """Fetch all users N Word count."""
-    return await self.conn.fetch("SELECT userid, nword FROM general.nword")
+    additional_query = "ORDER BY nword DESC" if ordered_by_greatest else ""
+    return await self.conn.fetch(f"SELECT userid, nword FROM general.nword {additional_query}")
 
 
 async def fetch_temp_channels():
