@@ -44,14 +44,14 @@ async def fetch_welcome_roles():
 
 async def insert_welcome_role(guild_id: int, role_id: int):
     """Insert or Update a welcome role."""
-    self.conn.execute("INSERT INTO general.welcomeroles(guildid, roleid) VALUES ($1, $2)", guild_id, role_id)
+    await self.conn.execute("INSERT INTO general.welcomeroles(guildid, roleid) VALUES ($1, $2)", guild_id, role_id)
 
 
 async def update_welcome_role(guild_id: int, role_id: int):
     """Update a guild's welcome role."""
-    self.conn.execute("UPDATE general.welcomeroles SET roleid = $1 WHERE guildid = $2", role_id, guild_id)
+    await self.conn.execute("UPDATE general.welcomeroles SET roleid = $1 WHERE guildid = $2", role_id, guild_id)
 
 
 async def delete_welcome_role(guild_id: int):
     """Delete a guild's welcome role."""
-    self.conn.execute("DELETE FROM general.welcomeroles WHERE guildid = $1", guild_id)
+    await self.conn.execute("DELETE FROM general.welcomeroles WHERE guildid = $1", guild_id)
