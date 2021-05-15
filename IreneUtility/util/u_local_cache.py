@@ -184,7 +184,7 @@ class Cache(Base):
 
         self.member_ids_in_support_server = []  # [user ids]
 
-        self.ex.cache.welcome_roles = {}  # d.py Guild object : d.py Role object
+        self.welcome_roles = {}  # d.py Guild object : d.py Role object
 
         # bracket position for bias game stored due to annoyance when using previous x and y values.
         # counting starts from left to right, bottom to top
