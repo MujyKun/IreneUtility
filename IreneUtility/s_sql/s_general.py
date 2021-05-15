@@ -35,3 +35,23 @@ async def fetch_bot_bans():
 async def fetch_mod_mail():
     """Fetch mod mail users and channels."""
     return await self.conn.fetch("SELECT userid, channelid FROM general.modmail")
+
+
+async def fetch_welcome_roles():
+    """Fetch all welcome roles."""
+    return await self.conn.fetch("SELECT guildid, roleid FROM general.welcomeroles")
+
+
+async def insert_welcome_role(guild_id: int, role_id: int):
+    """Insert or Update a welcome role."""
+    self.conn.execute("INSERT INTO general.welcomeroles(guildid, roleid) VALUES ($1, $2)", guild_id, role_id)
+
+
+async def update_welcome_role(guild_id: int, role_id: int):
+    """Update a guild's welcome role."""
+    self.conn.execute("UPDATE general.welcomeroles SET roleid = $1 WHERE guildid = $2", role_id, guild_id)
+
+
+async def delete_welcome_role(guild_id: int):
+    """Delete a guild's welcome role."""
+    self.conn.execute("DELETE FROM general.welcomeroles WHERE guildid = $1", guild_id)

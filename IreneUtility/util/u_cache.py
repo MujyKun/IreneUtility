@@ -6,6 +6,7 @@ import asyncio
 import aiofiles
 import datetime
 import json
+import discord
 
 
 # noinspection PyBroadException,PyPep8
@@ -63,7 +64,8 @@ class Cache(Base):
             [self.create_patreons, "Reload Patreon Cache"],
             [self.create_guild_cache, "DB Guild"],
             [self.ex.weverse_client.start, "Weverse"],
-            [self.create_gg_filter_cache, "Guessing Game Filter"]
+            [self.create_gg_filter_cache, "Guessing Game Filter"],
+            [self.create_welcome_role_cache, "Welcome Roles"]
 
         ]
         for method, cache_name in cache_info:
@@ -85,6 +87,27 @@ class Cache(Base):
         log.console(
             f"Cache Completely Created in {await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)}.")
         self.ex.irene_cache_loaded = True
+
+    async def create_welcome_role_cache(self):
+        self.ex.cache.welcome_roles = {}
+        for guild_id, role_id in await self.ex.sql.s_general.fetch_welcome_roles():
+            try:
+                await asyncio.sleep(0)  # bare yield
+
+                try:
+                    guild = self.ex.client.get_guild(guild_id) or await self.ex.client.fetch_guild(guild_id)
+                except Exception as e:
+                    log.console(f"{e} -> Do not have access to fetch guild {guild_id}.")
+                    guild = None
+
+                if not guild:
+                    continue
+
+                for role in guild.roles:
+                    if role.id == role_id:
+                        self.ex.cache.welcome_roles[guild] = role
+            except Exception as e:
+                log.console(f"{e} ->  Failed to process welcome role cache for {guild_id}")
 
     async def create_playing_cards(self):
         """Crache cache for playing cards."""
