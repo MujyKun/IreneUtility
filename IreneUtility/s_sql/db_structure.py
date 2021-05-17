@@ -20,7 +20,10 @@ async def create_db_structure():
     queries = db_structure.split(';')
 
     for query in queries:
-        query = query.replace("\n", "")
-        if query.startswith("--"):
-            continue
-        await self.conn.execute(query)
+        try:
+            query = query.replace("\n", "")
+            if query.startswith("--"):
+                continue
+            await self.conn.execute(query)
+        except Exception as e:
+            print(f"{e} -> Failed to execute query: {query} -> create_db_structure")
