@@ -26,7 +26,7 @@ All categorized utility methods will be placed as objects prefixed with u_ as a 
 # noinspection PyBroadException,PyPep8
 class Utility:
     def __init__(self, keys=None, db_connection=None, events=None, d_py_client=None, aiohttp_session=None,
-                 weverse_client=None):
+                 weverse_client=None, create_db_structure=False):
         """
         :param keys:  Access to the key file
         :param db_connection:  DB Connection
@@ -34,6 +34,7 @@ class Utility:
         :param d_py_client: Discord.py client (Assumed to be an AutoShardedClient)
         :param aiohttp_session: Aiohttp client session
         :param weverse_client: Weverse client
+        :param create_db_structure: whether to create db structure on run.
         """
         # A lot of these properties may be created via client side
         # in order to make Utility more portable when needed and client friendly.
@@ -41,6 +42,7 @@ class Utility:
         self.client: discord.AutoShardedClient = d_py_client  # discord.py client
         self.session: ClientSession = aiohttp_session  # aiohttp client session
         self.conn = db_connection  # db connection
+        self.create_db_structure: bool = create_db_structure  # whether to create db structure on run.
         s_sql.self.conn = self.conn  # update our SQL connection.
         util_args = {self}
 

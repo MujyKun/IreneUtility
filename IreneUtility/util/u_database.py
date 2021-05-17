@@ -26,6 +26,9 @@ class DataBase(Base):
             self.ex.sql.self.conn = self.ex.conn
             self.ex.running_loop = asyncio.get_running_loop()  # set running asyncio loop
             await self.create_thread_pool()  # set new thread pool
+
+            if self.ex.create_db_structure:
+                await self.ex.sql.db_structure.create_db_structure()  # has blocking file io
         except Exception as e:
             log.console(e)
         self.set_start_up_connection.stop()  # stop this method from loop.
