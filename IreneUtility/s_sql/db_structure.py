@@ -8,6 +8,9 @@ async def create_db_structure():
     This prevents having the manually update the db structure across development bots.
     Before this method is used, there must be a SQL connection whether it is connected to another DB, or creating
     an empty DB with no schemas just to create the python connection.
+
+    SQL File must be in the main directory of the Bot Client.
+
     Includes a blocking File IO Task, but since this is executed on start/run, it really does not matter.
     """
     sql_file = open("./db_structure.sql", "r")
