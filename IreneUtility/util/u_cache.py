@@ -287,6 +287,7 @@ class Cache(Base):
 
     async def create_restricted_channel_cache(self):
         """Create restricted idol channel cache"""
+        self.ex.cache.restricted_channels = {}
         for channel_id, server_id, send_here in await self.ex.sql.s_groupmembers.fetch_restricted_channels():
             await asyncio.sleep(0)  # bare yield
             self.ex.cache.restricted_channels[channel_id] = [server_id, send_here]
