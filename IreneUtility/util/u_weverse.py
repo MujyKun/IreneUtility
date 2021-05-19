@@ -1,3 +1,5 @@
+import discord
+
 from IreneUtility.Base import Base
 from . import u_logger as log
 import aiofiles
@@ -161,9 +163,13 @@ class Weverse(Base):
                         message_text = f"<@&{role_id}>\n{message_text}"
                     await channel.send(message_text)
                     log.console(f"Weverse Post for {community_name} sent to {channel_id}.")
+            except discord.Forbidden as e:
+                # no permission to post
+                log.console(f"Weverse Post Failed to {channel_id} for {community_name} -> {e}")
+                # remove the channel from future updates as we do not want it to clog our rate-limits.
+                return await self.delete_weverse_channel(channel_id, community_name.lower())
             except Exception as e:
                 log.console(f"Weverse Post Failed to {channel_id} for {community_name} -> {e}")
-                # no permission to post
                 return
 
 
