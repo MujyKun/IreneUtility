@@ -72,7 +72,7 @@ class Cache(Base):
             if cache_name in ["DB Guild", "Reload Patreon Cache"]:
                 # if the discord cache is loaded, make sure to update the patreon cache since our user objects
                 # are reset every time this function is called.
-                if not self.ex.discord_cache_loaded:
+                if not self.ex.discord_cache_loaded or on_boot_up:
                     continue
 
             if cache_name == "Weverse":
