@@ -573,7 +573,7 @@ class Cache(Base):
         """Looped every 12 hours to update the cache in case of anything faulty."""
         while not self.ex.conn:
             await asyncio.sleep(1)
-        await self.create_cache()
+        await self.create_cache(on_boot_up=False)
 
     @tasks.loop(seconds=0, minutes=0, hours=0, reconnect=True)
     async def update_patron_and_guild_cache(self):
