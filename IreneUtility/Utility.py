@@ -1,7 +1,7 @@
 from .util import u_exceptions, u_logger as log, u_local_cache
 from typing import TYPE_CHECKING
 from discord.ext.commands import Context
-from Weverse.weverseasync import WeverseAsync
+from Weverse import WeverseClientAsync
 import discord
 import random
 import asyncio
@@ -61,7 +61,7 @@ class Utility:
         self.max_idol_post_attempts = 10  # 100 was too much
         self.twitch_guild_follow_limit = 2
 
-        self.weverse_client: WeverseAsync = weverse_client
+        self.weverse_client: WeverseClientAsync = weverse_client
 
         self.exceptions = u_exceptions  # custom error handling
         self.twitch_token = None  # access tokens are set everytime the token is refreshed.
@@ -150,7 +150,7 @@ class Utility:
 
         if weverse:
             # set weverse client
-            self.weverse_client = WeverseAsync(authorization=keys.weverse_auth_token, web_session=self.session,
+            self.weverse_client = WeverseClientAsync(authorization=keys.weverse_auth_token, web_session=self.session,
                                                verbose=True, loop=asyncio.get_event_loop())
 
         if twitter:
