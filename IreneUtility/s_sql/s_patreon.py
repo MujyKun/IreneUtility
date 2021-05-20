@@ -3,7 +3,17 @@ from IreneUtility.s_sql import self
 
 async def fetch_cached_patrons():
     """Fetch the cached patrons."""
-    return await self.conn.fetch("SELECT userid, super FROM patreon.cache")
+    # it is possible for the super to sometimes not be fetched (probably when super is 0).
+    cached_patrons = await self.conn.fetch("SELECT userid, super FROM patreon.cache")
+    proper_cached = []
+    for cached_patron in cached_patrons:
+        user_id = cached_patron[0]
+        try:
+            super_patron = cached_patron[1]
+        except TypeError:
+            super_patron = 0
+        proper_cached.append([user_id, super_patron])
+    return proper_cached
 
 
 async def delete_patron(user_id):
