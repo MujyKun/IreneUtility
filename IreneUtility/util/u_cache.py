@@ -516,7 +516,7 @@ class Cache(Base):
                 user.super_patron = True
             return True
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} - create_patreons")
             return False
 
     async def create_user_notifications(self):
