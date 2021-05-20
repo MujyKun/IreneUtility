@@ -61,7 +61,6 @@ class Cache(Base):
             [self.create_levels_cache, "Levels"],
             [self.create_language_cache, "User Language"],
             [self.create_playing_cards, "Playing Cards"],
-            [self.create_patreons, "Reload Patreon Cache"],
             [self.create_guild_cache, "DB Guild"],
             [self.ex.weverse_client.start, "Weverse"],
             [self.create_gg_filter_cache, "Guessing Game Filter"],
@@ -69,7 +68,7 @@ class Cache(Base):
 
         ]
         for method, cache_name in cache_info:
-            if cache_name in ["DB Guild", "Reload Patreon Cache"]:
+            if cache_name in ["DB Guild", "Patrons"]:
                 # if the discord cache is loaded, make sure to update the patreon cache since our user objects
                 # are reset every time this function is called.
                 if not self.ex.discord_cache_loaded or on_boot_up:
@@ -482,10 +481,11 @@ class Cache(Base):
             # this is an alternative to get patreons instantly and later modifying the cache after the cache loads.
             # remove any patrons from db set cache that should not exist or should be modified.
             cached_patrons = await self.ex.sql.s_patreon.fetch_cached_patrons()
+            cached_patron_ids = []
 
             for user_id, super_patron in cached_patrons:
                 await asyncio.sleep(0)  # bare yield
-                cached_patrons.append(user_id)
+                cached_patron_ids.append(user_id)
                 if user_id not in normal_patrons:
                     # they are not a patron at all, so remove them from db cache
                     await self.ex.sql.s_patreon.delete_patron(user_id)
@@ -495,17 +495,16 @@ class Cache(Base):
                 elif user_id not in super_patrons and super_patron:
                     # if they are not a super patron, but the db cache says they are.
                     await self.ex.sql.s_patreon.update_patron(user_id, 0)
-
             # fix db cache and live Irene cache
             for patron in normal_patrons:
-                if patron not in cached_patrons:
+                if patron not in cached_patron_ids:
                     # patron includes both normal and super patrons.
                     await self.ex.sql.s_patreon.add_patron(patron, 0)
                 user = await self.ex.get_user(patron)
                 user.patron = True
 
             for patron in super_patrons:
-                if patron not in cached_patrons:
+                if patron not in cached_patron_ids:
                     await self.ex.sql.s_patreon.update_patron(patron, 1)
                 user = await self.ex.get_user(patron)
                 user.patron = True
@@ -516,7 +515,8 @@ class Cache(Base):
                 user.patron = True
                 user.super_patron = True
             return True
-        except:
+        except Exception as e:
+            log.console(e)
             return False
 
     async def create_user_notifications(self):
