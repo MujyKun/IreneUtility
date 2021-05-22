@@ -659,7 +659,10 @@ class GroupMembers(Base):
                 More than 480k requests were blocked within the span of 6 hours. 
                 Resort to localhost to not go through cloudflare.
                 """
-                data = {'allow_group_photos': int(not guessing_game)}
+                data = {
+                    'allow_group_photos': int(not guessing_game),
+                    'redirect': False
+                }
                 headers = {'Authorization': self.ex.keys.translate_private_key}
                 end_point = f"http://127.0.0.1:{self.ex.keys.api_port}/photos/{idol.id}"
                 if self.ex.test_bot:
