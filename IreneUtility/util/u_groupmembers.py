@@ -661,17 +661,20 @@ class GroupMembers(Base):
                 """
                 data = {
                     'allow_group_photos': int(not guessing_game),
-                    'redirect': False
+                    'redirect': 0
                 }
                 headers = {'Authorization': self.ex.keys.translate_private_key}
                 end_point = f"http://127.0.0.1:{self.ex.keys.api_port}/photos/{idol.id}"
                 if self.ex.test_bot:
                     end_point = f"https://api.irenebot.com/photos/{idol.id}"
                 while find_post:  # guarantee we get a post sent to the user.
-                    async with self.ex.session.post(end_point, headers=headers, data=data) as r:
+                    async with self.ex.session.post(end_point, headers=headers, params=data) as r:
                         self.ex.cache.bot_api_idol_calls += 1
+                        url_data = json.loads(await r.text())
+                        api_url = url_data.get('final_image_link')
+                        file_location = url_data.get('location')
+                        file_name = url_data.get('file_name')
                         if r.status == 200 or r.status == 301:
-                            api_url = r.url
                             find_post = False
                         elif r.status == 415:
                             # video
@@ -679,10 +682,7 @@ class GroupMembers(Base):
                                 # do not allow videos in the guessing game.
                                 return await self.get_image_msg(idol, group_id, channel, photo_link, user_id, guild_id,
                                                                 api_url, special_message, guessing_game, scores)
-                            url_data = json.loads(await r.text())
-                            api_url = url_data.get('final_image_link')
-                            file_location = url_data.get('location')
-                            file_name = url_data.get('file_name')
+
                             file_size = getsize(file_location)
                             if file_size < 8388608:  # 8 MB
                                 file = discord.File(file_location, file_name)
