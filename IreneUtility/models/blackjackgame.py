@@ -248,7 +248,6 @@ class BlackJackGame(Game_Base):
         await self.deal_with_bets()
         await self.end_game()
 
-
     async def process_game(self):
         """Start the blackjack game."""
         try:

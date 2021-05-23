@@ -192,8 +192,14 @@ class GuessingGame(Game_Base):
     async def create_acceptable_answers(self):
         """Create acceptable answers."""
         self.correct_answers = [alias.lower() for alias in self.idol.aliases]
-        self.correct_answers.append(self.idol.full_name.lower())
-        self.correct_answers.append(self.idol.stage_name.lower())
+        if self.idol.full_name:
+            self.correct_answers.append(self.idol.full_name.lower())
+        if self.idol.stage_name:
+            self.correct_answers.append(self.idol.stage_name.lower())
+        if self.idol.former_full_name:
+            self.correct_answers.append(self.idol.former_full_name.lower())
+        if self.idol.former_stage_name:
+            self.correct_answers.append(self.idol.former_stage_name.lower())
 
     async def create_idol_pool(self):
         """Create the game's idol pool."""
