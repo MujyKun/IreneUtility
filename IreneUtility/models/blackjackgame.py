@@ -83,7 +83,12 @@ class BlackJackGame(Game_Base):
         self.first_player_stand = True
         self.second_player_stand = True
         self.first_player.in_currency_game = False
-        self.second_player.in_currency_game = False
+        try:
+            self.second_player.in_currency_game = False
+        except:
+            # a second player may not exist.
+            pass
+
         if self.force_ended:
             await self.channel.send(await self.ex.get_msg(self.host_id, 'biasgame', 'force_closed'))
         self.force_ended = True
