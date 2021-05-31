@@ -8,7 +8,7 @@ class PlayingCard(File):
     def __init__(self, p_id, file_name, card_id, card_name, file_location, image_url, background_idol, value):
         """
 
-        :param id: Custom Card ID
+        :param p_id: Custom Card ID
         :param file_name: Custom Card File Name -> Typically the ID of the custom card followed by the file type.
         :param card_id: The original card (numbered 1 to 52)
         :param card_name: The card's name ex: "Ace of Spades"

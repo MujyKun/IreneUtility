@@ -67,6 +67,8 @@ class Utility:
         self.twitch_token = None  # access tokens are set everytime the token is refreshed.
 
         self.events = events  # Client-Sided Events class
+
+        
         """
         IMPORTANT: This design implementation is a hack for circular imports.
         The intended use is to allow a singular object to manage the entire Utility.

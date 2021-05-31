@@ -6,7 +6,7 @@ if TYPE_CHECKING:
 
 class Base:
     """
-    Base Class that will hold the utility object and db connection.
+    Base Class that will hold the utility object for a subclass.
     Meant to be a parent class.
     """
     def __init__(self, utility_object):
