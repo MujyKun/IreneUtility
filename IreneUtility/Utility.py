@@ -7,7 +7,7 @@ import random
 import asyncio
 import os
 import tweepy
-from IreneUtility import models, s_sql, util, Base
+from . import models, s_sql, util, Base
 from typing import List
 
 

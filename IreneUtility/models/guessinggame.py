@@ -2,7 +2,7 @@ from . import Game as Game_Base
 import asyncio
 import random
 import async_timeout
-from IreneUtility.util import u_logger as log
+from ..util import u_logger as log
 
 
 # noinspection PyBroadException,PyPep8

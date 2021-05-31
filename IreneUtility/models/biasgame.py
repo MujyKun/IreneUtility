@@ -2,7 +2,7 @@ from . import Game as Game_Base
 import random
 import asyncio
 from math import log2
-from IreneUtility.util import u_logger as log
+from ..util import u_logger as log
 import discord
 
 

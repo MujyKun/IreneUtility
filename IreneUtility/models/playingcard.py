@@ -1,5 +1,4 @@
-import IreneUtility.models
-from . import File
+from . import File, Idol
 
 
 # noinspection PyBroadException
@@ -22,5 +21,5 @@ class PlayingCard(File):
         self.file_name: str = file_name
         self.card_id: int = card_id
         self.card_name: str = card_name
-        self.background_idol: IreneUtility.models.Idol = background_idol
+        self.background_idol: Idol = background_idol
         self.value: int = value

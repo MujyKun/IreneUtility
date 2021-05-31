@@ -1,6 +1,5 @@
 import discord
-
-from IreneUtility.Base import Base
+from ..Base import Base
 from . import u_logger as log
 import aiofiles
 

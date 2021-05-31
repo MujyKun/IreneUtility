@@ -1,4 +1,4 @@
-from IreneUtility.Base import Base
+from ..Base import Base
 
 
 class Moderator(Base):

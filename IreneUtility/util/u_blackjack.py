@@ -1,7 +1,7 @@
 import asyncio
 from PIL import Image
-from IreneUtility.Base import Base
-from IreneUtility.models import BlackJackGame
+from ..Base import Base
+from ..models import BlackJackGame
 from . import u_logger as log
 from discord.ext import commands
 from os import unlink, listdir

@@ -1,5 +1,5 @@
-import IreneUtility.models
-from IreneUtility.Base import Base
+from .. import models
+from ..Base import Base
 from typing import List
 import time
 import json
@@ -100,7 +100,7 @@ class Cache(Base):
         # Bias Game Objects
         self.bias_games = {}  # {channelid: Game}
         # BlackJack Game Objects
-        self.blackjack_games: List[IreneUtility.models.BlackJackGame] = []
+        self.blackjack_games: List[models.BlackJackGame] = []
 
         # Text channels to send Weverse updates to.
         self.weverse_channels = {}  # { community_name: [ [channel_id, role_id, comments_disabled] ] }

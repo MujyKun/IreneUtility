@@ -3,7 +3,7 @@ import random
 import discord.ext.commands
 
 from . import Game as Game_Base, User, PlayingCard
-from IreneUtility.util import u_logger as log
+from ..util import u_logger as log
 from typing import List
 import asyncio
 

@@ -1,5 +1,5 @@
 from PIL import Image
-from IreneUtility.Base import Base
+from ..Base import Base
 
 
 class BiasGame(Base):

@@ -1,5 +1,5 @@
-import IreneUtility.models
-from IreneUtility.Base import Base
+from ..Base import Base
+from .. import models
 from . import u_logger as log
 import datetime
 import discord
@@ -74,7 +74,7 @@ class GroupMembers(Base):
             "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND serverid = $3 AND objectid = $4",
             alias, is_group, server_id, obj.id)
 
-    async def get_member(self, idol_id) -> IreneUtility.models.Idol:
+    async def get_member(self, idol_id) -> models.Idol:
         """Get a member by the idol id."""
         try:
             idol_id = int(idol_id)
@@ -86,7 +86,7 @@ class GroupMembers(Base):
             if idol.id == idol_id:
                 return idol
 
-    async def get_group(self, group_id) -> IreneUtility.models.Group:
+    async def get_group(self, group_id) -> models.Group:
         """Get a group by the group id."""
         try:
             group_id = int(group_id)
