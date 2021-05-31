@@ -2,7 +2,7 @@ import random
 from decimal import Decimal
 from math import log10
 from random import randint
-import ..s_sql as sql
+from .. import s_sql as sql
 import IreneUtility.util.u_exceptions as exceptions
 
 
