@@ -1,4 +1,4 @@
-from IreneUtility.s_sql import self
+from . import self
 
 
 async def register_currency(user_id: int, starting_balance: int):

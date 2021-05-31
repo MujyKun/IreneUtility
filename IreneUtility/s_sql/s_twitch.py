@@ -1,4 +1,4 @@
-from IreneUtility.s_sql import self
+from . import self
 
 
 async def set_twitch_posted(twitch_username, channel_id):

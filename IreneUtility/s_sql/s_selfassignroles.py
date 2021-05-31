@@ -1,4 +1,4 @@
-from IreneUtility.s_sql import self
+from . import self
 
 
 async def fetch_all_self_assign_roles():
