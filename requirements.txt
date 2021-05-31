@@ -20,7 +20,6 @@ xmltodict==0.12.0
 ksoftapi==0.4.1
 Pillow==8.2.0
 datadog==0.41.0
-git+git://github.com/MujyKun/Weverse@main#Weverse
 pytz==2021.1
 parsedatetime==2.6
 Flask==1.1.2
