@@ -28,6 +28,8 @@ class Cache(Base):
         self.wolfram_per_minute = 0  # wolfram calls per minute
         self.urban_per_minute = 0  # Urban dictionary calls per minute
 
+        self.idol_images = {}  # { idol_id: [IreneUtility.models.Image] }
+
         # Amount of times a command has been used.
         self.command_counter = {}  # { command_name : amount_of_times_used }
         # Photo Count of groups

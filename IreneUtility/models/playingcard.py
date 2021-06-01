@@ -1,10 +1,10 @@
-from . import File, Idol
+from . import Image
 
 
 # noinspection PyBroadException
-class PlayingCard(File):
+class PlayingCard(Image):
     """Represents a custom playing card."""
-    def __init__(self, p_id, file_name, card_id, card_name, file_location, image_url, background_idol, value):
+    def __init__(self, *args, card_id, card_name, value):
         """
 
         :param p_id: Custom Card ID
@@ -16,10 +16,7 @@ class PlayingCard(File):
         :param background_idol: Idol object that is in the background of the card.
         :param value: the card's worth.
         """
-        super().__init__(file_location, image_url)
-        self.id: int = p_id
-        self.file_name: str = file_name
+        super().__init__(*args)
         self.card_id: int = card_id
         self.card_name: str = card_name
-        self.background_idol: Idol = background_idol
         self.value: int = value

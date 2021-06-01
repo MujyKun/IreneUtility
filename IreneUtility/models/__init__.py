@@ -20,6 +20,7 @@ from .idolcard import IdolCard
 from .album import Album
 from .gachavalue import GachaValues
 from .keys import Keys
+from .image import Image
 from .playingcard import PlayingCard
 from .guessinggame import GuessingGame
 from .biasgame import BiasGame

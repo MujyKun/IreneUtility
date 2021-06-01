@@ -12,6 +12,11 @@ async def fetch_dead_links():
                                  "groupmembers.deadlinkfromuser")
 
 
+async def fetch_all_images():
+    """Fetch all images."""
+    return await self.conn.fetch("SELECT id, memberid, link, groupphoto, facecount, filetype")
+
+
 async def fetch_all_idols():
     """Fetch all idols."""
     return await self.conn.fetch("""SELECT id, fullname, stagename, formerfullname, formerstagename, birthdate,

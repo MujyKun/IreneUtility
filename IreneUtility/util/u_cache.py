@@ -45,6 +45,7 @@ class Cache(Base):
             [self.create_n_word_counter, "NWord Counter"],
             [self.create_command_counter, "Command Counter"],
             [self.create_idol_cache, "Idol Objects"],
+            [self.create_image_cache, "Image"],
             [self.create_group_cache, "Group Objects"],
             [self.create_restricted_channel_cache, "Restricted Idol Channels"],
             [self.create_dead_link_cache, "Dead Links"],
@@ -85,6 +86,26 @@ class Cache(Base):
         log.console(f"Cache Completely Created in {creation_time}.")
         self.ex.irene_cache_loaded = True
 
+    async def create_image_cache(self):
+        """Creates Image objects and stores them in local cache."""
+        # image_file_types = ["png", "jpeg", "jpg"]
+        video_file_types = ["mp4", "webm"]
+        for p_id, member_id, link, group_photo, face_count, file_type \
+                in await self.ex.sql.s_groupmembers.fetch_all_images():
+            await asyncio.sleep(0)  # bare yield
+            idol = await self.ex.u_group_members.get_member(member_id)
+            img_or_vid = "image" if file_type not in video_file_types else "video"
+            file_name = f"{p_id}{img_or_vid}.{file_type}"
+            image_host_url = f"{self.ex.keys.image_host}idol/{file_name}/"
+            image_file_location = f"{self.ex.keys.idol_photo_location}{file_name}"
+            image = self.ex.u_objects.Image(p_id, file_name, image_file_location, image_host_url, idol,
+                                            face_count=face_count)
+            idol_images = self.ex.cache.idol_images.get(member_id)
+            if idol_images:
+                idol_images.append(image)
+            else:
+                self.ex.cache.idol_images[member_id] = [image]
+
     async def create_welcome_role_cache(self):
         self.ex.cache.welcome_roles = {}
         for guild_id, role_id in await self.ex.sql.s_general.fetch_welcome_roles():
@@ -113,9 +134,10 @@ class Cache(Base):
         for custom_card_id, file_name, card_id, card_name, value, bg_idol_id in await self.ex.sql.s_blackjack.fetch_playing_cards():
             await asyncio.sleep(0)  # bare yield
             idol = await self.ex.u_group_members.get_member(bg_idol_id)
-            card = self.ex.u_objects.PlayingCard(custom_card_id, file_name, card_id, card_name,
-                                          f"{self.ex.keys.playing_card_location}{file_name}",
-                                          f"{self.ex.keys.image_host}cards/{file_name}", idol, value)
+            card = self.ex.u_objects.PlayingCard(custom_card_id, file_name,
+                                                 f"{self.ex.keys.playing_card_location}{file_name}",
+                                                 f"{self.ex.keys.image_host}cards/{file_name}", idol, card_id,
+                                                 card_name, value)
             similar_cards = self.ex.cache.playing_cards.get(card_id)
             if similar_cards:
                 similar_cards.append(card)
