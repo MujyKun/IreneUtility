@@ -725,7 +725,8 @@ class Cache(Base):
                                                                   for channel_and_roles in
                                                                   self.ex.cache.assignable_roles.values()]),
                     'channels_with_games_disabled': len(self.ex.cache.channels_with_disabled_games),
-                    'dead_image_cache': len(self.ex.cache.dead_image_cache)
+                    'dead_image_cache': len(self.ex.cache.dead_image_cache),
+                    'user_objects': len(self.ex.cache.users)
                 }
 
                 # set all per minute metrics to 0 since this is a 60 second loop.
