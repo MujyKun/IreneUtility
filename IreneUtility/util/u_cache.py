@@ -674,6 +674,9 @@ class Cache(Base):
                 for list_of_playing_card in self.ex.cache.playing_cards.values():
                     playing_card_amount += len(list_of_playing_card)
 
+                user_copy = self.ex.cache.users.copy()
+                gg_filtered_enabled = len([user for user in user_copy if user.gg_filter])
+
                 metric_info = {
                     'total_commands_used': self.ex.cache.total_used,
                     'bias_games': len(self.ex.cache.bias_games),
@@ -733,7 +736,8 @@ class Cache(Base):
                     'user_objects': len(self.ex.cache.users),
                     'welcome_roles': len(self.ex.cache.welcome_roles),
                     'playing_cards': playing_card_amount,
-                    'members_in_support_server': len(self.ex.cache.member_ids_in_support_server)
+                    'members_in_support_server': len(self.ex.cache.member_ids_in_support_server),
+                    'gg_filter_enabled': gg_filtered_enabled
                 }
 
                 # set all per minute metrics to 0 since this is a 60 second loop.
