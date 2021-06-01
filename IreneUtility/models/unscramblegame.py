@@ -165,6 +165,7 @@ class UnScrambleGame(Game_Base):
     async def update_scores(self):
         """Updates all player scores"""
         for user_id in self.players:
+            await asyncio.sleep(0)  # bare yield
             await self.ex.u_unscramblegame.update_user_unscramble_game_score(self.difficulty, user_id=user_id,
                                                                              score=self.players.get(user_id))
 
