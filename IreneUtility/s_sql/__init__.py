@@ -10,4 +10,4 @@ self = SqlConnection()
 from . import db_structure, s_biasgame, s_blackjack, s_cache, s_currency, s_customcommands, \
     s_database, s_gacha, s_general, s_groupmembers, s_guessinggame, s_lastfm, \
     s_levels, s_logging, s_miscellaneous, s_moderator, s_patreon, s_reminder, \
-    s_selfassignroles, s_session, s_twitch, s_twitter, s_user, s_weverse
+    s_selfassignroles, s_session, s_twitch, s_twitter, s_user, s_weverse, s_unscramblegame

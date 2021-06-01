@@ -256,6 +256,14 @@ class Cache(Base):
             await asyncio.sleep(0)  # bare yield
             self.ex.cache.guessing_game_counter[user_id] = {"easy": easy_score, "medium": medium_score, "hard": hard_score}
 
+    async def create_unscramble_game_cache(self):
+        """Create cache for unscramble game scores"""
+        self.ex.cache.unscramble_game_counter = {}
+
+        for user_id, easy_score, medium_score, hard_score in await self.ex.sql.s_unscramblegame.fetch_us_stats():
+            await asyncio.sleep(0)  # bare yield
+            self.ex.cache.unscramble_game_counter[user_id] = {"easy": easy_score, "medium": medium_score, "hard": hard_score}
+
     async def create_timezone_cache(self):
         """Create cache for timezones"""
         for user_id, timezone in await self.ex.sql.s_user.fetch_timezones():

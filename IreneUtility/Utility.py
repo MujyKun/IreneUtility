@@ -94,6 +94,7 @@ class Utility:
         self.u_guessinggame = util.u_guessinggame.GuessingGame(*util_args)
         self.u_twitch = util.u_twitch.Twitch(*util_args)
         self.u_gacha = util.u_gacha.Gacha(*util_args)
+        self.u_unscramblegame = util.u_unscramblegame.UnScrambleGame(*util_args)
 
         # ensure that any models needed methods from this instance can do so without circular import problems.
         models.base_util.ex = self
@@ -382,6 +383,7 @@ class Utility:
 
         if game:
             if ctx.author.id == game.host_id or is_moderator:
+                game.force_ended = True
                 return await game.end_game()
             else:
                 return await ctx.send("> You must be a moderator or the host of the game in order to end the game.")

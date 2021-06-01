@@ -105,6 +105,8 @@ class Cache(Base):
         self.bias_games = {}  # {channelid: Game}
         # BlackJack Game Objects
         self.blackjack_games: List[models.BlackJackGame] = []
+        # UnScramble Game Objects
+        self.unscramble_games = {}  # {channelid: Game}
 
         # Text channels to send Weverse updates to.
         self.weverse_channels = {}  # { community_name: [ [channel_id, role_id, comments_disabled] ] }
@@ -114,6 +116,16 @@ class Cache(Base):
 
         # Guessing Game User Scores
         self.guessing_game_counter = {}
+        # {
+        # user_id:
+        #   {
+        #       easy: int
+        #       medium: int
+        #       hard: int
+        #   }
+        # }
+
+        self.unscramble_game_counter = {}
         # {
         # user_id:
         #   {
