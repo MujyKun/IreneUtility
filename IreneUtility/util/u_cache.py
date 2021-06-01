@@ -670,6 +670,10 @@ class Cache(Base):
                         bot_banned += 1
                     active_user_reminders += len(user.reminders)
 
+                playing_card_amount = 0
+                for list_of_playing_card in self.ex.cache.playing_cards.values():
+                    playing_card_amount += len(list_of_playing_card)
+
                 metric_info = {
                     'total_commands_used': self.ex.cache.total_used,
                     'bias_games': len(self.ex.cache.bias_games),
@@ -727,7 +731,8 @@ class Cache(Base):
                     'channels_with_games_disabled': len(self.ex.cache.channels_with_disabled_games),
                     'dead_image_cache': len(self.ex.cache.dead_image_cache),
                     'user_objects': len(self.ex.cache.users),
-                    'welcome_roles': len(self.ex.cache.welcome_roles)
+                    'welcome_roles': len(self.ex.cache.welcome_roles),
+                    'playing_cards': playing_card_amount
                 }
 
                 # set all per minute metrics to 0 since this is a 60 second loop.
