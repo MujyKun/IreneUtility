@@ -28,7 +28,7 @@ class GuessingGame(Base):
 
     async def update_user_score_in_db(self, difficulty, score, user_id):
         return await self.ex.conn.execute(f"UPDATE stats.guessinggame SET {difficulty} = $1 WHERE userid = $2", score,
-                                     user_id)
+                                          user_id)
 
     async def get_guessing_game_top_ten(self, difficulty, members=None):
         """Get the top ten of a certain guessing game difficulty"""

@@ -150,7 +150,7 @@ class GuessingGame(Game_Base):
             except LookupError as e:
                 raise e
             except Exception as e:
-                log.console(f"{e} - guessinggame.create_new_question")
+                log.console(f"{e} - {self.channel.id} - guessinggame.create_new_question")
                 continue
 
     async def display_winners(self):
