@@ -14,7 +14,8 @@ async def fetch_dead_links():
 
 async def fetch_all_images():
     """Fetch all images."""
-    return await self.conn.fetch("SELECT id, memberid, link, groupphoto, facecount, filetype")
+    return await self.conn.fetch("SELECT id, memberid, link, groupphoto, facecount, filetype FROM "
+                                 "groupmembers.imagelinks")
 
 
 async def fetch_all_idols():
