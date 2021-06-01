@@ -675,7 +675,7 @@ class Cache(Base):
                     playing_card_amount += len(list_of_playing_card)
 
                 user_copy = self.ex.cache.users.copy()
-                gg_filtered_enabled = len([user for user in user_copy if user.gg_filter])
+                gg_filtered_enabled = len([user for user in user_copy.values() if user.gg_filter])
 
                 metric_info = {
                     'total_commands_used': self.ex.cache.total_used,
