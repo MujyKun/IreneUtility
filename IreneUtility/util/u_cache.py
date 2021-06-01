@@ -92,7 +92,7 @@ class Cache(Base):
         self.ex.cache.channels_with_disabled_games = []
         for channel_id in await self.ex.sql.s_moderator.fetch_games_disabled():
             await asyncio.sleep(0)  # bare yield
-            self.ex.cache.channels_with_disabled_games.append(channel_id)
+            self.ex.cache.channels_with_disabled_games.append(channel_id[0])
 
     async def create_image_cache(self):
         """Creates Image objects and stores them in local cache.
