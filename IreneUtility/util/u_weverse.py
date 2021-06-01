@@ -100,9 +100,16 @@ class Weverse(Base):
                 comment_body = (artist_comments[0]).body
             else:
                 return
+        translation = await self.ex.weverse_client.translate(notification.contents_id, is_comment=True,
+                                                             community_id=notification.community_id)
+
+        if not translation:
+            # translate using Irene's API instead.
+            await self.ex.u_miscellaneous.translate(comment_body, "KR", "EN")
+
         embed_description = f"**{notification.message}**\n\n" \
                             f"Content: **{comment_body}**\n" \
-                            f"Translated Content: **{await self.ex.weverse_client.translate(notification.contents_id, is_comment=True, community_id=notification.community_id)}**"
+                            f"Translated Content: **{translation}**"
         embed = await self.ex.create_embed(title=embed_title, title_desc=embed_description)
         return embed
 
@@ -110,11 +117,17 @@ class Weverse(Base):
         """Set Post Embed for Weverse."""
         post = self.ex.weverse_client.get_post_by_id(notification.contents_id)
         if post:
+            translation = await self.ex.weverse_client.translate(post.id, is_post=True, p_obj=post,
+                                                             community_id=notification.community_id)
+            if not translation:
+                # translate using Irene's API instead.
+                await self.ex.u_miscellaneous.translate(post.body, "KR", "EN")
+
             # artist = self.weverse_client.get_artist_by_id(notification.artist_id)
             embed_description = f"**{notification.message}**\n\n" \
                                 f"Artist: **{post.artist.name} ({post.artist.list_name[0]})**\n" \
                                 f"Content: **{post.body}**\n" \
-                                f"Translated Content: **{await self.ex.weverse_client.translate(post.id, is_post=True, p_obj=post, community_id=notification.community_id)}**"
+                                f"Translated Content: **{translation}**"
             embed = await self.ex.create_embed(title=embed_title, title_desc=embed_description)
             message = "\n".join(
                 [await self.download_weverse_post(photo.original_img_url, photo.file_name) for photo in post.photos])
