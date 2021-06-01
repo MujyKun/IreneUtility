@@ -37,4 +37,4 @@ async def fetch_levels():
 
 async def level_row_exists(user_id: int):
     """Check if a user has a row in the levels table."""
-    return (await self.conn.fetchrow("SELECT COUNT(*) FROM currency.level WHERE userid = $1", user_id))[0]
+    return (await self.conn.fetchrow("SELECT COUNT(*) FROM currency.levels WHERE userid = $1", user_id))[0]
