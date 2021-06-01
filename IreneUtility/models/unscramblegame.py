@@ -132,7 +132,8 @@ class UnScrambleGame(Game_Base):
                 if self.difficulty == "hard":
                     scrambled_word = scrambled_word.lower()
 
-                await self.channel.send(f"The name I want you to unscramble is `{scrambled_word}`.")
+                await self.channel.send(f"The name I want you to unscramble is `{scrambled_word}`.",
+                                        delete_after=self.timeout + 15)
 
                 question_posted = True
             except LookupError as e:
@@ -169,7 +170,7 @@ class UnScrambleGame(Game_Base):
 
     async def print_answer(self):
         """Prints the current round's answer."""
-        await self.channel.send(f"The correct answer was {self.correct_answer}")
+        await self.channel.send(f"The correct answer was {self.correct_answer}", delete_after=15)
 
     async def create_acceptable_answers(self):
         """Create acceptable answers."""
