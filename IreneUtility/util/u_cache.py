@@ -81,9 +81,8 @@ class Cache(Base):
                 continue
 
             await self.process_cache_time(method, cache_name)
-
-        log.console(
-            f"Cache Completely Created in {await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)}.")
+        creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
+        log.console(f"Cache Completely Created in {creation_time}.")
         self.ex.irene_cache_loaded = True
 
     async def create_welcome_role_cache(self):
