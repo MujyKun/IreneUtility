@@ -679,10 +679,6 @@ class Cache(Base):
                         bot_banned += 1
                     active_user_reminders += len(user.reminders)
 
-                playing_card_amount = 0
-                for list_of_playing_card in self.ex.cache.playing_cards.values():
-                    playing_card_amount += len(list_of_playing_card)
-
                 user_copy = self.ex.cache.users.copy()
                 gg_filtered_enabled = len([user for user in user_copy.values() if user.gg_filter])
 
@@ -744,7 +740,7 @@ class Cache(Base):
                     'dead_image_cache': len(self.ex.cache.dead_image_cache),
                     'user_objects': len(self.ex.cache.users),
                     'welcome_roles': len(self.ex.cache.welcome_roles),
-                    'playing_cards': playing_card_amount,
+                    'playing_cards': len(self.ex.cache.playing_cards.values()),
                     'members_in_support_server': len(self.ex.cache.member_ids_in_support_server),
                     'gg_filter_enabled': gg_filtered_enabled
                 }
