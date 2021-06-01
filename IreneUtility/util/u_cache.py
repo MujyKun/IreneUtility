@@ -63,7 +63,8 @@ class Cache(Base):
             [self.create_guild_cache, "DB Guild"],
             [self.ex.weverse_client.start, "Weverse"],
             [self.create_gg_filter_cache, "Guessing Game Filter"],
-            [self.create_welcome_role_cache, "Welcome Roles"]
+            [self.create_welcome_role_cache, "Welcome Roles"],
+            [self.create_disabled_games_cache, "Disabled Games In Channels"]
             # [self.create_image_cache, "Image"],
 
         ]
@@ -85,6 +86,13 @@ class Cache(Base):
         creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
         log.console(f"Cache Completely Created in {creation_time}.")
         self.ex.irene_cache_loaded = True
+
+    async def create_disabled_games_cache(self):
+        """Creates a list of channels with disabled games."""
+        self.ex.cache.channels_with_disabled_games = []
+        for channel_id in await self.ex.sql.s_moderator.fetch_games_disabled():
+            await asyncio.sleep(0)  # bare yield
+            self.ex.cache.channels_with_disabled_games.append(channel_id)
 
     async def create_image_cache(self):
         """Creates Image objects and stores them in local cache.

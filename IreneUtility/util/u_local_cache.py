@@ -30,6 +30,8 @@ class Cache(Base):
 
         self.idol_images = {}  # { idol_id: [IreneUtility.models.Image] }
 
+        self.channels_with_disabled_games = []
+
         # Amount of times a command has been used.
         self.command_counter = {}  # { command_name : amount_of_times_used }
         # Photo Count of groups
