@@ -750,6 +750,7 @@ class Cache(Base):
                 self.ex.cache.wolfram_per_minute = 0
                 self.ex.cache.urban_per_minute = 0
                 for metric_name in metric_info:
+                    await asyncio.sleep(0)  # bare yield
                     try:
                         metric_value = metric_info.get(metric_name)
                         # add to thread pool to prevent blocking.
