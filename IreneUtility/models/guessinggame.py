@@ -111,11 +111,17 @@ class GuessingGame(Game_Base):
         while not question_posted:
             try:
                 if self.idol_post_msg:
+                    """
+                    # We do not need to attempt to delete the idol post anymore as we are passing in the timeout
+                    # as we create the message.
+                    
                     try:
                         await self.idol_post_msg.delete()
                     except Exception as e:
                         # message does not exist.
                         log.useless(f"{e} - Likely message doesn't exist - GuessingGame.Game.create_new_question")
+                        
+                    """
 
                 # Create random idol selection
                 if not self.idol_set:
@@ -133,7 +139,7 @@ class GuessingGame(Game_Base):
                 async with async_timeout.timeout(self.post_attempt_timeout) as posting:
                     self.idol_post_msg, self.photo_link = await self.ex.u_group_members.idol_post(
                         self.channel, self.idol, user_id=self.host_id, guessing_game=True, scores=self.players,
-                        msg_timeout=self.timeout)
+                        msg_timeout=self.timeout + 5)
                     log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}')
 
                 if posting.expired:
@@ -181,8 +187,8 @@ class GuessingGame(Game_Base):
         if question_skipped:
             skipped = "Question Skipped. "
         msg = await self.channel.send(f"{skipped}The correct answer was "
-                                f"`{self.idol.full_name} ({self.idol.stage_name})`"
-                                f" from the following group(s): `{', '.join(self.group_names)}`", delete_after=15)
+                                      f"`{self.idol.full_name} ({self.idol.stage_name})`"
+                                      f" from the following group(s): `{', '.join(self.group_names)}`", delete_after=15)
 
         # create_task should not be awaited because this is meant to run in the background to check for reactions.
         try:
