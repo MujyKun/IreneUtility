@@ -274,6 +274,8 @@ class Cache(Base):
             'tiktok': ['[TikTok](https://www.tiktok.com/', ')'],
         }
 
+        stop_phrases = ['stop', 'end', 'quit']
+
         self.interaction_list = [
             'slap',
             'kiss',

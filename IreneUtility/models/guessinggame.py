@@ -61,8 +61,6 @@ class GuessingGame(Game_Base):
         if self.force_ended:
             return
 
-        stop_phrases = ['stop', 'end', 'quit']
-
         def check_correct_answer(message):
             """Check if the user has the correct answer."""
             if message.channel != self.channel:
@@ -70,7 +68,7 @@ class GuessingGame(Game_Base):
             if message.content.lower() in self.correct_answers:
                 return True
             if message.author.id == self.host_id:
-                return message.content.lower() == 'skip' or message.content.lower() in stop_phrases
+                return message.content.lower() == 'skip' or message.content.lower() in self.ex.cache.stop_phrases
 
         try:
             msg = await self.ex.client.wait_for('message', check=check_correct_answer, timeout=self.timeout)
@@ -80,7 +78,7 @@ class GuessingGame(Game_Base):
                 return
             elif msg.content.lower() in self.correct_answers:
                 await self.credit_user(msg.author.id)
-            elif msg.content.lower() in stop_phrases or self.force_ended:
+            elif msg.content.lower() in self.ex.cache.stop_phrases or self.force_ended:
                 self.force_ended = True
                 return
             else:
@@ -138,10 +136,10 @@ class GuessingGame(Game_Base):
                                 f" took more than {self.post_attempt_timeout}")
                     continue
                 question_posted = True
-            except LookupError:
-                raise
+            except LookupError as e:
+                raise e
             except Exception as e:
-                log.console(e)
+                log.console(f"{e} - guessinggame.create_new_question")
                 continue
 
     async def display_winners(self):
