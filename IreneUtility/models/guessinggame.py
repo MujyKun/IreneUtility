@@ -194,8 +194,9 @@ class GuessingGame(Game_Base):
             # Instead we will just check for a "dead" or "report" during the message check.
             # This is now used as a confirmation message for a dead link after the user types "dead" or "report".
             """
-            asyncio.create_task(self.ex.u_group_members.check_idol_post_reactions(
-                msg, self.host_ctx.message, self.idol, self.photo_link, guessing_game=True))
+            if dead_link:
+                asyncio.create_task(self.ex.u_group_members.check_idol_post_reactions(
+                    msg, self.host_ctx.message, self.idol, self.photo_link, guessing_game=True))
         except Exception as e:
             log.console(e)
 
