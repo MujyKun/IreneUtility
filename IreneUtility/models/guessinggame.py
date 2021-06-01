@@ -65,21 +65,25 @@ class GuessingGame(Game_Base):
             """Check if the user has the correct answer."""
             if message.channel != self.channel:
                 return False
-            if message.content.lower() in self.correct_answers:
+            msg_lower = message.content.lower()
+            if msg_lower in self.correct_answers:
                 return True
             if message.author.id == self.host_id:
-                return message.content.lower() == 'skip' or message.content.lower() in self.ex.cache.stop_phrases
-
+                return msg_lower in self.ex.cache.gg_msg_phrases
         try:
             msg = await self.ex.client.wait_for('message', check=check_correct_answer, timeout=self.timeout)
             await msg.add_reaction(self.ex.keys.check_emoji)
-            if msg.content.lower() == 'skip':
+            message_lower = msg.content.lower()
+            if message_lower in self.ex.cache.skip_phrases:
                 await self.print_answer(question_skipped=True)
                 return
-            elif msg.content.lower() in self.correct_answers:
+            elif message_lower in self.correct_answers:
                 await self.credit_user(msg.author.id)
-            elif msg.content.lower() in self.ex.cache.stop_phrases or self.force_ended:
+            elif message_lower in self.ex.cache.stop_phrases or self.force_ended:
                 self.force_ended = True
+                return
+            elif message_lower in self.ex.cache.dead_image_phrases:
+                await self.print_answer(question_skipped=True, dead_link=True)
                 return
             else:
                 # the only time this code is reached is when a prefix was changed in the middle of a round.
@@ -128,7 +132,8 @@ class GuessingGame(Game_Base):
                 # Skip this idol if it is taking too long
                 async with async_timeout.timeout(self.post_attempt_timeout) as posting:
                     self.idol_post_msg, self.photo_link = await self.ex.u_group_members.idol_post(
-                        self.channel, self.idol, user_id=self.host_id, guessing_game=True, scores=self.players)
+                        self.channel, self.idol, user_id=self.host_id, guessing_game=True, scores=self.players,
+                        msg_timeout=self.timeout)
                     log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}')
 
                 if posting.expired:
@@ -170,18 +175,25 @@ class GuessingGame(Game_Base):
             await self.ex.u_guessinggame.update_user_guessing_game_score(self.difficulty, user_id=user_id,
                                                                          score=self.players.get(user_id))
 
-    async def print_answer(self, question_skipped=False):
+    async def print_answer(self, question_skipped=False, dead_link=False):
         """Prints the current round's answer."""
         skipped = ""
         if question_skipped:
             skipped = "Question Skipped. "
         msg = await self.channel.send(f"{skipped}The correct answer was "
-                                      f"`{self.idol.full_name} ({self.idol.stage_name})`"
-                                      f" from the following group(s): `{', '.join(self.group_names)}`", delete_after=15)
+                                f"`{self.idol.full_name} ({self.idol.stage_name})`"
+                                f" from the following group(s): `{', '.join(self.group_names)}`", delete_after=15)
+
         # create_task should not be awaited because this is meant to run in the background to check for reactions.
         try:
             # noinspection PyUnusedLocal
+            """
             # create task to check image reactions.
+            
+            # We will no longer create a whole task to check for a dead link reaction. 
+            # Instead we will just check for a "dead" or "report" during the message check.
+            # This is now used as a confirmation message for a dead link after the user types "dead" or "report".
+            """
             asyncio.create_task(self.ex.u_group_members.check_idol_post_reactions(
                 msg, self.host_ctx.message, self.idol, self.photo_link, guessing_game=True))
         except Exception as e:

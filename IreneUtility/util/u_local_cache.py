@@ -274,7 +274,12 @@ class Cache(Base):
             'tiktok': ['[TikTok](https://www.tiktok.com/', ')'],
         }
 
-        stop_phrases = ['stop', 'end', 'quit']
+        self.stop_phrases = ['stop', 'end', 'quit']
+        self.dead_image_phrases = ['dead', 'report']
+        self.skip_phrases = ['skip', 'pass']
+
+        # phrases that would trigger a message check in guessing game.
+        self.gg_msg_phrases = self.stop_phrases + self.dead_image_phrases + self.skip_phrases
 
         self.interaction_list = [
             'slap',
