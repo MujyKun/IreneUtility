@@ -723,7 +723,8 @@ class Cache(Base):
                     'servers_using_self_assignable_roles': len(self.ex.cache.assignable_roles.keys() or []),
                     'total_amount_of_self_assignable_roles': sum([len(channel_and_roles.get('roles') or [])
                                                                   for channel_and_roles in
-                                                                  self.ex.cache.assignable_roles.values()])
+                                                                  self.ex.cache.assignable_roles.values()]),
+                    'channels_with_games_disabled': len(self.ex.cache.channels_with_disabled_games)
                 }
 
                 # set all per minute metrics to 0 since this is a 60 second loop.
