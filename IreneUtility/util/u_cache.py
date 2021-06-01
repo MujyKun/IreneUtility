@@ -45,7 +45,6 @@ class Cache(Base):
             [self.create_n_word_counter, "NWord Counter"],
             [self.create_command_counter, "Command Counter"],
             [self.create_idol_cache, "Idol Objects"],
-            [self.create_image_cache, "Image"],
             [self.create_group_cache, "Group Objects"],
             [self.create_restricted_channel_cache, "Restricted Idol Channels"],
             [self.create_dead_link_cache, "Dead Links"],
@@ -65,6 +64,7 @@ class Cache(Base):
             [self.ex.weverse_client.start, "Weverse"],
             [self.create_gg_filter_cache, "Guessing Game Filter"],
             [self.create_welcome_role_cache, "Welcome Roles"]
+            # [self.create_image_cache, "Image"],
 
         ]
         for method, cache_name in cache_info:
@@ -87,7 +87,11 @@ class Cache(Base):
         self.ex.irene_cache_loaded = True
 
     async def create_image_cache(self):
-        """Creates Image objects and stores them in local cache."""
+        """Creates Image objects and stores them in local cache.
+
+        Note that usage of these images is unnecessary as a call to the API would be more efficient.
+        Therefore, IreneBot will not be using the image objects directly.
+        """
         # image_file_types = ["png", "jpeg", "jpg"]
         video_file_types = ["mp4", "webm"]
         for p_id, member_id, link, group_photo, face_count, file_type \
