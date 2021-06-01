@@ -740,7 +740,8 @@ class Cache(Base):
                     'dead_image_cache': len(self.ex.cache.dead_image_cache),
                     'user_objects': len(self.ex.cache.users),
                     'welcome_roles': len(self.ex.cache.welcome_roles),
-                    'playing_cards': len(self.ex.cache.playing_cards.values()),
+                    'playing_cards': sum([len(same_card_type) for same_card_type in self.ex.cache.playing_cards.values()
+                                          ]),
                     'members_in_support_server': len(self.ex.cache.member_ids_in_support_server),
                     'gg_filter_enabled': gg_filtered_enabled
                 }
