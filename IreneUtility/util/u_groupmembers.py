@@ -639,7 +639,8 @@ class GroupMembers(Base):
                         message = await channel.send(special_message, embed=m_embed, file=m_file,
                                                      delete_after=msg_timeout)
                     break
-                except:
+                except Exception as exc:
+                    log.console(exc)
                     # cannot access API or API Link -> attempt to post it 5 times.
                     # this happens because the image link may not be properly registered.
                     if message:
