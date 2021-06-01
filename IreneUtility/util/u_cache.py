@@ -55,6 +55,7 @@ class Cache(Base):
             [self.create_reminder_cache, "Reminders"],
             [self.create_timezone_cache, "Timezones"],
             [self.create_guessing_game_cache, "Guessing Game Scores"],
+            [self.create_unscramble_game_cache, "Unscramble Game Scores"],
             [self.create_twitch_cache, "Twitch Channels"],
             [self.create_currency_cache, "Currency"],
             [self.create_levels_cache, "Levels"],
