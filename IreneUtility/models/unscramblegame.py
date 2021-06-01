@@ -124,7 +124,9 @@ class UnScrambleGame(Game_Base):
                 for word in word_list:
                     char_list = [char for char in word]
                     random.shuffle(char_list)
-                    scrambled_word += f" {word}"
+                    if scrambled_word:
+                        scrambled_word += " "  # adding a space before next word.
+                    scrambled_word += "".join(char_list)
                 if self.difficulty == "hard":
                     scrambled_word = scrambled_word.lower()
 
