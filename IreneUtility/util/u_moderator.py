@@ -37,11 +37,9 @@ class Moderator(Base):
         """
         if channel_id in self.ex.cache.channels_with_disabled_games:
             await self.ex.sql.s_moderator.enable_game_in_channel(channel_id)
+            self.ex.cache.channels_with_disabled_games.remove(channel_id)
             return True
         else:
             await self.ex.sql.s_moderator.disable_game_in_channel(channel_id)
+            self.ex.cache.channels_with_disabled_games.append(channel_id)
             return False
-
-
-
-# self.ex.u_moderator = Moderator()
