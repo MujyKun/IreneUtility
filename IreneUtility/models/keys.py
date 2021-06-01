@@ -124,6 +124,7 @@ class Keys:
         self.idol_avatar_location: str = self.get_kwarg("idol_avatar_location")  # Idol Avatar Location (slash at end)
         self.idol_banner_location: str = self.get_kwarg("idol_banner_location")  # Idol Banner Location (slash at end)
         self.bias_game_location: str = self.get_kwarg("bias_game_location")  # Bias Game Location (slash at end)
+        self.idol_photo_location: str = self.get_kwarg("idol_photo_location")  # Idol Photo Location (slash at end)
 
         """Twitch API"""
         self.twitch_client_id: str = self.get_kwarg("twitch_client_id")  # Twitch client id

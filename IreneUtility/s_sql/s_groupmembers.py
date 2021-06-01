@@ -1,4 +1,4 @@
-from IreneUtility.s_sql import self
+from . import self
 
 
 async def fetch_restricted_channels():
@@ -10,6 +10,12 @@ async def fetch_dead_links():
     """Fetch all dead links."""
     return await self.conn.fetch("SELECT deadlink, userid, messageid, idolid, guessinggame FROM "
                                  "groupmembers.deadlinkfromuser")
+
+
+async def fetch_all_images():
+    """Fetch all images."""
+    return await self.conn.fetch("SELECT id, memberid, link, groupphoto, facecount, filetype FROM "
+                                 "groupmembers.imagelinks")
 
 
 async def fetch_all_idols():

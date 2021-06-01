@@ -1,13 +1,13 @@
 from .util import u_exceptions, u_logger as log, u_local_cache
 from typing import TYPE_CHECKING
 from discord.ext.commands import Context
-from Weverse.weverseasync import WeverseAsync
+from Weverse import WeverseClientAsync
 import discord
 import random
 import asyncio
 import os
 import tweepy
-from IreneUtility import models, s_sql, util, Base
+from . import models, s_sql, util, Base
 from typing import List
 
 
@@ -26,7 +26,7 @@ All categorized utility methods will be placed as objects prefixed with u_ as a 
 # noinspection PyBroadException,PyPep8
 class Utility:
     def __init__(self, keys=None, db_connection=None, events=None, d_py_client=None, aiohttp_session=None,
-                 weverse_client=None):
+                 weverse_client=None, create_db_structure=False):
         """
         :param keys:  Access to the key file
         :param db_connection:  DB Connection
@@ -34,6 +34,7 @@ class Utility:
         :param d_py_client: Discord.py client (Assumed to be an AutoShardedClient)
         :param aiohttp_session: Aiohttp client session
         :param weverse_client: Weverse client
+        :param create_db_structure: whether to create db structure on run.
         """
         # A lot of these properties may be created via client side
         # in order to make Utility more portable when needed and client friendly.
@@ -41,6 +42,7 @@ class Utility:
         self.client: discord.AutoShardedClient = d_py_client  # discord.py client
         self.session: ClientSession = aiohttp_session  # aiohttp client session
         self.conn = db_connection  # db connection
+        self.create_db_structure: bool = create_db_structure  # whether to create db structure on run.
         s_sql.self.conn = self.conn  # update our SQL connection.
         util_args = {self}
 
@@ -59,12 +61,14 @@ class Utility:
         self.max_idol_post_attempts = 10  # 100 was too much
         self.twitch_guild_follow_limit = 2
 
-        self.weverse_client: WeverseAsync = weverse_client
+        self.weverse_client: WeverseClientAsync = weverse_client
 
         self.exceptions = u_exceptions  # custom error handling
         self.twitch_token = None  # access tokens are set everytime the token is refreshed.
 
         self.events = events  # Client-Sided Events class
+
+        
         """
         IMPORTANT: This design implementation is a hack for circular imports.
         The intended use is to allow a singular object to manage the entire Utility.
@@ -90,6 +94,7 @@ class Utility:
         self.u_guessinggame = util.u_guessinggame.GuessingGame(*util_args)
         self.u_twitch = util.u_twitch.Twitch(*util_args)
         self.u_gacha = util.u_gacha.Gacha(*util_args)
+        self.u_unscramblegame = util.u_unscramblegame.UnScrambleGame(*util_args)
 
         # ensure that any models needed methods from this instance can do so without circular import problems.
         models.base_util.ex = self
@@ -148,7 +153,7 @@ class Utility:
 
         if weverse:
             # set weverse client
-            self.weverse_client = WeverseAsync(authorization=keys.weverse_auth_token, web_session=self.session,
+            self.weverse_client = WeverseClientAsync(authorization=keys.weverse_auth_token, web_session=self.session,
                                                verbose=True, loop=asyncio.get_event_loop())
 
         if twitter:
@@ -378,6 +383,7 @@ class Utility:
 
         if game:
             if ctx.author.id == game.host_id or is_moderator:
+                game.force_ended = True
                 return await game.end_game()
             else:
                 return await ctx.send("> You must be a moderator or the host of the game in order to end the game.")

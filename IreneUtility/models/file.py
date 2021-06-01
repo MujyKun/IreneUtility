@@ -1,5 +1,6 @@
 import discord
 
+
 # noinspection PyBroadException
 class File:
     """Represents an OS file."""

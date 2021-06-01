@@ -1,4 +1,5 @@
-from IreneUtility.Base import Base
+import discord
+from ..Base import Base
 from . import u_logger as log
 import aiofiles
 
@@ -99,9 +100,18 @@ class Weverse(Base):
                 comment_body = (artist_comments[0]).body
             else:
                 return
+        translation = await self.ex.weverse_client.translate(notification.contents_id, is_comment=True,
+                                                             community_id=notification.community_id)
+
+        if not translation:
+            # translate using Irene's API instead.
+            translation_json = await self.ex.u_miscellaneous.translate(comment_body, "KR", "EN") or {"code": -1}
+            if translation_json.get("code") == 0:
+                translation = translation_json.get("text")
+
         embed_description = f"**{notification.message}**\n\n" \
                             f"Content: **{comment_body}**\n" \
-                            f"Translated Content: **{await self.ex.weverse_client.translate(notification.contents_id, is_comment=True, community_id=notification.community_id)}**"
+                            f"Translated Content: **{translation}**"
         embed = await self.ex.create_embed(title=embed_title, title_desc=embed_description)
         return embed
 
@@ -109,11 +119,19 @@ class Weverse(Base):
         """Set Post Embed for Weverse."""
         post = self.ex.weverse_client.get_post_by_id(notification.contents_id)
         if post:
+            translation = await self.ex.weverse_client.translate(post.id, is_post=True, p_obj=post,
+                                                             community_id=notification.community_id)
+            if not translation:
+                # translate using Irene's API instead.
+                translation_json = await self.ex.u_miscellaneous.translate(post.body, "KR", "EN") or {"code": -1}
+                if translation_json.get("code") == 0:
+                    translation = translation_json.get("text")
+
             # artist = self.weverse_client.get_artist_by_id(notification.artist_id)
             embed_description = f"**{notification.message}**\n\n" \
                                 f"Artist: **{post.artist.name} ({post.artist.list_name[0]})**\n" \
                                 f"Content: **{post.body}**\n" \
-                                f"Translated Content: **{await self.ex.weverse_client.translate(post.id, is_post=True, p_obj=post, community_id=notification.community_id)}**"
+                                f"Translated Content: **{translation}**"
             embed = await self.ex.create_embed(title=embed_title, title_desc=embed_description)
             message = "\n".join(
                 [await self.download_weverse_post(photo.original_img_url, photo.file_name) for photo in post.photos])
@@ -161,9 +179,13 @@ class Weverse(Base):
                         message_text = f"<@&{role_id}>\n{message_text}"
                     await channel.send(message_text)
                     log.console(f"Weverse Post for {community_name} sent to {channel_id}.")
+            except discord.Forbidden as e:
+                # no permission to post
+                log.console(f"Weverse Post Failed to {channel_id} for {community_name} -> {e}")
+                # remove the channel from future updates as we do not want it to clog our rate-limits.
+                return await self.delete_weverse_channel(channel_id, community_name.lower())
             except Exception as e:
                 log.console(f"Weverse Post Failed to {channel_id} for {community_name} -> {e}")
-                # no permission to post
                 return
 
 

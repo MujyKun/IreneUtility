@@ -1,5 +1,5 @@
 import discord
-from IreneUtility.models import base_util
+from . import base_util
 
 
 class IdolCard:

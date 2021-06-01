@@ -1,4 +1,5 @@
-import IreneUtility.Utility
+from .. import Utility
+
 import discord.ext.commands
 
 
@@ -9,7 +10,7 @@ class Game:
         :param utility_obj: Utility object.
         :param ctx: Context
         """
-        self.ex: IreneUtility.Utility.Utility = utility_obj
+        self.ex: Utility.Utility = utility_obj
         self.host_ctx: discord.ext.commands.Context = ctx
         self.host_id: int = ctx.author.id
         self.host_user = None  # Utility user object

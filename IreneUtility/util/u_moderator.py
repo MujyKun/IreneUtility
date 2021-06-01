@@ -1,4 +1,4 @@
-from IreneUtility.Base import Base
+from ..Base import Base
 
 
 class Moderator(Base):
@@ -30,5 +30,16 @@ class Moderator(Base):
         await self.ex.conn.execute("UPDATE general.welcome SET message = $1 WHERE serverid = $2", message, server_id)
         self.ex.cache.welcome_messages[server_id]['message'] = message
 
+    async def toggle_games(self, channel_id: int) -> bool:
+        """Toggles game usage in a text channel.
 
-# self.ex.u_moderator = Moderator()
+        Will return True if channel has games enabled.
+        """
+        if channel_id in self.ex.cache.channels_with_disabled_games:
+            await self.ex.sql.s_moderator.enable_game_in_channel(channel_id)
+            self.ex.cache.channels_with_disabled_games.remove(channel_id)
+            return True
+        else:
+            await self.ex.sql.s_moderator.disable_game_in_channel(channel_id)
+            self.ex.cache.channels_with_disabled_games.append(channel_id)
+            return False

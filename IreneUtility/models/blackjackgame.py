@@ -3,7 +3,7 @@ import random
 import discord.ext.commands
 
 from . import Game as Game_Base, User, PlayingCard
-from IreneUtility.util import u_logger as log
+from ..util import u_logger as log
 from typing import List
 import asyncio
 
@@ -83,7 +83,12 @@ class BlackJackGame(Game_Base):
         self.first_player_stand = True
         self.second_player_stand = True
         self.first_player.in_currency_game = False
-        self.second_player.in_currency_game = False
+        try:
+            self.second_player.in_currency_game = False
+        except:
+            # a second player may not exist.
+            pass
+
         if self.force_ended:
             await self.channel.send(await self.ex.get_msg(self.host_id, 'biasgame', 'force_closed'))
         self.force_ended = True
@@ -247,7 +252,6 @@ class BlackJackGame(Game_Base):
         await self.announce_winner()
         await self.deal_with_bets()
         await self.end_game()
-
 
     async def process_game(self):
         """Start the blackjack game."""

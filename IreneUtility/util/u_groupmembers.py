@@ -1,5 +1,5 @@
-import IreneUtility.models
-from IreneUtility.Base import Base
+from ..Base import Base
+from .. import models
 from . import u_logger as log
 import datetime
 import discord
@@ -74,7 +74,7 @@ class GroupMembers(Base):
             "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND serverid = $3 AND objectid = $4",
             alias, is_group, server_id, obj.id)
 
-    async def get_member(self, idol_id) -> IreneUtility.models.Idol:
+    async def get_member(self, idol_id) -> models.Idol:
         """Get a member by the idol id."""
         try:
             idol_id = int(idol_id)
@@ -86,7 +86,7 @@ class GroupMembers(Base):
             if idol.id == idol_id:
                 return idol
 
-    async def get_group(self, group_id) -> IreneUtility.models.Group:
+    async def get_group(self, group_id) -> models.Group:
         """Get a group by the group id."""
         try:
             group_id = int(group_id)
@@ -451,13 +451,7 @@ class GroupMembers(Base):
                                 if guessing_game:
                                     warning_msg = f"This image has been reported as a dead image, not a photo of the idol, or a photo with several idols.\nYou can have this message removed by becoming a {server_prefix}patreon"
                                 await message.edit(content=warning_msg, suppress=True, delete_after=45)
-                            await self.get_dead_links()
-                            try:
-                                channel = self.ex.cache.dead_image_channel
-                                if channel is not None:
-                                    await self.send_dead_image(channel, link, user, idol, int(guessing_game))
-                            except:
-                                pass
+                            await self.send_dead_image(None, link, user, idol, int(guessing_game))
                     except asyncio.TimeoutError:
                         await message.clear_reactions()
                     except Exception as err:
@@ -479,6 +473,10 @@ class GroupMembers(Base):
                                      idol_id)
 
     async def send_dead_image(self, channel, link, user, idol, is_guessing_game):
+        channel = channel or self.ex.cache.dead_image_channel
+        if not channel:
+            return
+
         try:
             game = ""
             if is_guessing_game:
@@ -626,7 +624,7 @@ class GroupMembers(Base):
         return self.ex.first_result(await self.ex.conn.fetchrow("SELECT link FROM groupmembers.imagelinks WHERE id = $1", api_url_id))
 
     async def get_image_msg(self, idol, group_id, channel, photo_link, user_id=None, guild_id=None, api_url=None,
-                            special_message=None, guessing_game=False, scores=None):
+                            special_message=None, guessing_game=False, scores=None, msg_timeout=None):
         """Get the image link from the API and return the message containing the image."""
 
         async def post_msg(m_file=None, m_embed=None):
@@ -636,11 +634,13 @@ class GroupMembers(Base):
             for attempt in range(0, max_post_attempt):
                 try:
                     if not special_message:
-                        message = await channel.send(embed=m_embed, file=m_file)
+                        message = await channel.send(embed=m_embed, file=m_file, delete_after=msg_timeout)
                     else:
-                        message = await channel.send(special_message, embed=m_embed, file=m_file)
+                        message = await channel.send(special_message, embed=m_embed, file=m_file,
+                                                     delete_after=msg_timeout)
                     break
-                except:
+                except Exception as exc:
+                    log.console(exc)
                     # cannot access API or API Link -> attempt to post it 5 times.
                     # this happens because the image link may not be properly registered.
                     if message:
@@ -659,16 +659,22 @@ class GroupMembers(Base):
                 More than 480k requests were blocked within the span of 6 hours. 
                 Resort to localhost to not go through cloudflare.
                 """
-                data = {'allow_group_photos': int(not guessing_game)}
+                data = {
+                    'allow_group_photos': int(not guessing_game),
+                    'redirect': 0
+                }
                 headers = {'Authorization': self.ex.keys.translate_private_key}
                 end_point = f"http://127.0.0.1:{self.ex.keys.api_port}/photos/{idol.id}"
                 if self.ex.test_bot:
                     end_point = f"https://api.irenebot.com/photos/{idol.id}"
                 while find_post:  # guarantee we get a post sent to the user.
-                    async with self.ex.session.post(end_point, headers=headers, data=data) as r:
+                    async with self.ex.session.post(end_point, headers=headers, params=data) as r:
                         self.ex.cache.bot_api_idol_calls += 1
+                        url_data = json.loads(await r.text())
+                        api_url = url_data.get('final_image_link')
+                        file_location = url_data.get('location')
+                        file_name = url_data.get('file_name')
                         if r.status == 200 or r.status == 301:
-                            api_url = r.url
                             find_post = False
                         elif r.status == 415:
                             # video
@@ -676,10 +682,7 @@ class GroupMembers(Base):
                                 # do not allow videos in the guessing game.
                                 return await self.get_image_msg(idol, group_id, channel, photo_link, user_id, guild_id,
                                                                 api_url, special_message, guessing_game, scores)
-                            url_data = json.loads(await r.text())
-                            api_url = url_data.get('final_image_link')
-                            file_location = url_data.get('location')
-                            file_name = url_data.get('file_name')
+
                             file_size = getsize(file_location)
                             if file_size < 8388608:  # 8 MB
                                 file = discord.File(file_location, file_name)
@@ -773,9 +776,8 @@ class GroupMembers(Base):
         return embed
 
     async def idol_post(self, channel, idol, photo_link=None, group_id=None, special_message=None, user_id=None,
-                        guessing_game=False, scores=None):
-        """The main process for posting an idol's photo.
-        """
+                        guessing_game=False, scores=None, msg_timeout=None):
+        """The main process for posting an idol's photo."""
         msg, api_url = None, None
         post_success = False
         post_attempts = 0
@@ -784,7 +786,7 @@ class GroupMembers(Base):
                 msg, api_url = await self.get_image_msg(idol, group_id, channel, photo_link, user_id=user_id,
                                                         guild_id=channel.guild.id, api_url=photo_link,
                                                         special_message=special_message, guessing_game=guessing_game,
-                                                        scores=scores)
+                                                        scores=scores, msg_timeout=msg_timeout)
                 if not msg and not api_url:
                     if guessing_game:
                         # ensure the message posts.
@@ -805,7 +807,7 @@ class GroupMembers(Base):
                     post_success = False
                     post_attempts += 1
                     continue
-                log.console(e)
+                log.console(f"{e} - u_groupmembers.idol_post")
                 return None, None
         if post_attempts >= self.ex.max_idol_post_attempts:
             raise self.ex.exceptions.MaxAttempts(

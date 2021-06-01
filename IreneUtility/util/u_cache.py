@@ -1,5 +1,5 @@
 from discord.ext import tasks
-from IreneUtility.Base import Base
+from ..Base import Base
 from . import u_logger as log
 import time
 import asyncio
@@ -18,8 +18,8 @@ class Cache(Base):
         past_time = time.time()
         result = await method()
         if result is None or result:  # expecting False on methods that fail to load, do not simplify None.
-            log.console(
-                f"Cache for {name} Created in {await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)}.")
+            creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
+            log.console(f"Cache for {name} Created in {creation_time}.")
         return result
 
     async def create_cache(self, on_boot_up=True):
@@ -55,22 +55,25 @@ class Cache(Base):
             [self.create_reminder_cache, "Reminders"],
             [self.create_timezone_cache, "Timezones"],
             [self.create_guessing_game_cache, "Guessing Game Scores"],
+            [self.create_unscramble_game_cache, "Unscramble Game Scores"],
             [self.create_twitch_cache, "Twitch Channels"],
             [self.create_currency_cache, "Currency"],
             [self.create_levels_cache, "Levels"],
             [self.create_language_cache, "User Language"],
             [self.create_playing_cards, "Playing Cards"],
-            [self.create_patreons, "Reload Patreon Cache"],
             [self.create_guild_cache, "DB Guild"],
             [self.ex.weverse_client.start, "Weverse"],
-            [self.create_gg_filter_cache, "Guessing Game Filter"]
+            [self.create_gg_filter_cache, "Guessing Game Filter"],
+            [self.create_welcome_role_cache, "Welcome Roles"],
+            [self.create_disabled_games_cache, "Disabled Games In Channels"]
+            # [self.create_image_cache, "Image"],
 
         ]
         for method, cache_name in cache_info:
-            if cache_name in ["DB Guild", "Reload Patreon Cache"]:
+            if cache_name in ["DB Guild", "Patrons"]:
                 # if the discord cache is loaded, make sure to update the patreon cache since our user objects
                 # are reset every time this function is called.
-                if not self.ex.discord_cache_loaded:
+                if not self.ex.discord_cache_loaded or on_boot_up:
                     continue
 
             if cache_name == "Weverse":
@@ -81,10 +84,61 @@ class Cache(Base):
                 continue
 
             await self.process_cache_time(method, cache_name)
-
-        log.console(
-            f"Cache Completely Created in {await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)}.")
+        creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
+        log.console(f"Cache Completely Created in {creation_time}.")
         self.ex.irene_cache_loaded = True
+
+    async def create_disabled_games_cache(self):
+        """Creates a list of channels with disabled games."""
+        self.ex.cache.channels_with_disabled_games = []
+        for channel_id in await self.ex.sql.s_moderator.fetch_games_disabled():
+            await asyncio.sleep(0)  # bare yield
+            self.ex.cache.channels_with_disabled_games.append(channel_id[0])
+
+    async def create_image_cache(self):
+        """Creates Image objects and stores them in local cache.
+
+        Note that usage of these images is unnecessary as a call to the API would be more efficient.
+        Therefore, IreneBot will not be using the image objects directly.
+        """
+        # image_file_types = ["png", "jpeg", "jpg"]
+        video_file_types = ["mp4", "webm"]
+        for p_id, member_id, link, group_photo, face_count, file_type \
+                in await self.ex.sql.s_groupmembers.fetch_all_images():
+            await asyncio.sleep(0)  # bare yield
+            idol = await self.ex.u_group_members.get_member(member_id)
+            img_or_vid = "image" if file_type not in video_file_types else "video"
+            file_name = f"{p_id}{img_or_vid}.{file_type}"
+            image_host_url = f"{self.ex.keys.image_host}idol/{file_name}/"
+            image_file_location = f"{self.ex.keys.idol_photo_location}{file_name}"
+            image = self.ex.u_objects.Image(p_id, file_name, image_file_location, image_host_url, idol,
+                                            face_count=face_count)
+            idol_images = self.ex.cache.idol_images.get(member_id)
+            if idol_images:
+                idol_images.append(image)
+            else:
+                self.ex.cache.idol_images[member_id] = [image]
+
+    async def create_welcome_role_cache(self):
+        self.ex.cache.welcome_roles = {}
+        for guild_id, role_id in await self.ex.sql.s_general.fetch_welcome_roles():
+            try:
+                await asyncio.sleep(0)  # bare yield
+
+                try:
+                    guild = self.ex.client.get_guild(guild_id) or await self.ex.client.fetch_guild(guild_id)
+                except Exception as e:
+                    log.console(f"{e} -> Do not have access to fetch guild {guild_id}.")
+                    guild = None
+
+                if not guild:
+                    continue
+
+                for role in guild.roles:
+                    if role.id == role_id:
+                        self.ex.cache.welcome_roles[guild] = role
+            except Exception as e:
+                log.console(f"{e} ->  Failed to process welcome role cache for {guild_id}")
 
     async def create_playing_cards(self):
         """Crache cache for playing cards."""
@@ -93,9 +147,10 @@ class Cache(Base):
         for custom_card_id, file_name, card_id, card_name, value, bg_idol_id in await self.ex.sql.s_blackjack.fetch_playing_cards():
             await asyncio.sleep(0)  # bare yield
             idol = await self.ex.u_group_members.get_member(bg_idol_id)
-            card = self.ex.u_objects.PlayingCard(custom_card_id, file_name, card_id, card_name,
-                                          f"{self.ex.keys.playing_card_location}{file_name}",
-                                          f"{self.ex.keys.image_host}cards/{file_name}", idol, value)
+            card = self.ex.u_objects.PlayingCard(custom_card_id, file_name,
+                                                 f"{self.ex.keys.playing_card_location}{file_name}",
+                                                 f"{self.ex.keys.image_host}cards/{file_name}", idol,
+                                                 card_id=card_id, card_name=card_name, value=value)
             similar_cards = self.ex.cache.playing_cards.get(card_id)
             if similar_cards:
                 similar_cards.append(card)
@@ -190,7 +245,7 @@ class Cache(Base):
             await asyncio.sleep(0)  # bare yield
             guilds_in_channel = self.ex.cache.twitch_channels.get(username)
             if guilds_in_channel:
-                guilds_in_channel.append(username)
+                guilds_in_channel.append(guild_id)
             else:
                 self.ex.cache.twitch_channels[username] = [guild_id]
 
@@ -201,6 +256,14 @@ class Cache(Base):
         for user_id, easy_score, medium_score, hard_score in await self.ex.sql.s_guessinggame.fetch_gg_stats():
             await asyncio.sleep(0)  # bare yield
             self.ex.cache.guessing_game_counter[user_id] = {"easy": easy_score, "medium": medium_score, "hard": hard_score}
+
+    async def create_unscramble_game_cache(self):
+        """Create cache for unscramble game scores"""
+        self.ex.cache.unscramble_game_counter = {}
+
+        for user_id, easy_score, medium_score, hard_score in await self.ex.sql.s_unscramblegame.fetch_us_stats():
+            await asyncio.sleep(0)  # bare yield
+            self.ex.cache.unscramble_game_counter[user_id] = {"easy": easy_score, "medium": medium_score, "hard": hard_score}
 
     async def create_timezone_cache(self):
         """Create cache for timezones"""
@@ -264,6 +327,7 @@ class Cache(Base):
 
     async def create_restricted_channel_cache(self):
         """Create restricted idol channel cache"""
+        self.ex.cache.restricted_channels = {}
         for channel_id, server_id, send_here in await self.ex.sql.s_groupmembers.fetch_restricted_channels():
             await asyncio.sleep(0)  # bare yield
             self.ex.cache.restricted_channels[channel_id] = [server_id, send_here]
@@ -458,10 +522,11 @@ class Cache(Base):
             # this is an alternative to get patreons instantly and later modifying the cache after the cache loads.
             # remove any patrons from db set cache that should not exist or should be modified.
             cached_patrons = await self.ex.sql.s_patreon.fetch_cached_patrons()
+            cached_patron_ids = []
 
             for user_id, super_patron in cached_patrons:
                 await asyncio.sleep(0)  # bare yield
-                cached_patrons.append(user_id)
+                cached_patron_ids.append(user_id)
                 if user_id not in normal_patrons:
                     # they are not a patron at all, so remove them from db cache
                     await self.ex.sql.s_patreon.delete_patron(user_id)
@@ -471,17 +536,16 @@ class Cache(Base):
                 elif user_id not in super_patrons and super_patron:
                     # if they are not a super patron, but the db cache says they are.
                     await self.ex.sql.s_patreon.update_patron(user_id, 0)
-
             # fix db cache and live Irene cache
             for patron in normal_patrons:
-                if patron not in cached_patrons:
+                if patron not in cached_patron_ids:
                     # patron includes both normal and super patrons.
                     await self.ex.sql.s_patreon.add_patron(patron, 0)
                 user = await self.ex.get_user(patron)
                 user.patron = True
 
             for patron in super_patrons:
-                if patron not in cached_patrons:
+                if patron not in cached_patron_ids:
                     await self.ex.sql.s_patreon.update_patron(patron, 1)
                 user = await self.ex.get_user(patron)
                 user.patron = True
@@ -492,7 +556,8 @@ class Cache(Base):
                 user.patron = True
                 user.super_patron = True
             return True
-        except:
+        except Exception as e:
+            log.console(f"{e} - create_patreons")
             return False
 
     async def create_user_notifications(self):
@@ -549,7 +614,7 @@ class Cache(Base):
         """Looped every 12 hours to update the cache in case of anything faulty."""
         while not self.ex.conn:
             await asyncio.sleep(1)
-        await self.create_cache()
+        await self.create_cache(on_boot_up=not self.ex.irene_cache_loaded)
 
     @tasks.loop(seconds=0, minutes=0, hours=0, reconnect=True)
     async def update_patron_and_guild_cache(self):
@@ -614,6 +679,13 @@ class Cache(Base):
                         bot_banned += 1
                     active_user_reminders += len(user.reminders)
 
+                playing_card_amount = 0
+                for list_of_playing_card in self.ex.cache.playing_cards.values():
+                    playing_card_amount += len(list_of_playing_card)
+
+                user_copy = self.ex.cache.users.copy()
+                gg_filtered_enabled = len([user for user in user_copy.values() if user.gg_filter])
+
                 metric_info = {
                     'total_commands_used': self.ex.cache.total_used,
                     'bias_games': len(self.ex.cache.bias_games),
@@ -667,7 +739,14 @@ class Cache(Base):
                     'servers_using_self_assignable_roles': len(self.ex.cache.assignable_roles.keys() or []),
                     'total_amount_of_self_assignable_roles': sum([len(channel_and_roles.get('roles') or [])
                                                                   for channel_and_roles in
-                                                                  self.ex.cache.assignable_roles.values()])
+                                                                  self.ex.cache.assignable_roles.values()]),
+                    'channels_with_games_disabled': len(self.ex.cache.channels_with_disabled_games),
+                    'dead_image_cache': len(self.ex.cache.dead_image_cache),
+                    'user_objects': len(self.ex.cache.users),
+                    'welcome_roles': len(self.ex.cache.welcome_roles),
+                    'playing_cards': playing_card_amount,
+                    'members_in_support_server': len(self.ex.cache.member_ids_in_support_server),
+                    'gg_filter_enabled': gg_filtered_enabled
                 }
 
                 # set all per minute metrics to 0 since this is a 60 second loop.
@@ -680,6 +759,7 @@ class Cache(Base):
                 self.ex.cache.wolfram_per_minute = 0
                 self.ex.cache.urban_per_minute = 0
                 for metric_name in metric_info:
+                    await asyncio.sleep(0)  # bare yield
                     try:
                         metric_value = metric_info.get(metric_name)
                         # add to thread pool to prevent blocking.

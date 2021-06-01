@@ -1,5 +1,5 @@
-import IreneUtility.models
-from IreneUtility.Base import Base
+from .. import models
+from ..Base import Base
 from typing import List
 import time
 import json
@@ -27,6 +27,10 @@ class Cache(Base):
         self.errors_per_minute = 0  # errors per minute
         self.wolfram_per_minute = 0  # wolfram calls per minute
         self.urban_per_minute = 0  # Urban dictionary calls per minute
+
+        self.idol_images = {}  # { idol_id: [IreneUtility.models.Image] }
+
+        self.channels_with_disabled_games = []
 
         # Amount of times a command has been used.
         self.command_counter = {}  # { command_name : amount_of_times_used }
@@ -100,7 +104,9 @@ class Cache(Base):
         # Bias Game Objects
         self.bias_games = {}  # {channelid: Game}
         # BlackJack Game Objects
-        self.blackjack_games: List[IreneUtility.models.BlackJackGame] = []
+        self.blackjack_games: List[models.BlackJackGame] = []
+        # UnScramble Game Objects
+        self.unscramble_games = {}  # {channelid: Game}
 
         # Text channels to send Weverse updates to.
         self.weverse_channels = {}  # { community_name: [ [channel_id, role_id, comments_disabled] ] }
@@ -110,6 +116,16 @@ class Cache(Base):
 
         # Guessing Game User Scores
         self.guessing_game_counter = {}
+        # {
+        # user_id:
+        #   {
+        #       easy: int
+        #       medium: int
+        #       hard: int
+        #   }
+        # }
+
+        self.unscramble_game_counter = {}
         # {
         # user_id:
         #   {
@@ -182,7 +198,9 @@ class Cache(Base):
 
         self.playing_cards = {}  # {card_id: [custom playing card 1, custom playing card 2]}
 
-        self.member_ids_in_support_server = []  # [userids]
+        self.member_ids_in_support_server = []  # [user ids]
+
+        self.welcome_roles = {}  # d.py Guild object : d.py Role object
 
         # bracket position for bias game stored due to annoyance when using previous x and y values.
         # counting starts from left to right, bottom to top
@@ -271,6 +289,25 @@ class Cache(Base):
             'facebook': ['[Facebook](https://www.facebook.com/', ')'],
             'tiktok': ['[TikTok](https://www.tiktok.com/', ')'],
         }
+
+        self.stop_phrases = ['stop', 'end', 'quit']
+        self.dead_image_phrases = ['dead', 'report']
+        self.skip_phrases = ['skip', 'pass']
+
+        self.year_aliases = ["years", "year", "yr", "y"]
+        self.month_aliases = ["months", "month", "mo"]
+        self.week_aliases = ["weeks", "week", "wk"]
+        self.day_aliases = ["days", "day", "d"]
+        self.hour_aliases = ["hours", "hour", "hrs", "hr", "h"]
+        self.minute_aliases = ["minutes", "minute", "mins", "min", "m"]
+        self.second_aliases = ["seconds", "second", "secs", "sec", "s"]
+        self.time_units = [[self.year_aliases, 31536000], [self.month_aliases, 2592000], [self.week_aliases, 604800],
+                           [self.day_aliases, 86400], [self.hour_aliases, 3600], [self.minute_aliases, 60],
+                           [self.second_aliases, 1]]
+        self.all_time_aliases = [alias for time_unit in self.time_units for alias in time_unit[0]]
+
+        # phrases that would trigger a message check in guessing game.
+        self.gg_msg_phrases = self.stop_phrases + self.dead_image_phrases + self.skip_phrases
 
         self.interaction_list = [
             'slap',

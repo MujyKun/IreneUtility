@@ -1,0 +1,2 @@
+git+git://github.com/MujyKun/IreneUtility@dev#IreneUtility
+git+git://github.com/MujyKun/boats.py@master#boats.py

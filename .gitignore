@@ -10,4 +10,5 @@ venv/
 *.pickle
 build/
 dist/
-IreneUtility.egg-info/
+_*/
+*.egg-info/

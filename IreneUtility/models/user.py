@@ -2,8 +2,8 @@ import random
 from decimal import Decimal
 from math import log10
 from random import randint
-import IreneUtility.s_sql as sql
-import IreneUtility.util.u_exceptions as exceptions
+from .. import s_sql as sql
+from ..util import u_exceptions as exceptions
 
 
 # noinspection PyBroadException
@@ -67,7 +67,8 @@ class User:
         if self.profile_level or self.beg_level or self.rob_level or self.daily_level:
             return
         else:
-            await sql.s_levels.create_level_row(self.id)
+            if not await sql.s_levels.level_row_exists(self.id):
+                await sql.s_levels.create_level_row(self.id)
 
     async def update_level_in_db(self, column_name, level):
         """Update the level for the user."""

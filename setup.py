@@ -12,7 +12,7 @@ def parse_requirements(filename):
 
 setup(
     name='IreneUtility',
-    version='1.03.9',
+    version='1.04.0',
     packages=find_packages(),
     install_requires=parse_requirements("requirements.txt"),
     url='https://github.com/MujyKun/IreneUtility/',
@@ -27,6 +27,5 @@ setup(
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
-    python_requires='>=2.7',
-
+    python_requires='>=3.8'
 )

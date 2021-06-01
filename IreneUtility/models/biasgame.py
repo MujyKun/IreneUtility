@@ -2,7 +2,7 @@ from . import Game as Game_Base
 import random
 import asyncio
 from math import log2
-from IreneUtility.util import u_logger as log
+from ..util import u_logger as log
 import discord
 
 
@@ -112,7 +112,7 @@ Remaining Idols: {self.number_of_idols_left}
 
     async def end_game(self):
         """End the game"""
-        if not self.force_ended:
+        if self.force_ended:
             await self.channel.send(await self.ex.get_msg(self.host_id, 'biasgame', 'force_closed'))
         self.force_ended = True
         return True

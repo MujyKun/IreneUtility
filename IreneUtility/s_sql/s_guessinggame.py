@@ -1,4 +1,4 @@
-from IreneUtility.s_sql import self
+from . import self
 
 
 async def fetch_filter_enabled():

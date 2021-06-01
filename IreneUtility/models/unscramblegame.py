@@ -6,7 +6,7 @@ from ..util import u_logger as log
 
 
 # noinspection PyBroadException,PyPep8
-class GuessingGame(Game_Base):
+class UnScrambleGame(Game_Base):
     def __init__(self, *args, max_rounds=20, timeout=20, gender="all", difficulty="medium"):
         """
 
@@ -18,18 +18,15 @@ class GuessingGame(Game_Base):
         :param difficulty: Easy/Medium/Hard difficulty of the game.
         """
         super().__init__(*args)
-        self.photo_link = None
         self.host_user = None  # Utility user object
         # user_id : score
         self.players = {}
         self.rounds = 0
         self.idol = None
-        self.group_names = None
-        self.correct_answers = []
+        self.correct_answer: str = ""
         self.timeout = timeout
         self.max_rounds = max_rounds
         self.force_ended = False
-        self.idol_post_msg = None
         self.gender = None
         self.post_attempt_timeout = 10
         if gender.lower() in self.ex.cache.male_aliases:
@@ -45,7 +42,6 @@ class GuessingGame(Game_Base):
 
         self.idol_set: list = []
         self.results_posted = False
-        self.api_issues = 0
 
     async def credit_user(self, user_id):
         """Increment a user's score"""
@@ -66,24 +62,18 @@ class GuessingGame(Game_Base):
             if message.channel != self.channel:
                 return False
             msg_lower = message.content.lower()
-            if msg_lower in self.correct_answers:
+            if msg_lower == self.correct_answer.lower():
                 return True
             if message.author.id == self.host_id:
-                return msg_lower in self.ex.cache.gg_msg_phrases
+                return msg_lower in self.ex.cache.stop_phrases
         try:
             msg = await self.ex.client.wait_for('message', check=check_correct_answer, timeout=self.timeout)
             await msg.add_reaction(self.ex.keys.check_emoji)
             message_lower = msg.content.lower()
-            if message_lower in self.ex.cache.skip_phrases:
-                await self.print_answer(question_skipped=True)
-                return
-            elif message_lower in self.correct_answers:
+            if message_lower == self.correct_answer.lower():
                 await self.credit_user(msg.author.id)
             elif message_lower in self.ex.cache.stop_phrases or self.force_ended:
                 self.force_ended = True
-                return
-            elif message_lower in self.ex.cache.dead_image_phrases:
-                await self.print_answer(question_skipped=True, dead_link=True)
                 return
             else:
                 # the only time this code is reached is when a prefix was changed in the middle of a round.
@@ -100,7 +90,7 @@ class GuessingGame(Game_Base):
     async def create_new_question(self):
         """Create a new question and send it to the channel."""
         # noinspection PyBroadException
-        if self not in self.ex.cache.guessing_games.values():
+        if self not in self.ex.cache.unscramble_games.values():
             # This is a double check in case the user tried to force end the game but the game is still going on.
             # just in case, since we do not want the channel to be spammed with posts.
             self.force_ended = True
@@ -110,19 +100,6 @@ class GuessingGame(Game_Base):
         question_posted = False
         while not question_posted:
             try:
-                if self.idol_post_msg:
-                    """
-                    # We do not need to attempt to delete the idol post anymore as we are passing in the timeout
-                    # as we create the message.
-                    
-                    try:
-                        await self.idol_post_msg.delete()
-                    except Exception as e:
-                        # message does not exist.
-                        log.useless(f"{e} - Likely message doesn't exist - GuessingGame.Game.create_new_question")
-                        
-                    """
-
                 # Create random idol selection
                 if not self.idol_set:
                     raise LookupError(f"No valid idols for the group {self.gender} and {self.difficulty}.")
@@ -131,26 +108,35 @@ class GuessingGame(Game_Base):
                 # Create acceptable answers
                 await self.create_acceptable_answers()
 
-                # Create list of idol group names.
-                self.group_names = [(await self.ex.u_group_members.get_group(group_id)).name
-                                    for group_id in self.idol.groups]
+                log.console(f"{self.correct_answer} - Unscramble {self.channel.id}")
 
-                # Skip this idol if it is taking too long
-                async with async_timeout.timeout(self.post_attempt_timeout) as posting:
-                    self.idol_post_msg, self.photo_link = await self.ex.u_group_members.idol_post(
-                        self.channel, self.idol, user_id=self.host_id, guessing_game=True, scores=self.players,
-                        msg_timeout=self.timeout + 5)
-                    log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}')
+                """
+                In order to create the scrambled word:
+                -> First, we will take all of the words (split by spaces) 
+                in the name and put them individually into a list and shuffle their order.
+                
+                -> Then, in every word, we will shuffle the characters.
+                -> If the difficulty is hard, we will make the entire scrambled name lower case.
+                """
+                word_list = self.correct_answer.split()  # word of the correct answers in a list to shuffle.
+                random.shuffle(word_list)
+                scrambled_word = ""
+                for word in word_list:
+                    char_list = [char for char in word]
+                    random.shuffle(char_list)
+                    if scrambled_word:
+                        scrambled_word += " "  # adding a space before next word.
+                    scrambled_word += "".join(char_list)
+                if self.difficulty == "hard":
+                    scrambled_word = scrambled_word.lower()
 
-                if posting.expired:
-                    log.console(f"Posting for {self.idol.full_name} ({self.idol.stage_name}) [{self.idol.id}]"
-                                f" took more than {self.post_attempt_timeout}")
-                    continue
+                await self.channel.send(f"The name I want you to unscramble is `{scrambled_word}`.")
+
                 question_posted = True
             except LookupError as e:
                 raise e
             except Exception as e:
-                log.console(f"{e} - guessinggame.create_new_question")
+                log.console(f"{e} - unscramblegame.create_new_question")
                 continue
 
     async def display_winners(self):
@@ -159,18 +145,16 @@ class GuessingGame(Game_Base):
         if self.players:
             for user_id in self.players:
                 final_scores += f"<@{user_id}> -> {self.players.get(user_id)}\n"
-        return await self.channel.send(f">>> Guessing game has finished.\nScores:\n{final_scores}")
+        return await self.channel.send(f">>> Unscramble game has finished.\nScores:\n{final_scores}")
 
     async def end_game(self):
-        """Ends a guessing game."""
+        """Ends an unscramble game."""
         if self.results_posted:
             return True
 
         self.force_ended = True
         self.rounds = self.max_rounds
-        if not self.host_user.gg_filter:
-            # only update scores when there is no group filter on.
-            await self.update_scores()
+        await self.update_scores()
         await self.display_winners()
         self.results_posted = True
         return True
@@ -178,60 +162,52 @@ class GuessingGame(Game_Base):
     async def update_scores(self):
         """Updates all player scores"""
         for user_id in self.players:
-            await self.ex.u_guessinggame.update_user_guessing_game_score(self.difficulty, user_id=user_id,
-                                                                         score=self.players.get(user_id))
+            await self.ex.u_unscramblegame.update_user_unscramble_game_score(self.difficulty, user_id=user_id,
+                                                                             score=self.players.get(user_id))
 
-    async def print_answer(self, question_skipped=False, dead_link=False):
+    async def print_answer(self):
         """Prints the current round's answer."""
-        skipped = ""
-        if question_skipped:
-            skipped = "Question Skipped. "
-        msg = await self.channel.send(f"{skipped}The correct answer was "
-                                      f"`{self.idol.full_name} ({self.idol.stage_name})`"
-                                      f" from the following group(s): `{', '.join(self.group_names)}`", delete_after=15)
-
-        # create_task should not be awaited because this is meant to run in the background to check for reactions.
-        try:
-            # noinspection PyUnusedLocal
-            """
-            # create task to check image reactions.
-            
-            # We will no longer create a whole task to check for a dead link reaction. 
-            # Instead we will just check for a "dead" or "report" during the message check.
-            # This is now used as a confirmation message for a dead link after the user types "dead" or "report".
-            """
-            if dead_link:
-                asyncio.create_task(self.ex.u_group_members.check_idol_post_reactions(
-                    msg, self.host_ctx.message, self.idol, self.photo_link, guessing_game=True))
-        except Exception as e:
-            log.console(e)
+        await self.channel.send(f"The correct answer was {self.correct_answer}")
 
     async def create_acceptable_answers(self):
         """Create acceptable answers."""
-        self.correct_answers = [alias.lower() for alias in self.idol.aliases]
-        if self.idol.full_name:
-            self.correct_answers.append(self.idol.full_name.lower())
-        if self.idol.stage_name:
-            self.correct_answers.append(self.idol.stage_name.lower())
-        if self.idol.former_full_name:
-            self.correct_answers.append(self.idol.former_full_name.lower())
-        if self.idol.former_stage_name:
-            self.correct_answers.append(self.idol.former_stage_name.lower())
+        possible_answers = []
+
+        if self.difficulty in ["easy", "medium", "hard"]:
+            possible_answers.append(self.idol.stage_name)
+
+        elif self.difficulty in ["medium", "hard"]:
+            for group_id in self.idol:
+                await asyncio.sleep(0)  # bare yield
+                group = await self.ex.u_group_members.get_group(group_id)
+                if group.name == "NULL":  # we do not want a test group to be represented as the final question.
+                    continue
+                possible_answers.append(group.name)
+
+            possible_answers.append(self.idol.full_name)
+
+        elif self.difficulty in ["hard"]:
+            if self.idol.former_full_name:
+                possible_answers.append(self.idol.former_full_name)
+            if self.idol.former_stage_name:
+                possible_answers.append(self.idol.former_stage_name)
+            if self.idol.aliases:
+                for alias in self.idol.aliases:
+                    await asyncio.sleep(0)  # bare yield
+                    possible_answers.append(alias)
+
+        else:
+            raise self.ex.exceptions.ShouldNotBeHere("unscramblegame.create_acceptable_answers")
+
+        self.correct_answer = (random.choice(possible_answers))  # we do not worry/care about case-sensitivity here.
 
     async def create_idol_pool(self):
         """Create the game's idol pool."""
         idol_gender_set = self.ex.cache.gender_selection.get(self.gender)
         idol_difficulty_set = self.ex.cache.difficulty_selection.get(self.difficulty)
-        idol_filtered_set = set()
         self.ex.cache.idols_female.update({idol for idol in self.ex.cache.idols if idol.gender == 'f'
                                            and idol.photo_count})
-        if self.host_user.gg_filter:
-            for group in self.host_user.gg_groups:
-                idol_filtered_set.update(
-                    {await self.ex.u_group_members.get_member(idol_id) for idol_id in group.members})
-            self.idol_set = list(idol_gender_set & idol_difficulty_set & idol_filtered_set)
-        else:
-            self.idol_set = list(idol_gender_set & idol_difficulty_set)
+        self.idol_set = list(idol_gender_set & idol_difficulty_set)
 
     async def process_game(self):
         """Ignores errors and continuously makes new questions until the game should end."""
@@ -242,10 +218,8 @@ class GuessingGame(Game_Base):
                 try:
                     await self.create_new_question()
                 except LookupError as e:
-                    filter_msg = "Type `ggfilter` to disable your filter." if self.host_user.gg_filter else ""
-
                     await self.channel.send(f"The gender, difficulty, and filtered settings selected have no idols. "
-                                            f"Ending Game. {filter_msg}")
+                                            f"Ending Game.")
                     log.console(e)
                     return
                 await self.check_message()
