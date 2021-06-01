@@ -732,7 +732,8 @@ class Cache(Base):
                     'dead_image_cache': len(self.ex.cache.dead_image_cache),
                     'user_objects': len(self.ex.cache.users),
                     'welcome_roles': len(self.ex.cache.welcome_roles),
-                    'playing_cards': playing_card_amount
+                    'playing_cards': playing_card_amount,
+                    'members_in_support_server': len(self.ex.cache.member_ids_in_support_server)
                 }
 
                 # set all per minute metrics to 0 since this is a 60 second loop.
