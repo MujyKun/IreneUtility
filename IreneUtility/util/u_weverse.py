@@ -105,7 +105,9 @@ class Weverse(Base):
 
         if not translation:
             # translate using Irene's API instead.
-            await self.ex.u_miscellaneous.translate(comment_body, "KR", "EN")
+            translation_json = await self.ex.u_miscellaneous.translate(comment_body, "KR", "EN") or {"code": -1}
+            if translation_json.get("code") == 0:
+                translation = translation_json.get("text")
 
         embed_description = f"**{notification.message}**\n\n" \
                             f"Content: **{comment_body}**\n" \
@@ -121,7 +123,9 @@ class Weverse(Base):
                                                              community_id=notification.community_id)
             if not translation:
                 # translate using Irene's API instead.
-                await self.ex.u_miscellaneous.translate(post.body, "KR", "EN")
+                translation_json = await self.ex.u_miscellaneous.translate(post.body, "KR", "EN") or {"code": -1}
+                if translation_json.get("code") == 0:
+                    translation = translation_json.get("text")
 
             # artist = self.weverse_client.get_artist_by_id(notification.artist_id)
             embed_description = f"**{notification.message}**\n\n" \
