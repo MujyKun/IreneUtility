@@ -278,6 +278,18 @@ class Cache(Base):
         self.dead_image_phrases = ['dead', 'report']
         self.skip_phrases = ['skip', 'pass']
 
+        self.year_aliases = ["years", "year", "yr", "y"]
+        self.month_aliases = ["months", "month", "mo"]
+        self.week_aliases = ["weeks", "week", "wk"]
+        self.day_aliases = ["days", "day", "d"]
+        self.hour_aliases = ["hours", "hour", "hrs", "hr", "h"]
+        self.minute_aliases = ["minutes", "minute", "mins", "min", "m"]
+        self.second_aliases = ["seconds", "second", "secs", "sec", "s"]
+        self.time_units = [[self.year_aliases, 31536000], [self.month_aliases, 2592000], [self.week_aliases, 604800],
+                           [self.day_aliases, 86400], [self.hour_aliases, 3600], [self.minute_aliases, 60],
+                           [self.second_aliases, 1]]
+        self.all_time_aliases = [alias for time_unit in self.time_units for alias in time_unit[0]]
+
         # phrases that would trigger a message check in guessing game.
         self.gg_msg_phrases = self.stop_phrases + self.dead_image_phrases + self.skip_phrases
 

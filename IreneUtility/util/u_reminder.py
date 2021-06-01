@@ -53,21 +53,10 @@ class Reminder(Base):
 
     async def process_relative_time_input(self, time_input):
         """Returns the relative time of the input in seconds"""
-        year_aliases = ["years", "year", "yr", "y"]
-        month_aliases = ["months", "month", "mo"]
-        week_aliases = ["weeks", "week", "wk"]
-        day_aliases = ["days", "day", "d"]
-        hour_aliases = ["hours", "hour", "hrs", "hr", "h"]
-        minute_aliases = ["minutes", "minute", "mins", "min", "m"]
-        second_aliases = ["seconds", "second", "secs", "sec", "s"]
-        time_units = [[year_aliases, 31536000], [month_aliases, 2592000], [week_aliases, 604800], [day_aliases, 86400],
-                      [hour_aliases, 3600], [minute_aliases, 60], [second_aliases, 1]]
-
         remind_time = 0  # in seconds
         input_elements = re.findall(r"[^\W\d_]+|\d+", time_input)
 
-        all_aliases = [alias for time_unit in time_units for alias in time_unit[0]]
-        if not any(alias in input_elements for alias in all_aliases):
+        if not any(alias in input_elements for alias in self.ex.cache.all_time_aliases):
             raise self.ex.exceptions.ImproperFormat
 
         for time_element in input_elements:
@@ -75,7 +64,7 @@ class Reminder(Base):
                 int(time_element)
             except:
                 # purposefully creating an error to locate which elements are words vs integers.
-                for time_unit in time_units:
+                for time_unit in self.ex.cache.time_units:
                     if time_element in time_unit[0]:
                         remind_time += time_unit[1] * int(input_elements[input_elements.index(time_element) - 1])
         return remind_time
