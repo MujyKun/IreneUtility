@@ -136,8 +136,8 @@ class Cache(Base):
             idol = await self.ex.u_group_members.get_member(bg_idol_id)
             card = self.ex.u_objects.PlayingCard(custom_card_id, file_name,
                                                  f"{self.ex.keys.playing_card_location}{file_name}",
-                                                 f"{self.ex.keys.image_host}cards/{file_name}", idol, card_id,
-                                                 card_name, value)
+                                                 f"{self.ex.keys.image_host}cards/{file_name}", idol,
+                                                 card_id=card_id, card_name=card_name, value=value)
             similar_cards = self.ex.cache.playing_cards.get(card_id)
             if similar_cards:
                 similar_cards.append(card)
