@@ -65,7 +65,7 @@ class UnScrambleGame(Game_Base):
             if msg_lower == self.correct_answer.lower():
                 return True
             if message.author.id == self.host_id:
-                return msg_lower in self.ex.cache.stop_phrases
+                return (msg_lower in self.ex.cache.stop_phrases) or (msg_lower in self.ex.cache.skip_phrases)
         try:
             msg = await self.ex.client.wait_for('message', check=check_correct_answer, timeout=self.timeout)
             await msg.add_reaction(self.ex.keys.check_emoji)
@@ -74,6 +74,8 @@ class UnScrambleGame(Game_Base):
                 await self.credit_user(msg.author.id)
             elif message_lower in self.ex.cache.stop_phrases or self.force_ended:
                 self.force_ended = True
+                return
+            elif message_lower in self.ex.cache.skip_phrases:
                 return
             else:
                 # the only time this code is reached is when a prefix was changed in the middle of a round.
