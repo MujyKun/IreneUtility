@@ -189,8 +189,13 @@ class Cache(Base):
     @staticmethod
     def apply_bold_to_braces(text: str) -> str:
         """Applys bold markdown in between braces."""
+
+        text = text.replace("{server_prefix}", "server_prefix")  # we do not want to bold the server prefix.
+
         text = text.replace("{", "**{")
         text = text.replace("}", "}**")
+
+        text = text.replace("server_prefix", "{server_prefix}")  # return server prefix back to its initial state.
         return text
 
     async def create_levels_cache(self):
