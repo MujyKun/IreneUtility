@@ -16,7 +16,7 @@ class GroupMembers(Base):
         super().__init__(*args)
         self.api_headers = {'Authorization': self.ex.keys.translate_private_key}
         self.api_endpoint = "https://api.irenebot.com/photos/"
-        self.local_api_endpoint = "http://127.0.0.1:{self.ex.keys.api_port}/photos/"
+        self.local_api_endpoint = f"http://127.0.0.1:{self.ex.keys.api_port}/photos/"
 
     async def get_if_user_voted(self, user_id):
         time_stamp = self.ex.first_result(
