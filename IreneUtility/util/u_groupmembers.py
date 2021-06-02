@@ -697,11 +697,12 @@ class GroupMembers(Base):
             file_location = data.get('location')
             file_name = data.get('file_name')
             if r.status in [200, 301]:
-                pass
+                if self.ex.upload_from_host:
+                    file = await self.__handle_file(file_location, file_name)
             elif r.status == 415:  # handle videos
                 # TODO: Make sure we do not get videos in a guessing game.
 
-                file = await self.__handle_video(file_location, file_name)
+                file = await self.__handle_file(file_location, file_name)
                 if not file:
                     return await self.__get_image_msg(*args, **kwargs)
             else:
@@ -723,7 +724,7 @@ class GroupMembers(Base):
         return msg, photo_link
 
     @staticmethod
-    async def __handle_video(file_location, file_name):
+    async def __handle_file(file_location, file_name):
         """Handles API Status 415 (Video Retrieved) and returns a discord File.
 
         :param request: The connection to the endpoint.

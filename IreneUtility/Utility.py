@@ -39,6 +39,7 @@ class Utility:
         # A lot of these properties may be created via client side
         # in order to make Utility more portable when needed and client friendly.
         self.test_bot = None  # this is changed on the client side in run.py
+        self.upload_from_host = False  # this is changed on the client side in run.py
         self.client: discord.AutoShardedClient = d_py_client  # discord.py client
         self.session: ClientSession = aiohttp_session  # aiohttp client session
         self.conn = db_connection  # db connection
