@@ -700,7 +700,9 @@ class GroupMembers(Base):
                 if self.ex.upload_from_host:
                     file = await self.__handle_file(file_location, file_name)
             elif r.status == 415:  # handle videos
-                # TODO: Make sure we do not get videos in a guessing game.
+                # Make sure we do not get videos in a guessing game.
+                if guessing_game:
+                    return await self.__get_image_msg(*args, **kwargs)
 
                 file = await self.__handle_file(file_location, file_name)
                 if not file:
