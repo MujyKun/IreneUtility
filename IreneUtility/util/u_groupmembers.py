@@ -697,8 +697,7 @@ class GroupMembers(Base):
             file_location = data.get('location')
             file_name = data.get('file_name')
             if r.status in [200, 301]:
-                if self.ex.upload_from_host:
-                    file = await self.__handle_file(file_location, file_name)
+                pass
             elif r.status == 415:  # handle videos
                 # Make sure we do not get videos in a guessing game.
                 if guessing_game:
@@ -719,7 +718,7 @@ class GroupMembers(Base):
             embed = await self.get_idol_post_embed(group_id, idol, image_host_url, user_id=user_id,
                                                    guild_id=channel.guild.id, guessing_game=guessing_game,
                                                    scores=scores)
-            embed.set_image(url=image_host_url)
+            embed.set_image(url=image_host_url if not self.ex.upload_from_host else f"attachment://{file_location}")
 
         msg = await self.__post_msg(channel, file=file, embed=embed, message_str=special_message, timeout=msg_timeout)
 
@@ -812,7 +811,8 @@ class GroupMembers(Base):
             msg, image_host = await self.__get_image_msg(channel, idol, **kwargs)  # post image msg
 
             await self.update_member_count(idol)  # update amount of times an idol has been called.
-        except AttributeError:  # resolve dms
+        except AttributeError as e:  # resolve dms
+            log.console(f"AttributeError - {e} -> u_groupmembers.idol_post")
             await channel.send("It is not possible to receive Idol Photos in DMs.")
         except discord.Forbidden:  # resolve 403
             pass
