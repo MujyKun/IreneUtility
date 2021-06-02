@@ -743,7 +743,8 @@ class Cache(Base):
                     'playing_cards': sum([len(same_card_type) for same_card_type in self.ex.cache.playing_cards.values()
                                           ]),
                     'members_in_support_server': len(self.ex.cache.member_ids_in_support_server),
-                    'gg_filter_enabled': gg_filtered_enabled
+                    'gg_filter_enabled': gg_filtered_enabled,
+                    'active_unscramble_games': len(self.ex.cache.unscramble_games)
                 }
 
                 # set all per minute metrics to 0 since this is a 60 second loop.
