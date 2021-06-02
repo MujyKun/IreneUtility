@@ -14,7 +14,10 @@ import time
 class GroupMembers(Base):
     def __init__(self, *args):
         super().__init__(*args)
-        
+        self.api_headers = {'Authorization': self.ex.keys.translate_private_key}
+        self.api_endpoint = "https://api.irenebot.com/photos/"
+        self.local_api_endpoint = "http://127.0.0.1:{self.ex.keys.api_port}/photos/"
+
     async def get_if_user_voted(self, user_id):
         time_stamp = self.ex.first_result(
             await self.ex.conn.fetchrow("SELECT votetimestamp FROM general.lastvoted WHERE userid = $1", user_id))
@@ -623,131 +626,142 @@ class GroupMembers(Base):
         api_url_id = int(api_url[beginning_position:ending_position])  # the file id hidden in the url
         return self.ex.first_result(await self.ex.conn.fetchrow("SELECT link FROM groupmembers.imagelinks WHERE id = $1", api_url_id))
 
-    async def get_image_msg(self, idol, group_id, channel, photo_link, user_id=None, guild_id=None, api_url=None,
-                            special_message=None, guessing_game=False, scores=None, msg_timeout=None):
-        """Get the image link from the API and return the message containing the image."""
+    async def __post_msg(self, channel, file=None, embed=None, message_str=None, timeout=None):
+        """Post a file,embed, or message to a text channel and return it.
 
-        async def post_msg(m_file=None, m_embed=None):
-            """Send the message to the channel and return it."""
-            message = None
-            max_post_attempt = 5
-            for attempt in range(0, max_post_attempt):
-                try:
-                    if not special_message:
-                        message = await channel.send(embed=m_embed, file=m_file, delete_after=msg_timeout)
-                    else:
-                        message = await channel.send(special_message, embed=m_embed, file=m_file,
-                                                     delete_after=msg_timeout)
-                    break
-                except Exception as exc:
-                    log.console(exc)
-                    # cannot access API or API Link -> attempt to post it 5 times.
-                    # this happens because the image link may not be properly registered.
-                    if message:
-                        break
-                    await asyncio.sleep(0.5)
-                    continue
-            return message
+        :param channel: (discord.Channel) Channel to send message to.
+        :param file: (discord.File) A File to send.
+        :param embed: (discord.Embed) An embed to send.
+        :param message_str: (str)  A message to send.
+        :param timeout: (int) A delay for deleting the message.
 
+        :returns: (discord.Message) Message that was created.
+        """
+        message = None
+        try:
+            message = await channel.send(message_str, file=file, embed=embed, delete_after=timeout)
+        except Exception as e:
+            # link may not be properly registered.
+            print(f"{e} -> u_groupmembers.__post_msg")
+        return message
+
+    async def __get_image_msg(self, idol, group_id, channel, photo_link=None, user_id=None, guild_id=None,
+                              special_message=None, guessing_game=False, scores=None, msg_timeout=None):
+        """Make an idol photo request to API and post a msg.
+
+        :param channel: (discord.Channel) Channel that the embed/image should be posted to.
+        :param idol: (IreneUtility Idol object) Idol that will be posted.
+        :param photo_link: Image that will be embedded.
+        :param group_id: Group ID the idol may be posted with. (used for if a group photo was called instead).
+        :param special_message: Any message that should be applied to the post.
+        :param user_id: User ID that is calling the photo.
+        :param guild_id: Guild ID that the photo is being requested from.
+        :param guessing_game: (bool) Whether the method is called from a guessing game.
+        :param scores: (dict) Any scores that may come with a game. In a format of {user id : score}
+        :param msg_timeout: Amount of time before deleting a message.
+        """
+        # args from this method (used for recursive purposes).
+        args = {idol, group_id, channel}
+
+        # kwargs from this method (used for recursive purposes).
+        kwargs = {
+            "photo_link": photo_link,
+            "user_id": user_id,
+            "guild_id": guild_id,
+            "special_message": special_message,
+            "guessing_game": guessing_game,
+            "scores": scores,
+            "msg_timeout": msg_timeout
+        }
+
+        # set defaults for image posting.
         file = None
-        if not api_url:
-            try:
-                find_post = True
-                """
-                Cloudflare has been considering IreneBot as a malicious attack since we do not rate-limit
-                the requests.
-                More than 480k requests were blocked within the span of 6 hours. 
-                Resort to localhost to not go through cloudflare.
-                """
-                data = {
-                    'allow_group_photos': int(not guessing_game),
-                    'redirect': 0
-                }
-                headers = {'Authorization': self.ex.keys.translate_private_key}
-                end_point = f"http://127.0.0.1:{self.ex.keys.api_port}/photos/{idol.id}"
-                if self.ex.test_bot:
-                    end_point = f"https://api.irenebot.com/photos/{idol.id}"
-                while find_post:  # guarantee we get a post sent to the user.
-                    async with self.ex.session.post(end_point, headers=headers, params=data) as r:
-                        self.ex.cache.bot_api_idol_calls += 1
-                        url_data = json.loads(await r.text())
-                        api_url = url_data.get('final_image_link')
-                        file_location = url_data.get('location')
-                        file_name = url_data.get('file_name')
-                        if r.status == 200 or r.status == 301:
-                            find_post = False
-                        elif r.status == 415:
-                            # video
-                            if guessing_game:
-                                # do not allow videos in the guessing game.
-                                return await self.get_image_msg(idol, group_id, channel, photo_link, user_id, guild_id,
-                                                                api_url, special_message, guessing_game, scores)
+        embed = None
 
-                            file_size = getsize(file_location)
-                            if file_size < 8388608:  # 8 MB
-                                file = discord.File(file_location, file_name)
-                                find_post = False
-                        elif r.status == 403:
-                            log.console("API Key Missing or Invalid Key.")
-                            find_post = False
-                        elif r.status == 404 or r.status == 400:
-                            # No photos were found.
-                            log.console(f"No photos were found for this idol ({idol.id}).")
-                            msg = await channel.send(f"**No photos were found for this idol ({idol.id}).**")
-                            return msg, None
-                        elif r.status == 502:
-                            msg = await channel.send("API is currently being overloaded with requests or is down.")
-                            log.console("API is currently being overloaded with requests or is down.")
-                            return msg, None
-                        elif r.status == 500:
-                            log.console("Server Issue -> Error 500")
-                            return None, None
-                        else:
-                            # error unaccounted for.
-                            log.console(f"{r.status} - Status Code from API.")
-            except Exception as e:
-                log.console(e)
+        # params to pass into api endpoint.
+        api_params = {
+            'allow_group_photos': int(not guessing_game),
+            'redirect': 0  # we do not want the endpoint to redirect us to the image.
+        }
+
+        # increment amount of times we are calling api.
+        self.ex.cache.bot_api_idol_calls += 1
+
+        # endpoint to access.
+        endpoint = f"{self.api_endpoint if self.ex.test_bot else self.local_api_endpoint}{idol.id}"
+
+        # make api request.
+        async with self.ex.session.post(endpoint, headers=self.api_headers, params=api_params) as r:
+            data = json.loads(await r.text())
+            image_host_url = data.get('final_image_link')
+            file_location = data.get('location')
+            file_name = data.get('file_name')
+            if r.status in [200, 301]:
+                pass
+            if r.status == 415:  # handle videos
+                # TODO: Make sure we do not get videos in a guessing game.
+
+                file = await self.__handle_video(file_location, file_name)
+                if not file:
+                    return await self.__get_image_msg(*args, **kwargs)
+            else:
+                await self.__handle_error(channel, idol.id, r.status)
 
         if guessing_game:
-            # sleep for 2 seconds because of bad loading times on discord
+            # discord may have bad image loading time, so we will wait 2 seconds.
+            # this is important because we want the guessing time to be matched up to when the photo appears.
             await asyncio.sleep(2)
-        try:
-            if file:
-                # send the video and return the message with the api url.
-                msg = await post_msg(m_file=file)
-                if not msg:
-                    raise Exception
-                return msg, api_url
 
-            # an image url should exist at this point, and should not equal None.
-            embed = await self.get_idol_post_embed(group_id, idol, str(api_url), user_id=user_id,
+        if not file:
+            embed = await self.get_idol_post_embed(group_id, idol, image_host_url, user_id=user_id,
                                                    guild_id=channel.guild.id, guessing_game=guessing_game,
                                                    scores=scores)
-            embed.set_image(url=api_url)
-            msg = await post_msg(m_embed=embed)
-            if not msg:
-                raise Exception
+            embed.set_image(url=image_host_url)
 
-        except Exception as e:
-            self.ex.api_issues += 1
-            if self.ex.api_issues >= 50:
-                # do not kill api anymore after the api was recoded. Needs to be tested.
-                # await self.ex.kill_api()
-                self.ex.api_issues = 0
-            if guessing_game:
-                existing_game = self.ex.cache.guessing_games.get(channel.id)
-                if existing_game:
-                    existing_game.api_issues += 1
-                    if existing_game.api_issues > 30:
-                        await existing_game.end_game()
-                return None, None  # no longer have an api error msg send for guessing game.
+        msg = await self.__post_msg(channel, file=file, embed=embed, message_str=special_message, timeout=msg_timeout)
 
-            await channel.send(
-                f"> An API issue has occurred. If this is constantly occurring, please join our support server.")
-            log.console(
-                f" {e} - An API issue has occurred. If this is constantly occurring, please join our support server.")
-            return None, None
-        return msg, api_url
+        return msg, photo_link
+
+    @staticmethod
+    async def __handle_video(file_location, file_name):
+        """Handles API Status 415 (Video Retrieved) and returns a discord File.
+
+        :param request: The connection to the endpoint.
+        :param file_location: Location of the file.
+        :param file_name: Name of the file.
+
+        :returns: (discord.File) Discord File that contains the video.
+        """
+        file_size = getsize(file_location)
+        if file_size < 8388608:  # 8 MB
+            return discord.File(file_location, file_name)
+
+    @staticmethod
+    async def __handle_error(channel, idol_id, status):
+        """Handles API Status For Image Retrieval (400/404) (502)
+
+        :param channel: (discord.Channel) Channel that the message should be posted to.
+        :param idol_id: (int) Idol ID that was supposed to be posted.
+        :param status: (int) Request Status
+        """
+        channel_msg = None
+
+        if status in [400, 404]:
+            log_msg = f"No photos were found for this idol ({idol_id}) - {status}."
+            channel_msg = f"**ERROR: No photos were found for this idol ({idol_id}).**"
+        elif status == 403:
+            log_msg = f"API Key Missing or Invalid Key {status}."
+        elif status == 500:
+            log_msg = f"API Issue {status}."
+        elif status == 502:
+            channel_msg = log_msg = f"API is currently being overloaded with requests or is down {status}."
+        else:
+            log_msg = f"Idol Photo Status Code from API {status}."
+
+        if log_msg:
+            log.console(log_msg)
+        if channel_msg:
+            await channel.send(channel_msg)
 
     async def get_idol_post_embed(self, group_id, idol, photo_link, user_id=None, guild_id=None, guessing_game=False,
                                   scores=None):
@@ -775,47 +789,33 @@ class GroupMembers(Base):
                                   color=self.ex.get_random_color(), url=photo_link)
         return embed
 
-    async def idol_post(self, channel, idol, photo_link=None, group_id=None, special_message=None, user_id=None,
-                        guessing_game=False, scores=None, msg_timeout=None):
-        """The main process for posting an idol's photo."""
-        msg, api_url = None, None
-        post_success = False
-        post_attempts = 0
-        while not post_success and post_attempts < self.ex.max_idol_post_attempts:
-            try:
-                msg, api_url = await self.get_image_msg(idol, group_id, channel, photo_link, user_id=user_id,
-                                                        guild_id=channel.guild.id, api_url=photo_link,
-                                                        special_message=special_message, guessing_game=guessing_game,
-                                                        scores=scores, msg_timeout=msg_timeout)
-                if not msg and not api_url:
-                    if guessing_game:
-                        # ensure the message posts.
-                        post_success = False
-                        post_attempts += 1
-                        continue
-                    self.ex.api_issues += 1
-                await self.update_member_count(idol)
-                # Setting to true even if non-guessing game idol has no msg or api_url to prevent infinite loop
-                post_success = True
-            except AttributeError:
-                await channel.send(
-                    f"> An error has occurred. If you are in DMs, It is not possible to receive Idol Photos.")
-                return None, None
+    async def idol_post(self, channel, idol, **kwargs):
+        """The main process for managing the errors behind an api call for an idol's photo.
 
-            except Exception as e:
-                if guessing_game:
-                    post_success = False
-                    post_attempts += 1
-                    continue
-                log.console(f"{e} - u_groupmembers.idol_post")
-                return None, None
-        if post_attempts >= self.ex.max_idol_post_attempts:
-            raise self.ex.exceptions.MaxAttempts(
-                f"Idol posting reached max attempts of {self.ex.max_idol_post_attempts} for {idol.full_name} "
-                f"({idol.stage_name}) [{idol.id}] in channel {channel.guild.id}\n"
-                f"photo link: {photo_link}\n"
-                f"Photo was {'guessing game call' if guessing_game else 'regular idol call'}.")
-        return msg, api_url
+        :param channel: (discord.Channel) Channel that the embed/image should be posted to.
+        :param idol: (IreneUtility Idol object) Idol that will be posted.
+        :param photo_link: Image that will be embedded.
+        :param group_id: Group ID the idol may be posted with. (used for if a group photo was called instead).
+        :param special_message: Any message that should be applied to the post.
+        :param user_id: User ID that is calling the photo.
+        :param guessing_game: (bool) Whether the method is called from a guessing game.
+        :param scores: (dict) Any scores that may come with a game. In a format of {user id : score}
+        :param msg_timeout: Amount of time before deleting a message.
+        """
+        msg, image_host = None, None
+
+        try:
+            kwargs["guild_id"] = channel.guild.id
+            msg, image_host = await self.__get_image_msg(channel, idol, **kwargs)  # post image msg
+
+            await self.update_member_count(idol)  # update amount of times an idol has been called.
+        except AttributeError:  # resolve dms
+            await channel.send("It is not possible to receive Idol Photos in DMs.")
+        except discord.Forbidden:  # resolve 403
+            pass
+        except Exception as e:  # resolve all errors
+            log.console(f"{e} -> u_groupmembers.idol_post")
+        return msg, image_host
 
     def check_reset_limits(self):
         if time.time() - self.ex.cache.commands_used['reset_time'] > 86400:  # 1 day in seconds
