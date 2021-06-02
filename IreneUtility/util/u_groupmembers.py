@@ -698,7 +698,7 @@ class GroupMembers(Base):
             file_name = data.get('file_name')
             if r.status in [200, 301]:
                 pass
-            if r.status == 415:  # handle videos
+            elif r.status == 415:  # handle videos
                 # TODO: Make sure we do not get videos in a guessing game.
 
                 file = await self.__handle_video(file_location, file_name)
