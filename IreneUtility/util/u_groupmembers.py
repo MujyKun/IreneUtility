@@ -645,7 +645,7 @@ class GroupMembers(Base):
             print(f"{e} -> u_groupmembers.__post_msg")
         return message
 
-    async def __get_image_msg(self, idol, group_id, channel, photo_link=None, user_id=None, guild_id=None,
+    async def __get_image_msg(self, channel, idol, group_id=None, photo_link=None, user_id=None, guild_id=None,
                               special_message=None, guessing_game=False, scores=None, msg_timeout=None):
         """Make an idol photo request to API and post a msg.
 
