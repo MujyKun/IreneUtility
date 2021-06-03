@@ -189,13 +189,18 @@ class Cache(Base):
     @staticmethod
     def apply_bold_to_braces(text: str) -> str:
         """Applys bold markdown in between braces."""
+        keywords_to_not_bold = [
+            "server_prefix", "bot_id",
+        ]
+        for keyword in keywords_to_not_bold:
+            text = text.replace(f"{keyword}", keyword)  # we do not want to bold these words
 
-        text = text.replace("{server_prefix}", "server_prefix")  # we do not want to bold the server prefix.
-
+        # bold the words
         text = text.replace("{", "**{")
         text = text.replace("}", "}**")
 
-        text = text.replace("server_prefix", "{server_prefix}")  # return server prefix back to its initial state.
+        for keyword in keywords_to_not_bold:
+            text = text.replace(keyword, f"{keyword}")  # return the keywords back to their initial state.
         return text
 
     async def create_levels_cache(self):
