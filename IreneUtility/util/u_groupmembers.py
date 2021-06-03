@@ -753,8 +753,7 @@ class GroupMembers(Base):
         if file_size < 8388608:  # 8 MB
             return discord.File(file_location, file_name)
 
-    @staticmethod
-    async def __handle_error(channel, idol_id, status):
+    async def __handle_error(self, channel, idol_id, status):
         """Handles API Status For Image Retrieval (400/404) (502)
 
         :param channel: (discord.Channel) Channel that the message should be posted to.
@@ -779,6 +778,7 @@ class GroupMembers(Base):
             log.console(log_msg)
         if channel_msg:
             await channel.send(channel_msg)
+        self.ex.api_issues += 1
 
     async def get_idol_post_embed(self, group_id, idol, photo_link, user_id=None, guild_id=None, guessing_game=False,
                                   scores=None):
