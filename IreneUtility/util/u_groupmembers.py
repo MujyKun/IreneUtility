@@ -626,7 +626,8 @@ class GroupMembers(Base):
         api_url_id = int(api_url[beginning_position:ending_position])  # the file id hidden in the url
         return self.ex.first_result(await self.ex.conn.fetchrow("SELECT link FROM groupmembers.imagelinks WHERE id = $1", api_url_id))
 
-    async def __post_msg(self, channel, file=None, embed=None, message_str=None, timeout=None):
+    @staticmethod
+    async def __post_msg(channel, file=None, embed=None, message_str=None, timeout=None):
         """Post a file,embed, or message to a text channel and return it.
 
         :param channel: (discord.Channel) Channel to send message to.
@@ -715,7 +716,7 @@ class GroupMembers(Base):
             # this is important because we want the guessing time to be matched up to when the photo appears.
             await asyncio.sleep(2)
 
-        if not file:
+        if not file or self.ex.upload_from_host:
             embed = await self.get_idol_post_embed(group_id, idol, image_host_url, user_id=user_id,
                                                    guild_id=channel.guild.id, guessing_game=guessing_game,
                                                    scores=scores)
