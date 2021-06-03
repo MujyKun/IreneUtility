@@ -17,6 +17,7 @@ class GroupMembers(Base):
         self.api_headers = {'Authorization': self.ex.keys.translate_private_key}
         self.api_endpoint = "https://api.irenebot.com/photos/"
         self.local_api_endpoint = f"http://127.0.0.1:{self.ex.keys.api_port}/photos/"
+        self.successful_codes = [200,301,415]
 
     async def get_if_user_voted(self, user_id):
         time_stamp = self.ex.first_result(
@@ -626,8 +627,7 @@ class GroupMembers(Base):
         api_url_id = int(api_url[beginning_position:ending_position])  # the file id hidden in the url
         return self.ex.first_result(await self.ex.conn.fetchrow("SELECT link FROM groupmembers.imagelinks WHERE id = $1", api_url_id))
 
-    @staticmethod
-    async def __post_msg(channel, file=None, embed=None, message_str=None, timeout=None):
+    async def __post_msg(self, channel, file=None, embed=None, message_str=None, timeout=None):
         """Post a file,embed, or message to a text channel and return it.
 
         :param channel: (discord.Channel) Channel to send message to.
@@ -678,6 +678,7 @@ class GroupMembers(Base):
         # set defaults for image posting.
         file = None
         embed = None
+        msg = None
 
         # params to pass into api endpoint.
         api_params = {
@@ -693,10 +694,13 @@ class GroupMembers(Base):
 
         # make api request.
         async with self.ex.session.post(endpoint, headers=self.api_headers, params=api_params) as r:
-            data = json.loads(await r.text())
-            image_host_url = data.get('final_image_link')
-            file_location = data.get('location')
-            file_name = data.get('file_name')
+            if r.status in self.successful_codes:
+                # define variables if we had a successful connection.
+                data = json.loads(await r.text())
+                image_host_url = data.get('final_image_link')
+                file_location = data.get('location')
+                file_name = data.get('file_name')
+
             if r.status in [200, 301]:
                 if self.ex.upload_from_host:
                     file = await self.__handle_file(file_location, file_name)
@@ -709,14 +713,16 @@ class GroupMembers(Base):
                 if not file:
                     return await self.__get_image_msg(*args, **kwargs)
             else:
+                # deal with errors.
                 await self.__handle_error(channel, idol.id, r.status)
+                return msg, photo_link
 
         if guessing_game:
             # discord may have bad image loading time, so we will wait 2 seconds.
             # this is important because we want the guessing time to be matched up to when the photo appears.
             await asyncio.sleep(2)
 
-        if not file or self.ex.upload_from_host:
+        if not file:
             embed = await self.get_idol_post_embed(group_id, idol, image_host_url, user_id=user_id,
                                                    guild_id=channel.guild.id, guessing_game=guessing_game,
                                                    scores=scores)
