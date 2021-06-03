@@ -697,7 +697,8 @@ class GroupMembers(Base):
             file_location = data.get('location')
             file_name = data.get('file_name')
             if r.status in [200, 301]:
-                pass
+                if self.ex.upload_from_host:
+                    file = await self.__handle_file(file_location, file_name)
             elif r.status == 415:  # handle videos
                 # Make sure we do not get videos in a guessing game.
                 if guessing_game:
@@ -718,9 +719,7 @@ class GroupMembers(Base):
             embed = await self.get_idol_post_embed(group_id, idol, image_host_url, user_id=user_id,
                                                    guild_id=channel.guild.id, guessing_game=guessing_game,
                                                    scores=scores)
-            if file_location.startswith('/'):
-                file_location = file_location[1:len(file_location)]
-            embed.set_image(url=image_host_url if not self.ex.upload_from_host else f"attachment://{file_location}")
+            embed.set_image(url=image_host_url if not self.ex.upload_from_host else f"attachment://{file_name}")
 
         msg = await self.__post_msg(channel, file=file, embed=embed, message_str=special_message, timeout=msg_timeout)
 
