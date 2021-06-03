@@ -722,7 +722,7 @@ class GroupMembers(Base):
             # this is important because we want the guessing time to be matched up to when the photo appears.
             await asyncio.sleep(2)
 
-        if not file:
+        if not file or self.ex.upload_from_host:
             embed = await self.get_idol_post_embed(group_id, idol, image_host_url, user_id=user_id,
                                                    guild_id=channel.guild.id, guessing_game=guessing_game,
                                                    scores=scores)
