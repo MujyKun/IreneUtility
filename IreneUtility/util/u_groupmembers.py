@@ -17,7 +17,7 @@ class GroupMembers(Base):
         self.api_headers = {'Authorization': self.ex.keys.translate_private_key}
         self.api_endpoint = "https://api.irenebot.com/photos/"
         self.local_api_endpoint = f"http://127.0.0.1:{self.ex.keys.api_port}/photos/"
-        self.successful_codes = [200,301,415]
+        self.successful_codes = [200, 301, 415]
 
     async def get_if_user_voted(self, user_id):
         time_stamp = self.ex.first_result(
@@ -610,9 +610,10 @@ class GroupMembers(Base):
         else:
             idol.called += 1
             await self.ex.conn.execute("UPDATE groupmembers.Count SET Count = $1 WHERE MemberID = $2", idol.called,
-                                  idol.id)
+                                       idol.id)
 
     async def set_as_group_photo(self, link):
+        """Set a photo as a group photo."""
         await self.ex.conn.execute("UPDATE groupmembers.imagelinks SET groupphoto = $1 WHERE link = $2", 1, str(link))
 
     async def get_google_drive_link(self, api_url):
@@ -625,9 +626,11 @@ class GroupMembers(Base):
         if ending_position == -1:
             ending_position = api_url.find("video.")
         api_url_id = int(api_url[beginning_position:ending_position])  # the file id hidden in the url
-        return self.ex.first_result(await self.ex.conn.fetchrow("SELECT link FROM groupmembers.imagelinks WHERE id = $1", api_url_id))
+        return self.ex.first_result(await self.ex.conn.fetchrow("SELECT link FROM groupmembers.imagelinks WHERE id = $1"
+                                                                , api_url_id))
 
-    async def __post_msg(self, channel, file=None, embed=None, message_str=None, timeout=None):
+    @staticmethod
+    async def __post_msg(channel, file=None, embed=None, message_str=None, timeout=None):
         """Post a file,embed, or message to a text channel and return it.
 
         :param channel: (discord.Channel) Channel to send message to.
@@ -741,9 +744,8 @@ class GroupMembers(Base):
 
     @staticmethod
     async def __handle_file(file_location, file_name):
-        """Handles API Status 415 (Video Retrieved) and returns a discord File.
+        """Handles API Status 415 (Video Retrieved) / 200 / 301 and returns a discord File.
 
-        :param request: The connection to the endpoint.
         :param file_location: Location of the file.
         :param file_name: Name of the file.
 
@@ -785,7 +787,8 @@ class GroupMembers(Base):
         """The embed for an idol post."""
         if not guessing_game:
             if not group_id:
-                embed = discord.Embed(title=f"{idol.full_name} ({idol.stage_name}) [{idol.id}]", color=self.ex.get_random_color(),
+                embed = discord.Embed(title=f"{idol.full_name} ({idol.stage_name}) [{idol.id}]",
+                                      color=self.ex.get_random_color(),
                                       url=photo_link)
             else:
                 group = await self.get_group(group_id)
@@ -956,5 +959,49 @@ class GroupMembers(Base):
         """Get the member names split by a | ."""
         return f"{' | '.join([f'{(await self.get_member(idol_id)).stage_name} [{idol_id}]' for idol_id in group.members])}\n"
 
+    async def manage_send_idol_photo(self, text_channel, idol_id):
+        """Adds/Removes/Updates idol ids based on the text channel that will be used to send idol photos after t time.
 
-# self.ex.u_group_members = GroupMembers()
+        :param text_channel: discord.TextChannel or text channel id for the idol photo to be sent to
+        :param idol_id: idol id to add or remove.
+        :returns:
+            False if text channel input was incorrect.
+            'insert' if the idol id was inserted.
+            'remove' if the idol id was removed.
+            'delete' if the channel was completely removed from the table.
+        """
+        if isinstance(text_channel, discord.TextChannel):
+            text_channel_id = text_channel.id
+        elif isinstance(text_channel, int):
+            text_channel_id = text_channel
+        else:
+            return False
+
+        channel = self.ex.client.get_channel(text_channel_id)  # we do not need to fetch here since its ok if its None
+
+        # cache may store ID or discord.TextChannel
+        current_idol_ids: set = self.ex.cache.send_idol_photos.get(text_channel_id) or self.ex.\
+            cache.send_idol_photos.get(text_channel)
+
+        # check if the text channel does not have any idols.
+        if not current_idol_ids:
+            await self.ex.sql.s_groupmembers.insert_send_idol_photo(text_channel_id, idol_id)
+            self.ex.cache.send_idol_photos[channel or text_channel_id] = {idol_id}
+            return "insert"
+
+        # check if the idol already exists with the channel
+        if idol_id in current_idol_ids:
+            current_idol_ids.remove(idol_id)
+            if not current_idol_ids:
+                await self.ex.sql.s_groupmembers.delete_send_idol_photo_channel(text_channel_id)
+                return "delete"
+            await self.ex.sql.s_groupmembers.update_send_idol_photo(text_channel_id, current_idol_ids)
+            return "remove"
+
+        # add the idol
+        current_idol_ids.add(idol_id)
+        await self.ex.sql.s_groupmembers.update_send_idol_photo(text_channel_id, current_idol_ids)
+        return "insert"
+
+
+

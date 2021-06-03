@@ -198,6 +198,9 @@ class Cache(Base):
 
         self.playing_cards = {}  # {card_id: [custom playing card 1, custom playing card 2]}
 
+        # used for the loop to send idol photos to a text channel after t time.
+        self.send_idol_photos = {}  # (text channel id OR discord.TextChannel) : [list of idol ids]
+
         self.member_ids_in_support_server = []  # [user ids]
 
         self.welcome_roles = {}  # d.py Guild object : d.py Role object
@@ -221,7 +224,6 @@ class Cache(Base):
             14: {'img_size': (100, 100), 'pos': (390, 225)},
             15: {'img_size': (134, 130), 'pos': (235, 55)}
         }
-
 
         # Equivalent keyword for translate languages
         # { papago_code : lang_keyword_aliases }

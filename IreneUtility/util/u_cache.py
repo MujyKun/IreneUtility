@@ -1,3 +1,4 @@
+import discord
 from discord.ext import tasks
 from ..Base import Base
 from . import u_logger as log
@@ -65,7 +66,8 @@ class Cache(Base):
             [self.ex.weverse_client.start, "Weverse"],
             [self.create_gg_filter_cache, "Guessing Game Filter"],
             [self.create_welcome_role_cache, "Welcome Roles"],
-            [self.create_disabled_games_cache, "Disabled Games In Channels"]
+            [self.create_disabled_games_cache, "Disabled Games In Channels"],
+            [self.create_send_idol_photo_cache, "Send Idol Photo"]
             # [self.create_image_cache, "Image"],
 
         ]
@@ -87,6 +89,25 @@ class Cache(Base):
         creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
         log.console(f"Cache Completely Created in {creation_time}.")
         self.ex.irene_cache_loaded = True
+
+    async def create_send_idol_photo_cache(self):
+        """Creates the list of idols that needs to be sent to a text channel after t time."""
+        self.ex.cache.send_idol_photos = {}
+        for text_channel, idol_ids in await self.ex.sql.s_groupmembers.fetch_send_idol_photos():
+            try:
+                channel = await self.ex.client.get_channel(text_channel) or \
+                          await self.ex.client.fetch_channel(text_channel)
+            except discord.Forbidden:
+                await self.ex.sql.s_groupmembers.delete_send_idol_photo_channel(text_channel)
+                continue
+            except Exception as e:
+                log.useless(f"{e} - create_send_idol_photo_cache")
+                channel = None
+
+            text_channel = channel or text_channel
+
+            # we will allow either the id or the discord.TextChannel to be in the cache.
+            self.ex.cache.send_idol_photos[text_channel] = idol_ids
 
     async def create_disabled_games_cache(self):
         """Creates a list of channels with disabled games."""
