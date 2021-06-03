@@ -135,16 +135,24 @@ class GuessingGame(Game_Base):
                 self.group_names = [(await self.ex.u_group_members.get_group(group_id)).name
                                     for group_id in self.idol.groups]
 
+                """
                 # Skip this idol if it is taking too long
                 async with async_timeout.timeout(self.post_attempt_timeout) as posting:
                     self.idol_post_msg, self.photo_link = await self.ex.u_group_members.idol_post(
                         self.channel, self.idol, user_id=self.host_id, guessing_game=True, scores=self.players,
                         msg_timeout=self.timeout + 5)
-                    log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}')
+                log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}')
 
                 if posting.expired:
                     log.console(f"Posting for {self.idol.full_name} ({self.idol.stage_name}) [{self.idol.id}]"
                                 f" took more than {self.post_attempt_timeout}")
+                    continue
+                """
+                self.idol_post_msg, self.photo_link = await self.ex.u_group_members.idol_post(
+                    self.channel, self.idol, user_id=self.host_id, guessing_game=True, scores=self.players,
+                    msg_timeout=self.timeout + 5)
+
+                if not self.idol_post_msg:
                     continue
                 question_posted = True
             except LookupError as e:
