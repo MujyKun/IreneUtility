@@ -726,7 +726,14 @@ class GroupMembers(Base):
             embed = await self.get_idol_post_embed(group_id, idol, image_host_url, user_id=user_id,
                                                    guild_id=channel.guild.id, guessing_game=guessing_game,
                                                    scores=scores)
-            embed.set_image(url=image_host_url if not self.ex.upload_from_host else f"attachment://{file_name}")
+
+            embed_image_url = image_host_url if not self.ex.upload_from_host else f"attachment://{file_name}"
+
+            # If the file is too big, we will use the image host url.
+            if self.ex.upload_from_host and not file:
+                embed_image_url = image_host_url
+
+            embed.set_image(url=embed_image_url)
 
         msg = await self.__post_msg(channel, file=file, embed=embed, message_str=special_message, timeout=msg_timeout)
 
