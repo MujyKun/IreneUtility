@@ -980,7 +980,7 @@ class GroupMembers(Base):
         channel = self.ex.client.get_channel(text_channel_id)  # we do not need to fetch here since its ok if its None
 
         # cache may store ID or discord.TextChannel
-        current_idol_ids: set = self.ex.cache.send_idol_photos.get(text_channel_id) or self.ex.\
+        current_idol_ids: list = self.ex.cache.send_idol_photos.get(text_channel_id) or self.ex.\
             cache.send_idol_photos.get(text_channel)
 
         # check if the text channel does not have any idols.
@@ -1009,7 +1009,7 @@ class GroupMembers(Base):
             return "remove"
 
         # add the idol
-        current_idol_ids.add(idol_id)
+        current_idol_ids.append(idol_id)
         await self.ex.sql.s_groupmembers.update_send_idol_photo(text_channel_id, current_idol_ids)
         return "insert"
 

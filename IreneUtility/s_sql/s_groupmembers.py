@@ -75,7 +75,7 @@ async def insert_send_idol_photo(text_channel_id: int, idol_id: int):
                             text_channel_id, {idol_id})
 
 
-async def update_send_idol_photo(text_channel_id: int, idol_ids: set):
+async def update_send_idol_photo(text_channel_id: int, idol_ids: list):
     """
     Update a text channel's idol list
 
