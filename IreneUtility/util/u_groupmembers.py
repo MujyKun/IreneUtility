@@ -959,11 +959,13 @@ class GroupMembers(Base):
         """Get the member names split by a | ."""
         return f"{' | '.join([f'{(await self.get_member(idol_id)).stage_name} [{idol_id}]' for idol_id in group.members])}\n"
 
-    async def manage_send_idol_photo(self, text_channel, idol_id):
+    async def manage_send_idol_photo(self, text_channel, idol_id, limit=None):
         """Adds/Removes/Updates idol ids based on the text channel that will be used to send idol photos after t time.
 
         :param text_channel: discord.TextChannel or text channel id for the idol photo to be sent to
         :param idol_id: idol id to add or remove.
+        :param limit: (int) the limit for what the text channel can have. If this is exceeded,
+            u_exceptions.Limit will be raised.
         :returns:
             False if text channel input was incorrect.
             'insert' if the idol id was inserted.
@@ -1009,6 +1011,9 @@ class GroupMembers(Base):
             return "remove"
 
         # add the idol
+        if limit:
+            if (len(current_idol_ids)) > limit:
+                raise self.ex.exceptions.Limit
         current_idol_ids.append(idol_id)
         await self.ex.sql.s_groupmembers.update_send_idol_photo(text_channel_id, current_idol_ids)
         return "insert"
