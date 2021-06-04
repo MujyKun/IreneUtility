@@ -54,7 +54,7 @@ async def fetch_members_in_group(group_id):
 
 async def fetch_send_idol_photos():
     """Fetches the text channels and idols that should be sent to the channel after t time."""
-    return await self.conn.fetch("SELECT channelid, idolids FROM groupmember.sendidolphotos")
+    return await self.conn.fetch("SELECT channelid, idolids FROM groupmembers.sendidolphotos")
 
 
 async def delete_send_idol_photo_channel(text_channel_id: int):
