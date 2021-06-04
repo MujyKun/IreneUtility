@@ -95,7 +95,7 @@ class Cache(Base):
         self.ex.cache.send_idol_photos = {}
         for text_channel, idol_ids in await self.ex.sql.s_groupmembers.fetch_send_idol_photos():
             try:
-                channel = await self.ex.client.get_channel(text_channel) or \
+                channel = self.ex.client.get_channel(text_channel) or \
                           await self.ex.client.fetch_channel(text_channel)
             except discord.Forbidden:
                 await self.ex.sql.s_groupmembers.delete_send_idol_photo_channel(text_channel)
