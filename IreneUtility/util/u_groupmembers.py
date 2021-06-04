@@ -833,7 +833,7 @@ class GroupMembers(Base):
             log.console(f"AttributeError - {e} -> u_groupmembers.idol_post")
             await channel.send("It is not possible to receive Idol Photos in DMs.")
         except discord.Forbidden:  # resolve 403
-            pass
+            raise discord.Forbidden  # let the client decide what to do.
         except Exception as e:  # resolve all errors
             log.console(f"{e} -> u_groupmembers.idol_post")
         return msg, image_host
