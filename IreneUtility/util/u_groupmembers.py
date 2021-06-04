@@ -993,6 +993,16 @@ class GroupMembers(Base):
         if idol_id in current_idol_ids:
             current_idol_ids.remove(idol_id)
             if not current_idol_ids:
+                try:
+                    self.ex.cache.send_idol_photos.pop(text_channel_id)
+                except KeyError:
+                    pass
+
+                try:
+                    self.ex.cache.send_idol_photos.pop(text_channel)
+                except KeyError:
+                    pass
+
                 await self.ex.sql.s_groupmembers.delete_send_idol_photo_channel(text_channel_id)
                 return "delete"
             await self.ex.sql.s_groupmembers.update_send_idol_photo(text_channel_id, current_idol_ids)
