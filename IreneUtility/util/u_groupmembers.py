@@ -986,7 +986,7 @@ class GroupMembers(Base):
         # check if the text channel does not have any idols.
         if not current_idol_ids:
             await self.ex.sql.s_groupmembers.insert_send_idol_photo(text_channel_id, idol_id)
-            self.ex.cache.send_idol_photos[channel or text_channel_id] = {idol_id}
+            self.ex.cache.send_idol_photos[channel or text_channel_id] = [idol_id]
             return "insert"
 
         # check if the idol already exists with the channel
