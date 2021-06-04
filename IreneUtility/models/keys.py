@@ -41,6 +41,8 @@ class Keys:
         # amount of idol photos a user can request daily without voting.
         self.idol_no_vote_send_limit: int = self.get_kwarg("idol_no_vote_send_limit")
         self.reminder_limit: int = self.get_kwarg("reminder_limit")  # maximum amount of reminders
+        # maximum amount of automatic idol photos a non-patron can be sent
+        self.idol_send_limit: int = self.get_kwarg("idol_send_limit")
         self.currency_name: str = self.get_kwarg("currency_name")  # name of main currency
         self.icon_url: str = self.get_kwarg("icon_url")  # embed icon url
         self.footer_url: str = self.get_kwarg("footer_url")  # embed footer url
