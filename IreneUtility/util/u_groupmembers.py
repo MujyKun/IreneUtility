@@ -1012,7 +1012,7 @@ class GroupMembers(Base):
 
         # add the idol
         if limit:
-            if (len(current_idol_ids)) > limit:
+            if (len(current_idol_ids)) + 1 > limit:
                 raise self.ex.exceptions.Limit
         current_idol_ids.append(idol_id)
         await self.ex.sql.s_groupmembers.update_send_idol_photo(text_channel_id, current_idol_ids)
