@@ -1013,5 +1013,14 @@ class GroupMembers(Base):
         await self.ex.sql.s_groupmembers.update_send_idol_photo(text_channel_id, current_idol_ids)
         return "insert"
 
+    async def delete_channel_from_send_idol(self, text_channel):
+        """Deletes a channel permanently from the send idol cache.
 
+        :param text_channel: (discord.TextChannel or int) Key to pop from the cache. The client should know which it is.
+        """
+        await self.ex.sql.s_groupmembers.delete_send_idol_photo_channel(text_channel)
+        try:
+            self.ex.cache.send_idol_photos.pop(text_channel)
+        except KeyError:
+            pass
 
