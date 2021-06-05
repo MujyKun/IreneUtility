@@ -67,7 +67,8 @@ class Cache(Base):
             [self.create_gg_filter_cache, "Guessing Game Filter"],
             [self.create_welcome_role_cache, "Welcome Roles"],
             [self.create_disabled_games_cache, "Disabled Games In Channels"],
-            [self.create_send_idol_photo_cache, "Send Idol Photo"]
+            [self.create_send_idol_photo_cache, "Send Idol Photo"],
+            [self.request_support_server_members, "Support Server Member"]
             # [self.create_image_cache, "Image"],
 
         ]
@@ -89,6 +90,25 @@ class Cache(Base):
         creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
         log.console(f"Cache Completely Created in {creation_time}.")
         self.ex.irene_cache_loaded = True
+
+    async def request_support_server_members(self):
+        """Request the support server to be chunked and be put in cache.
+
+        We need this so that we can accurately determine if a user is in the support server or not.
+        """
+        try:
+            guild: discord.Guild = self.ex.client.get_guild(self.ex.keys.bot_support_server_id) or await self.ex.\
+                client.fetch_guild(self.ex.keys.bot_support_server_id)
+            if not guild.chunked:
+                await guild.chunk(cache=True)
+        except discord.Forbidden:
+            log.console("ERROR: Unable to access Support Server (403) - u_cache.request_support_server_members.")
+        except discord.ClientException:
+            log.console("ERROR: Can not access Support Server without members intent enabled. - "
+                        "u_cache.request_support_server_members.")
+        except Exception as e:
+            log.console(f"{e} - u_cache.request_support_server_members.")
+
 
     async def create_send_idol_photo_cache(self):
         """Creates the list of idols that needs to be sent to a text channel after t time."""
