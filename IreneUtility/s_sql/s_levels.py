@@ -7,7 +7,11 @@ async def create_level_row(user_id: int):
 
     :param user_id: Discord User ID
     """
-    await self.conn.execute("INSERT INTO currency.levels VALUES($1, NULL, NULL, NULL, NULL, 1)", user_id)
+    try:
+        await self.conn.execute("INSERT INTO currency.levels VALUES($1, NULL, NULL, NULL, NULL, 1)", user_id)
+    except:
+        # user already has a row.
+        pass
 
 
 async def update_level(user_id: int, column_name: str, level: int):
