@@ -132,8 +132,12 @@ class GuessingGame(Game_Base):
                 await self.create_acceptable_answers()
 
                 # Create list of idol group names.
-                self.group_names = [(await self.ex.u_group_members.get_group(group_id)).name
-                                    for group_id in self.idol.groups]
+                try:
+                    self.group_names = [(await self.ex.u_group_members.get_group(group_id)).name
+                                        for group_id in self.idol.groups]
+                except:
+                    # cache is not loaded.
+                    await self.end_game()
 
                 """
                 # Skip this idol if it is taking too long
