@@ -25,9 +25,13 @@ class Cache(Base):
 
     async def create_cache(self, on_boot_up=True):
         """Create the general cache on startup"""
+
         past_time = time.time()
         # reset custom user cache
         self.ex.cache.users = {}
+        if not self.ex.cache.maintenance_mode:
+            self.ex.cache.maintenance_mode = True
+            self.ex.cache.maintenance_reason = "Cache is currently being reset."
 
         cache_info = [
             # patrons are no longer instantly after intents were pushed in place making d.py cache a lot slower.
@@ -89,6 +93,8 @@ class Cache(Base):
             await self.process_cache_time(method, cache_name)
         creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
         log.console(f"Cache Completely Created in {creation_time}.")
+        self.ex.cache.maintenance_mode = False
+        self.ex.cache.maintenance_reason = None
         self.ex.irene_cache_loaded = True
 
     async def request_support_server_members(self):
