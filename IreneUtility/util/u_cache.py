@@ -233,14 +233,14 @@ class Cache(Base):
             "server_prefix", "bot_id",
         ]
         for keyword in keywords_to_not_bold:
-            text = text.replace(f"{keyword}", keyword)  # we do not want to bold these words
+            text = text.replace("{" + f"{keyword}" + "}", keyword)  # we do not want to bold these words
 
         # bold the words
         text = text.replace("{", "**{")
         text = text.replace("}", "}**")
 
         for keyword in keywords_to_not_bold:
-            text = text.replace(keyword, f"{keyword}")  # return the keywords back to their initial state.
+            text = text.replace(keyword, "{" + f"{keyword}" + "}")  # return the keywords back to their initial state.
         return text
 
     async def create_levels_cache(self):
