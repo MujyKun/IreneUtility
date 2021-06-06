@@ -914,9 +914,12 @@ class GroupMembers(Base):
         except Exception as e:
             log.console(e)
 
-        # post the image.
-        photo_msg, api_url = await self.idol_post(channel, idol, user_id=message.author.id)
-        posted = True
+        try:
+            # post the image.
+            photo_msg, api_url = await self.idol_post(channel, idol, user_id=message.author.id)
+            posted = True
+        except discord.Forbidden:
+            pass
 
         return photo_msg, api_url, posted
 
