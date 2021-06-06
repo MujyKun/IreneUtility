@@ -644,6 +644,8 @@ class GroupMembers(Base):
         message = None
         try:
             message = await channel.send(message_str, file=file, embed=embed, delete_after=timeout)
+        except discord.Forbidden:
+            raise discord.Forbidden
         except Exception as e:
             # link may not be properly registered.
             print(f"{e} -> u_groupmembers.__post_msg")

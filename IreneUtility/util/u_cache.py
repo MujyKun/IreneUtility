@@ -109,7 +109,6 @@ class Cache(Base):
         except Exception as e:
             log.console(f"{e} - u_cache.request_support_server_members.")
 
-
     async def create_send_idol_photo_cache(self):
         """Creates the list of idols that needs to be sent to a text channel after t time."""
         self.ex.cache.send_idol_photos = {}
@@ -795,7 +794,10 @@ class Cache(Base):
                                           ]),
                     'members_in_support_server': len(self.ex.cache.member_ids_in_support_server),
                     'gg_filter_enabled': gg_filtered_enabled,
-                    'active_unscramble_games': len(self.ex.cache.unscramble_games)
+                    'active_unscramble_games': len(self.ex.cache.unscramble_games),
+                    'channels_with_automatic_photos': len(self.ex.cache.send_idol_photos.keys()),
+                    'photos_sent_automatically': sum([len(idol_id) for idol_id in self.ex.cache.
+                                                     send_idol_photos.values()])
                 }
 
                 # set all per minute metrics to 0 since this is a 60 second loop.
