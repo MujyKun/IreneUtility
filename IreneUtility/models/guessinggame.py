@@ -154,6 +154,7 @@ class GuessingGame(Game_Base):
 
                 if not self.idol_post_msg:
                     continue
+                log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}')
                 question_posted = True
             except LookupError as e:
                 raise e
