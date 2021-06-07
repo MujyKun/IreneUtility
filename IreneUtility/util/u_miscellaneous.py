@@ -283,7 +283,12 @@ class Miscellaneous(Base):
 
     def get_user_count(self):
         """Get the amount of users that the bot is watching over."""
-        return sum([guild.member_count for guild in self.ex.client.guilds])
+        try:
+            member_count = sum([guild.member_count for guild in self.ex.client.guilds])
+            return member_count
+        except Exception as e:
+            log.useless(f"{e} - u_miscellaneous.get_user_count")
+            return 0
 
     def get_server_count(self):
         """Returns the guild count the bot is connected to."""

@@ -1,3 +1,5 @@
+import discord
+
 from . import Game as Game_Base
 import asyncio
 import random
@@ -137,6 +139,7 @@ class GuessingGame(Game_Base):
                                         for group_id in self.idol.groups]
                 except:
                     # cache is not loaded.
+                    log.console(f"Ending GG in {self.channel.id} due to the cache not being loaded.")
                     await self.end_game()
 
                 """
@@ -152,13 +155,20 @@ class GuessingGame(Game_Base):
                                 f" took more than {self.post_attempt_timeout}")
                     continue
                 """
-                self.idol_post_msg, self.photo_link = await self.ex.u_group_members.idol_post(
-                    self.channel, self.idol, user_id=self.host_id, guessing_game=True, scores=self.players,
-                    msg_timeout=self.timeout + 5)
+                log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}')
+
+                try:
+                    self.idol_post_msg, self.photo_link = await self.ex.u_group_members.idol_post(
+                        self.channel, self.idol, user_id=self.host_id, guessing_game=True, scores=self.players,
+                        msg_timeout=self.timeout + 5)
+                except discord.Forbidden:
+                    # end the game if unable to post in the channel.
+                    log.console(f"Ending GG in {self.channel.id} since we cannot send a message to the channel.")
+                    await self.end_game()
 
                 if not self.idol_post_msg:
                     continue
-                log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}')
+
                 question_posted = True
             except LookupError as e:
                 raise e
