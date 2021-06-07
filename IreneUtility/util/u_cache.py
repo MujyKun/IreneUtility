@@ -29,7 +29,7 @@ class Cache(Base):
         past_time = time.time()
         # reset custom user cache
         self.ex.cache.users = {}
-        if not self.ex.cache.maintenance_mode:
+        if not self.ex.cache.maintenance_mode and on_boot_up:
             self.ex.cache.maintenance_mode = True
             self.ex.cache.maintenance_reason = "Cache is currently being reset."
 
@@ -93,8 +93,9 @@ class Cache(Base):
             await self.process_cache_time(method, cache_name)
         creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
         log.console(f"Cache Completely Created in {creation_time}.")
-        self.ex.cache.maintenance_mode = False
-        self.ex.cache.maintenance_reason = None
+        if on_boot_up:
+            self.ex.cache.maintenance_mode = False
+            self.ex.cache.maintenance_reason = None
         self.ex.irene_cache_loaded = True
 
     async def request_support_server_members(self):
