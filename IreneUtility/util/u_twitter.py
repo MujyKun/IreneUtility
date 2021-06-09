@@ -46,8 +46,8 @@ class Twitter(Base):
 
             full_file_location = f"{self.ex.keys.idol_photo_location}{random_file}"
             media = self.ex.api.media_upload(full_file_location)
-            self.ex.api.update_status(media_ids=media.media_id)
-            await self.ex.sql.s_twitter.insert_photo_uploaded(image_id, media.media_id)
+            self.ex.api.update_status(media_ids=[media.media_id])
+            await self.ex.sql.s_twitter.insert_photo_uploaded(int(image_id), media.media_id)
         except Exception as e:
             log.console(f"{e} - Failed to post image -> u_twitter.upload_random_image")
 
