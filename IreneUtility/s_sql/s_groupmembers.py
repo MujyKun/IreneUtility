@@ -84,3 +84,13 @@ async def update_send_idol_photo(text_channel_id: int, idol_ids: list):
     """
     await self.conn.execute("UPDATE groupmembers.sendidolphotos SET idolids = $1 WHERE channelid = $2", idol_ids,
                             text_channel_id)
+
+
+async def get_idol_id_by_image_id(image_id: int):
+    """
+    Get an idol id from a unique image id.
+
+    :returns: Idol ID or NoneType (if the image id does not exist)
+    """
+    member = await self.conn.fetchrow("SELECT memberid FROM groupmembers.imagelinks WHERE id = $1", image_id)
+    return None if not member else member[0]

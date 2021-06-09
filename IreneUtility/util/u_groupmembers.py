@@ -1037,3 +1037,16 @@ class GroupMembers(Base):
         except KeyError:
             pass
 
+    async def get_idol_by_image_id(self, image_id):
+        """Get an idol object by the unique image id.
+
+        :returns: Idol Object or NoneType
+        """
+        try:
+            idol_id = (await self.ex.sql.s_groupmembers.get_idol_id_by_image_id(image_id)) or None
+            if not idol_id:
+                return None
+            idol = await self.get_member(int(idol_id))
+            return idol
+        except:
+            return None
