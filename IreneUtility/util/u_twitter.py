@@ -39,7 +39,8 @@ class Twitter(Base):
 
             image_id = random_file[0:unique_text_pos]
 
-            if await self.ex.sql.s_twitter.check_photo_uploaded(image_id):  # check if the file is already uploaded.
+            # check if the file is already uploaded.
+            if await self.ex.sql.s_twitter.check_photo_uploaded(int(image_id)):
                 # can result in infinite loop if there is only one file in the folder.
                 return await self.upload_random_image()
 
