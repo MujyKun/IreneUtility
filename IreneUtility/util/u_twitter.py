@@ -42,6 +42,7 @@ class Twitter(Base):
             # check if the file is already uploaded.
             if await self.ex.sql.s_twitter.check_photo_uploaded(int(image_id)):
                 # can result in infinite loop if there is only one file in the folder.
+                # but the maximum recursion depth will cancel this out.
                 return await self.upload_random_image()
 
             full_file_location = f"{self.ex.keys.idol_photo_location}{random_file}"
