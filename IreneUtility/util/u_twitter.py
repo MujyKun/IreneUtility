@@ -52,7 +52,7 @@ class Twitter(Base):
                 # but the maximum recursion depth will cancel this out.
                 return await self.upload_random_image()
 
-            idol = self.ex.u_group_members.get_idol_by_image_id(image_id)
+            idol = await self.ex.u_group_members.get_idol_by_image_id(image_id)
             body_message = f"({image_id})"
             if idol:
                 body_message += f" - {idol.full_name} ({idol.stage_name}) [{idol.id}]"
