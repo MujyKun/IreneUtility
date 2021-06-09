@@ -38,7 +38,7 @@ class Twitter(Base):
                 unique_text_pos = random_file.find("video")
 
                 # we do not actually want videos, so we will recall the method.
-                if unique_text_pos:
+                if unique_text_pos != -1:
                     return await self.upload_random_image()
 
             if not unique_text_pos:
