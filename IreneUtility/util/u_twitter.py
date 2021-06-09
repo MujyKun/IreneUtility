@@ -1,4 +1,7 @@
 from ..Base import Base
+from os import listdir
+from random import choice
+from . import u_logger as log
 
 
 class Twitter(Base):
@@ -20,5 +23,30 @@ class Twitter(Base):
             final_tweet += f"> **Tweet ID:** {tweet.id} | **Tweet:** {tweet.text}\n"
         return final_tweet
 
+    async def upload_random_image(self):
+        """Uploads a random (BUT UNIQUE) idol photo to twitter."""
+        try:
+            random_file = choice(listdir(self.ex.keys.idol_photo_location))
+            if not random_file:
+                return False
 
-# self.ex.u_twitter = Twitter()
+            unique_text_pos = random_file.find("image")
+            if unique_text_pos == -1:
+                unique_text_pos = random_file.find("video")
+
+            if not unique_text_pos:
+                return False  # could not find image id.
+
+            image_id = random_file[0:unique_text_pos]
+
+            if await self.ex.sql.s_twitter.check_photo_uploaded(image_id):  # check if the file is already uploaded.
+                # can result in infinite loop if there is only one file in the folder.
+                return await self.upload_random_image()
+
+            full_file_location = f"{self.ex.keys.idol_photo_location}{random_file}"
+            media = self.ex.api.media_upload(full_file_location)
+            self.ex.api.update_status(media_ids=media.media_id)
+            await self.ex.sql.s_twitter.insert_photo_uploaded(image_id, media.media_id)
+        except Exception as e:
+            log.console(f"{e} - Failed to post image -> u_twitter.upload_random_image")
+
