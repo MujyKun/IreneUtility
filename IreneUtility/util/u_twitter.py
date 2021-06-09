@@ -24,7 +24,10 @@ class Twitter(Base):
         return final_tweet
 
     async def upload_random_image(self):
-        """Uploads a random (BUT UNIQUE) idol photo to twitter."""
+        """Uploads a random (BUT UNIQUE) idol photo to twitter.
+
+        :returns: twitter link to the post.
+        """
         try:
             random_file = choice(listdir(self.ex.keys.idol_photo_location))
             if not random_file:
@@ -47,8 +50,9 @@ class Twitter(Base):
 
             full_file_location = f"{self.ex.keys.idol_photo_location}{random_file}"
             media = self.ex.api.media_upload(full_file_location)
-            self.ex.api.update_status(media_ids=[media.media_id])
+            status = self.ex.api.update_status(media_ids=[media.media_id])
             await self.ex.sql.s_twitter.insert_photo_uploaded(int(image_id), media.media_id)
+            return status.text
         except Exception as e:
             log.console(f"{e} - Failed to post image -> u_twitter.upload_random_image")
 

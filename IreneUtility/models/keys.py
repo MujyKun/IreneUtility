@@ -34,6 +34,8 @@ class Keys:
         self.add_idol_channel_id: int = self.get_kwarg("add_idol_channel_id")
         # channel id for unregistered groups ( user filled out forms ).
         self.add_group_channel_id: int = self.get_kwarg("add_group_channel_id")
+        # channel id for new twitter posts (automatically posted every after t time).
+        self.twitter_channel_id: int = self.get_kwarg("twitter_channel_id")
         # amount of idol photos a user can send daily with voting.
         self.idol_post_send_limit: int = self.get_kwarg("idol_post_send_limit")
         # amount of idol photos a user can request with a server owner as a super patron.

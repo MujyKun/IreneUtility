@@ -13,7 +13,7 @@ import json
 class Cache(Base):
     def __init__(self, *args):
         super().__init__(*args)
-        
+
     async def process_cache_time(self, method, name):
         """Process the cache time."""
         past_time = time.time()
@@ -72,7 +72,8 @@ class Cache(Base):
             [self.create_welcome_role_cache, "Welcome Roles"],
             [self.create_disabled_games_cache, "Disabled Games In Channels"],
             [self.create_send_idol_photo_cache, "Send Idol Photo"],
-            [self.request_support_server_members, "Support Server Member"]
+            [self.request_support_server_members, "Support Server Member"],
+            [self.request_twitter_channel, "Twitter Channel"]
             # [self.create_image_cache, "Image"],
 
         ]
@@ -98,13 +99,27 @@ class Cache(Base):
             self.ex.cache.maintenance_reason = None
         self.ex.irene_cache_loaded = True
 
+    async def request_twitter_channel(self):
+        """Fetch twitter channel and store it in cache."""
+        if self.ex.cache.twitter_channel:
+            # no need to reset it.
+            return True
+
+        try:
+            self.ex.cache.twitter_channel = self.ex.client.get_channel(self.ex.keys.twitter_channel_id) or await \
+                self.ex.client.fetch_channel(self.ex.keys.twitter_channel_id)
+        except discord.Forbidden:
+            log.console("ERROR: Unable to access twitter channel (403) - u_cache.request_twitter_channel.")
+        except Exception as e:
+            log.console(f"{e} - u_cache.request_twitter_channel.")
+
     async def request_support_server_members(self):
         """Request the support server to be chunked and be put in cache.
 
         We need this so that we can accurately determine if a user is in the support server or not.
         """
         try:
-            guild: discord.Guild = self.ex.client.get_guild(self.ex.keys.bot_support_server_id) or await self.ex.\
+            guild: discord.Guild = self.ex.client.get_guild(self.ex.keys.bot_support_server_id) or await self.ex. \
                 client.fetch_guild(self.ex.keys.bot_support_server_id)
             if not guild.chunked:
                 await guild.chunk(cache=True)
@@ -312,7 +327,8 @@ class Cache(Base):
 
         for user_id, easy_score, medium_score, hard_score in await self.ex.sql.s_guessinggame.fetch_gg_stats():
             await asyncio.sleep(0)  # bare yield
-            self.ex.cache.guessing_game_counter[user_id] = {"easy": easy_score, "medium": medium_score, "hard": hard_score}
+            self.ex.cache.guessing_game_counter[user_id] = {"easy": easy_score, "medium": medium_score,
+                                                            "hard": hard_score}
 
     async def create_unscramble_game_cache(self):
         """Create cache for unscramble game scores"""
@@ -320,7 +336,8 @@ class Cache(Base):
 
         for user_id, easy_score, medium_score, hard_score in await self.ex.sql.s_unscramblegame.fetch_us_stats():
             await asyncio.sleep(0)  # bare yield
-            self.ex.cache.unscramble_game_counter[user_id] = {"easy": easy_score, "medium": medium_score, "hard": hard_score}
+            self.ex.cache.unscramble_game_counter[user_id] = {"easy": easy_score, "medium": medium_score,
+                                                              "hard": hard_score}
 
     async def create_timezone_cache(self):
         """Create cache for timezones"""
@@ -380,7 +397,8 @@ class Cache(Base):
             await asyncio.sleep(0)  # bare yield
             self.ex.cache.command_counter[command_name] = count
 
-        self.ex.cache.current_session = self.ex.first_result(await self.ex.sql.s_session.fetch_session_usage(datetime.date.today()))
+        self.ex.cache.current_session = self.ex.first_result(
+            await self.ex.sql.s_session.fetch_session_usage(datetime.date.today()))
 
     async def create_restricted_channel_cache(self):
         """Create restricted idol channel cache"""
@@ -466,7 +484,7 @@ class Cache(Base):
             await asyncio.sleep(0)  # bare yield
             group_obj = self.ex.u_objects.Group(**group)
             group_obj.aliases, group_obj.local_aliases = await self.ex.u_group_members.get_db_aliases(group_obj.id,
-                                                                                                 group=True)
+                                                                                                      group=True)
             # add all idol ids and remove potential duplicates
             group_obj.members = list(
                 dict.fromkeys(await self.ex.u_group_members.get_db_members_in_group(group_obj.id)))
@@ -478,13 +496,15 @@ class Cache(Base):
         current_time_format = datetime.date.today()
         if self.ex.cache.session_id is None:
             if self.ex.cache.total_used is None:
-                self.ex.cache.total_used = (self.ex.first_result(await self.ex.sql.s_session.fetch_total_session_usage())) or 0
+                self.ex.cache.total_used = (self.ex.first_result(
+                    await self.ex.sql.s_session.fetch_total_session_usage())) or 0
             try:
                 await self.ex.sql.s_session.add_new_session(self.ex.cache.total_used, 0, current_time_format)
             except:
                 # session for today already exists.
                 pass
-            self.ex.cache.session_id = self.ex.first_result(await self.ex.sql.s_session.fetch_session_id(datetime.date.today()))
+            self.ex.cache.session_id = self.ex.first_result(
+                await self.ex.sql.s_session.fetch_session_id(datetime.date.today()))
             self.ex.cache.session_time_format = current_time_format
         else:
             # check that the date is correct, and if not, call get_session_id to get the new session id.
@@ -521,7 +541,8 @@ class Cache(Base):
 
         for channel_id, server_id, message_id, enabled in await self.ex.sql.s_general.fetch_welcome_messages():
             await asyncio.sleep(0)  # bare yield
-            self.ex.cache.welcome_messages[server_id] = {"channel_id": channel_id, "message": message_id, "enabled": enabled}
+            self.ex.cache.welcome_messages[server_id] = {"channel_id": channel_id, "message": message_id,
+                                                         "enabled": enabled}
 
     async def create_server_prefixes(self):
         """Create the cache for server prefixes."""
@@ -570,8 +591,10 @@ class Cache(Base):
         try:
             permanent_patrons = await self.ex.u_patreon.get_patreon_users()
             # normal patrons contains super patrons as well
-            normal_patrons = [patron.id for patron in await self.ex.u_patreon.get_patreon_role_members(super_patron=False)]
-            super_patrons = [patron.id for patron in await self.ex.u_patreon.get_patreon_role_members(super_patron=True)]
+            normal_patrons = [patron.id for patron in
+                              await self.ex.u_patreon.get_patreon_role_members(super_patron=False)]
+            super_patrons = [patron.id for patron in
+                             await self.ex.u_patreon.get_patreon_role_members(super_patron=True)]
 
             # the reason for db cache is because of the new discord rate limit
             # where it now takes 20+ minutes for discord cache to fully load, meaning we can only
@@ -822,7 +845,8 @@ class Cache(Base):
                         metric_value = metric_info.get(metric_name)
                         # add to thread pool to prevent blocking.
                         # noinspection PyUnusedLocal
-                        result = (self.ex.thread_pool.submit(self.ex.u_data_dog.send_metric, metric_name, metric_value)).result()
+                        result = (self.ex.thread_pool.submit(self.ex.u_data_dog.send_metric, metric_name,
+                                                             metric_value)).result()
                     except Exception as e:
                         log.console(e)
         except Exception as e:

@@ -27,6 +27,7 @@ class Cache(Base):
         self.errors_per_minute = 0  # errors per minute
         self.wolfram_per_minute = 0  # wolfram calls per minute
         self.urban_per_minute = 0  # Urban dictionary calls per minute
+        self.twitter_channel = None  # discord.TextChannel for auto twitter posts
 
         self.idol_images = {}  # { idol_id: [IreneUtility.models.Image] }
 
