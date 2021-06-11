@@ -26,7 +26,7 @@ class Twitter(Base):
     async def upload_random_image(self):
         """Uploads a random (BUT UNIQUE) idol photo to twitter.
 
-        :returns: twitter link to the post.
+        :returns: twitter body message & twitter link to the post.
         """
         try:
             random_file = choice(listdir(self.ex.keys.idol_photo_location))

@@ -44,6 +44,11 @@ class Utility:
         self.session: ClientSession = aiohttp_session  # aiohttp client session
         self.conn = db_connection  # db connection
         self.create_db_structure: bool = create_db_structure  # whether to create db structure on run.
+
+        # Set to True if you intend to have announcement text channels on the support server and would like
+        # the weverse updates command to be private only to the bot owner. This should be specified on client side.
+        self.weverse_announcements: bool = False
+
         s_sql.self.conn = self.conn  # update our SQL connection.
         util_args = {self}
 
