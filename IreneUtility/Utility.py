@@ -47,6 +47,7 @@ class Utility:
 
         # Set to True if you intend to have announcement text channels on the support server and would like
         # the weverse updates command to be private only to the bot owner. This should be specified on client side.
+        # this will also Publish (as an announcement) every single message if set to True.
         self.weverse_announcements: bool = False
 
         s_sql.self.conn = self.conn  # update our SQL connection.

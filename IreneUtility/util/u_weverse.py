@@ -170,14 +170,15 @@ class Weverse(Base):
             except:
                 # remove the channel from future updates as it cannot be found.
                 return await self.delete_weverse_channel(channel_id, community_name.lower())
+            msg_list = []
             try:
-                await channel.send(embed=embed)
+                msg_list.append(await channel.send(embed=embed))
                 if message_text:
                     # Since an embed already exists, any individual content will not load
                     # as an embed -> Make it it's own message.
                     if role_id:
                         message_text = f"<@&{role_id}>\n{message_text}"
-                    await channel.send(message_text)
+                    msg_list.append(await channel.send(message_text))
                     log.console(f"Weverse Post for {community_name} sent to {channel_id}.")
             except discord.Forbidden as e:
                 # no permission to post
@@ -188,5 +189,9 @@ class Weverse(Base):
                 log.console(f"Weverse Post Failed to {channel_id} for {community_name} -> {e}")
                 return
 
-
-# self.ex.u_weverse = Weverse()
+            if self.ex.weverse_announcements:
+                for msg in msg_list:
+                    try:
+                        await msg.publish()
+                    except Exception as e:
+                        log.useless(f"{e} - Failed to publish Message {msg.id}.")
