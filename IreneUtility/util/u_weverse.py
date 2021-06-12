@@ -116,7 +116,10 @@ class Weverse(Base):
         return embed
 
     async def set_post_embed(self, notification, embed_title):
-        """Set Post Embed for Weverse."""
+        """Set Post Embed for Weverse.
+
+        :returns: Embed and ( a list of file locations OR a string with image urls )
+        """
         post = self.ex.weverse_client.get_post_by_id(notification.contents_id)
         if post:
             translation = await self.ex.weverse_client.translate(post.id, is_post=True, p_obj=post,
@@ -133,16 +136,30 @@ class Weverse(Base):
                                 f"Content: **{post.body}**\n" \
                                 f"Translated Content: **{translation}**"
             embed = await self.ex.create_embed(title=embed_title, title_desc=embed_description)
-            message = "\n".join(
-                [await self.download_weverse_post(photo.original_img_url, photo.file_name) for photo in post.photos])
+
+            # will either be file locations or image links.
+            photos = [await self.download_weverse_post(photo.original_img_url, photo.file_name) for photo in
+                      post.photos]
+
+            if self.ex.upload_from_host:
+                # file locations
+                return embed, photos
+
+            # image links
+            message = "\n".join(photos)
             return embed, message
         return None, None
 
     async def download_weverse_post(self, url, file_name):
-        """Downloads an image url and returns image host url."""
+        """Downloads an image url and returns image host url.
+
+        If we are to upload from host, it will return the folder location instead.
+        """
         async with self.ex.session.get(url) as resp:
             fd = await aiofiles.open(self.ex.keys.weverse_image_folder + file_name, mode='wb')
             await fd.write(await resp.read())
+        if self.ex.upload_from_host:
+            return f"{self.ex.keys.weverse_image_folder}{file_name}"
         return f"https://images.irenebot.com/weverse/{file_name}"
 
     async def set_media_embed(self, notification, embed_title):
@@ -161,6 +178,7 @@ class Weverse(Base):
         channel_id = channel_info[0]
         role_id = channel_info[1]
         comments_disabled = channel_info[2]
+
         if not (is_comment and comments_disabled):
             try:
                 channel = self.ex.client.get_channel(channel_id)
@@ -171,14 +189,20 @@ class Weverse(Base):
                 # remove the channel from future updates as it cannot be found.
                 return await self.delete_weverse_channel(channel_id, community_name.lower())
             msg_list = []
+            file_list = []
             try:
                 msg_list.append(await channel.send(embed=embed))
                 if message_text:
                     # Since an embed already exists, any individual content will not load
                     # as an embed -> Make it it's own message.
+                    if isinstance(message_text, list):
+                        # a list of file locations
+                        for photo_location in message_text:
+                            file_list.append(discord.File(photo_location))
+
                     if role_id:
                         message_text = f"<@&{role_id}>\n{message_text}"
-                    msg_list.append(await channel.send(message_text))
+                    msg_list.append(await channel.send(message_text, files=(file_list or None)))
                     log.console(f"Weverse Post for {community_name} sent to {channel_id}.")
             except discord.Forbidden as e:
                 # no permission to post
