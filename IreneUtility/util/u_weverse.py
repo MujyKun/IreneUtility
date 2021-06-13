@@ -201,8 +201,9 @@ class Weverse(Base):
                             file_list.append(discord.File(photo_location))
 
                     if role_id:
-                        message_text = f"<@&{role_id}>\n{message_text}"
-                    msg_list.append(await channel.send(message_text, files=(file_list or None)))
+                        message_text = f"<@&{role_id}>\n{message_text if not file_list else ''}"
+                    msg_list.append(await channel.send(message_text if not file_list else None, files=(file_list or
+                                                                                                       None)))
                     log.console(f"Weverse Post for {community_name} sent to {channel_id}.")
             except discord.Forbidden as e:
                 # no permission to post
