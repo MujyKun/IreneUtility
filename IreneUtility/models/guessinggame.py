@@ -3,7 +3,6 @@ import discord
 from . import Game as Game_Base
 import asyncio
 import random
-import async_timeout
 from ..util import u_logger as log
 
 
@@ -15,7 +14,7 @@ class GuessingGame(Game_Base):
         :param utility_obj: Utility object.
         :param ctx: Context
         :param max_rounds: The amount of rounds to stop at.
-        :param timeout: Amount of time to guess a phoot.
+        :param timeout: Amount of time to guess a photo.
         :param gender: Male/Female/All Gender of the idols in the photos.
         :param difficulty: Easy/Medium/Hard difficulty of the game.
         """

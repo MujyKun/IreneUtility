@@ -846,10 +846,11 @@ class GroupMembers(Base):
             self.ex.cache.commands_used = {"reset_time": time.time()}
 
     def add_user_limit(self, message_sender):
-        if message_sender.id not in self.ex.cache.commands_used:
-            self.ex.cache.commands_used[message_sender.id] = [1, time.time()]
-        else:
-            self.ex.cache.commands_used[message_sender.id] = [self.ex.cache.commands_used[message_sender.id][0] + 1, time.time()]
+        if message_sender:
+            if message_sender.id not in self.ex.cache.commands_used:
+                self.ex.cache.commands_used[message_sender.id] = [1, time.time()]
+            else:
+                self.ex.cache.commands_used[message_sender.id] = [self.ex.cache.commands_used[message_sender.id][0] + 1, time.time()]
 
     # noinspection PyPep8
     async def check_user_limit(self, message_sender, message_channel, no_vote_limit=False):
@@ -871,7 +872,7 @@ class GroupMembers(Base):
                 self.ex.cache.commands_used[message_sender.id][0] > limit:
             # noinspection PyPep8
             if not await self.ex.u_patreon.check_if_patreon(message_channel.guild.owner.id,
-                                                       super_patron=True) and not no_vote_limit:
+                                                            super_patron=True) and not no_vote_limit:
                 return await message_channel.send(patron_message)
             elif self.ex.cache.commands_used[message_sender.id][0] > self.ex.keys.owner_super_patron_benefit and not no_vote_limit:
                 return await message_channel.send(patron_message)
