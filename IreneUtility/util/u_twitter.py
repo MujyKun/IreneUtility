@@ -29,7 +29,7 @@ class Twitter(Base):
         :returns: twitter body message & twitter link to the post.
         """
         try:
-            random_file = choice(listdir(self.ex.keys.idol_photo_location))
+            random_file = (self.ex.thread_pool.submit(self.get_random_idol_photo)).result()
             if not random_file:
                 return False
 
@@ -64,4 +64,12 @@ class Twitter(Base):
             return status.text
         except Exception as e:
             log.console(f"{e} - Failed to post image -> u_twitter.upload_random_image")
+
+    def get_random_idol_photo(self):
+        """Get a random idol photo existing in the file directory.
+
+        This method may block the heartbeat due to OS operation.
+        Should be run separately.
+        """
+        return choice(listdir(self.ex.keys.idol_photo_location))
 
