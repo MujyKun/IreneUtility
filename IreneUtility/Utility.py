@@ -50,6 +50,9 @@ class Utility:
         # this will also Publish (as an announcement) every single message if set to True.
         self.weverse_announcements: bool = False
 
+        # Set to False if you do not want the cache to reset itself every 12 hours.
+        self.reset_cache: bool = True
+
         s_sql.self.conn = self.conn  # update our SQL connection.
         util_args = {self}
 

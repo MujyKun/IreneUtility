@@ -696,6 +696,11 @@ class Cache(Base):
             await asyncio.sleep(1)
         await self.create_cache(on_boot_up=not self.ex.irene_cache_loaded)
 
+        # only allow the cache to be loaded up one time (boot up) if the user does not want the cache to be reset
+        # every 12 hrs.
+        if not self.ex.reset_cache:
+            self.update_cache.stop()
+
     @tasks.loop(seconds=0, minutes=0, hours=0, reconnect=True)
     async def update_patron_and_guild_cache(self):
         """Looped until patron cache is loaded.
