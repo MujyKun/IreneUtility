@@ -19,7 +19,7 @@ class UnScrambleGame(Base):
             user_scores[difficulty] = difficulty_score + score
             await self.update_user_score_in_db(difficulty, user_scores[difficulty], user_id)
         except Exception as e:
-            log.console(f"{e} -> update_user_unscramble_game_score")
+            log.console(f"{e} (Exception)", method=self.update_user_unscramble_game_score)
 
     async def create_user_in_unscramble_game(self, user_id):
         """Inserts a user into the unscramble game db with no scores. This allows for updating scores easier."""

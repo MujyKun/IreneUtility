@@ -204,14 +204,17 @@ class Weverse(Base):
                         message_text = f"<@&{role_id}>\n{message_text if not file_list else ''}"
                     msg_list.append(await channel.send(message_text if not file_list else None, files=(file_list or
                                                                                                        None)))
-                    log.console(f"Weverse Post for {community_name} sent to {channel_id}.")
+                    log.console(f"Weverse Post for {community_name} sent to {channel_id}.",
+                                method=self.send_weverse_to_channel)
             except discord.Forbidden as e:
                 # no permission to post
-                log.console(f"Weverse Post Failed to {channel_id} for {community_name} -> {e}")
+                log.console(f"{e} (discord.Forbidden) - Weverse Post Failed to {channel_id} for {community_name}",
+                            method=self.send_weverse_to_channel)
                 # remove the channel from future updates as we do not want it to clog our rate-limits.
                 return await self.delete_weverse_channel(channel_id, community_name.lower())
             except Exception as e:
-                log.console(f"Weverse Post Failed to {channel_id} for {community_name} -> {e}")
+                log.console(f"{e} (Exception) - Weverse Post Failed to {channel_id} for {community_name}",
+                            method=self.send_weverse_to_channel)
                 return
 
             if self.ex.weverse_announcements:

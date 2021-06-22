@@ -93,8 +93,8 @@ class Miscellaneous(Base):
             embed.set_image(url=link[0])
             return await ctx.send(embed=embed)
         except Exception as e:
-            log.console(e)
-            msg = await self.ex.get_msg(ctx, "interactions")
+            log.console(f"{e} (Exception)", method=self.interact_with_user)
+            msg = await self.ex.get_msg(ctx, "interactions", "no_interactions")
             msg = await self.ex.replace(msg, ['name', ctx.author.display_name])
             return await ctx.send(msg)
 
@@ -273,7 +273,7 @@ class Miscellaneous(Base):
                 else:
                     return None
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.translate)
 
     async def get_language_code(self, input_language):
         """Returns a language code that is compatible with the papago framework."""

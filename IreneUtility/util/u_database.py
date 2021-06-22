@@ -29,7 +29,7 @@ class DataBase(Base):
             if self.ex.create_db_structure:
                 await self.ex.sql.db_structure.create_db_structure()  # has blocking file io
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.set_start_up_connection)
         self.set_start_up_connection.stop()  # stop this method from loop.
 
     async def create_thread_pool(self):

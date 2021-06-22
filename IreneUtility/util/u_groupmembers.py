@@ -26,9 +26,9 @@ class GroupMembers(Base):
             tz_info = time_stamp.tzinfo
             current_time = datetime.datetime.now(tz_info)
             check = current_time - time_stamp
-            log.console(f"It has been {check.seconds} seconds since {user_id} voted.")
+            log.console(f"It has been {check.seconds} seconds since {user_id} voted.", method=self.get_if_user_voted)
             return check.seconds <= 86400
-        log.console(f"{user_id} has not voted in the past 24 hours.")
+        log.console(f"{user_id} has not voted in the past 24 hours.", method=self.get_if_user_voted)
 
     def check_idol_object(self, obj):
         return isinstance(obj, self.ex.u_objects.Idol)
@@ -203,11 +203,10 @@ class GroupMembers(Base):
             if channel_info[0] == server_id and channel_info[1] == 1:
                 return self.ex.client.get_channel(channel_id)
 
-    @staticmethod
-    def log_idol_command(message):
+    def log_idol_command(self, message):
         """Log an idol photo that was called."""
         log.console(f"IDOL LOG: ChannelID = {message.channel.id} - {message.author} "
-                    f"({message.author.id})|| {message.clean_content} ")
+                    f"({message.author.id})|| {message.clean_content} ", method=self.log_idol_command)
 
     async def get_all_images_count(self):
         """Get the amount of images the bot has."""
@@ -459,7 +458,7 @@ class GroupMembers(Base):
                     except asyncio.TimeoutError:
                         await message.clear_reactions()
                     except Exception as err:
-                        log.console(err)
+                        log.console(f"{err} (Exception)", method=self.check_idol_post_reactions)
 
                 await reload_image()
         except:
@@ -496,7 +495,7 @@ class GroupMembers(Base):
             await msg.add_reaction(self.ex.keys.trash_emoji)
             await msg.add_reaction(self.ex.keys.next_emoji)
         except Exception as e:
-            log.console(f"Send Dead Image - {e}")
+            log.console(f"{e} (Exception) - Send Dead Image", method=self.send_dead_image)
 
     async def get_idol_where_member_matches_name(self, name, mode=0, server_id=None):
         """Get idol object if the name matches an idol"""
@@ -573,7 +572,7 @@ class GroupMembers(Base):
                                 name = (name.lower()).replace(alias, "")
 
             except Exception as e:
-                log.console(e)
+                log.console(f"{e} (Exception)", method=self.get_group_where_group_matches_name)
         # remove any duplicates
         group_list = list(dict.fromkeys(group_list))
         # print(id_list)
@@ -779,7 +778,7 @@ class GroupMembers(Base):
             log_msg = f"Idol Photo Status Code from API {status}."
 
         if log_msg:
-            log.console(log_msg)
+            log.console(log_msg, method=self.__handle_error)
         if channel_msg:
             await channel.send(channel_msg)
         self.ex.api_issues += 1
@@ -832,12 +831,12 @@ class GroupMembers(Base):
 
             await self.update_member_count(idol)  # update amount of times an idol has been called.
         except AttributeError as e:  # resolve dms
-            log.console(f"AttributeError - {e} -> u_groupmembers.idol_post")
+            log.console(f"{e} (AttributeError)", method=self.idol_post)
             await channel.send("It is not possible to receive Idol Photos in DMs.")
         except discord.Forbidden:  # resolve 403
             raise discord.Forbidden  # let the client decide what to do.
         except Exception as e:  # resolve all errors
-            log.console(f"{e} -> u_groupmembers.idol_post")
+            log.console(f"{e} (Exception)", method=self.idol_post)
         return msg, image_host
 
     def check_reset_limits(self):
@@ -913,7 +912,7 @@ class GroupMembers(Base):
             pass
 
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.request_image_post)
 
         try:
             # post the image.
@@ -1031,7 +1030,7 @@ class GroupMembers(Base):
         """
         log.console(f"Removing Text Channel "
                     f"{text_channel.id if isinstance(text_channel, discord.TextChannel) else text_channel} "
-                    f"from Send Idol Cache Permanently.")
+                    f"from Send Idol Cache Permanently.", method=self.delete_channel_from_send_idol)
         await self.ex.sql.s_groupmembers.delete_send_idol_photo_channel(text_channel)
         try:
             self.ex.cache.send_idol_photos.pop(text_channel)

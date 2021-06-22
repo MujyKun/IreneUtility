@@ -127,7 +127,5 @@ class Twitch(Base):
 
                 await channel.send(message)
             except Exception as e:
-                log.console(f"Failed to send twitch announcement to Guild ID: {guild_id}- {e}")
-
-
-# self.ex.u_twitch = Twitch()
+                log.console(f"{e} (Exception) - Failed to send twitch announcement to Guild ID: {guild_id}",
+                            method=self.send_twitch_announcement)

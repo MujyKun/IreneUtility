@@ -20,7 +20,7 @@ class Cache(Base):
         result = await method()
         if result is None or result:  # expecting False on methods that fail to load, do not simplify None.
             creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
-            log.console(f"Cache for {name} Created in {creation_time}.")
+            log.console(f"Cache for {name} Created in {creation_time}.", method=self.process_cache_time)
         return result
 
     async def create_cache(self, on_boot_up=True):
@@ -93,7 +93,7 @@ class Cache(Base):
 
             await self.process_cache_time(method, cache_name)
         creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
-        log.console(f"Cache Completely Created in {creation_time}.")
+        log.console(f"Cache Completely Created in {creation_time}.", method=self.create_cache)
         if on_boot_up:
             self.ex.cache.maintenance_mode = False
             self.ex.cache.maintenance_reason = None
@@ -109,9 +109,10 @@ class Cache(Base):
             self.ex.cache.twitter_channel = self.ex.client.get_channel(self.ex.keys.twitter_channel_id) or await \
                 self.ex.client.fetch_channel(self.ex.keys.twitter_channel_id)
         except discord.Forbidden:
-            log.console("ERROR: Unable to access twitter channel (403) - u_cache.request_twitter_channel.")
+            log.console("ERROR (discord.Forbidden): Unable to access twitter channel (403)",
+                        method=self.request_twitter_channel)
         except Exception as e:
-            log.console(f"{e} - u_cache.request_twitter_channel.")
+            log.console(f"{e} (Exception)", method=self.request_twitter_channel)
 
     async def request_support_server_members(self):
         """Request the support server to be chunked and be put in cache.
@@ -124,12 +125,13 @@ class Cache(Base):
             if not guild.chunked:
                 await guild.chunk(cache=True)
         except discord.Forbidden:
-            log.console("ERROR: Unable to access Support Server (403) - u_cache.request_support_server_members.")
+            log.console("ERROR (discord.Forbidden): Unable to access Support Server (403)",
+                        method=self.request_support_server_members)
         except discord.ClientException:
-            log.console("ERROR: Can not access Support Server without members intent enabled. - "
-                        "u_cache.request_support_server_members.")
+            log.console("ERROR (discord.ClientException): Can not access Support Server without members intent "
+                        "enabled. - ", method=self.request_support_server_members)
         except Exception as e:
-            log.console(f"{e} - u_cache.request_support_server_members.")
+            log.console(f"{e} (Exception)", method=self.request_support_server_members)
 
     async def create_send_idol_photo_cache(self):
         """Creates the list of idols that needs to be sent to a text channel after t time."""
@@ -190,7 +192,8 @@ class Cache(Base):
                 try:
                     guild = self.ex.client.get_guild(guild_id) or await self.ex.client.fetch_guild(guild_id)
                 except Exception as e:
-                    log.console(f"{e} -> Do not have access to fetch guild {guild_id}.")
+                    log.console(f"{e} (Exception) -> Do not have access to fetch guild {guild_id}.",
+                                method=self.create_welcome_role_cache)
                     guild = None
 
                 if not guild:
@@ -200,7 +203,8 @@ class Cache(Base):
                     if role.id == role_id:
                         self.ex.cache.welcome_roles[guild] = role
             except Exception as e:
-                log.console(f"{e} ->  Failed to process welcome role cache for {guild_id}")
+                log.console(f"{e} (Exception2) ->  Failed to process welcome role cache for {guild_id}",
+                            method=self.create_welcome_role_cache)
 
     async def create_playing_cards(self):
         """Crache cache for playing cards."""
@@ -637,7 +641,7 @@ class Cache(Base):
                 user.super_patron = True
             return True
         except Exception as e:
-            log.console(f"{e} - create_patreons")
+            log.console(f"{e} (Exception)", method=self.create_patreons)
             return False
 
     async def create_user_notifications(self):
@@ -661,7 +665,7 @@ class Cache(Base):
         """Update the DB Guild Cache. Useful for updating info for API."""
         # much simpler to just delete all of the cache and reinsert instead of updating fields.
         try:
-            log.console("Attempting to send guild information to DB.")
+            log.console("Attempting to send guild information to DB.", self.create_guild_cache)
             await self.ex.conn.execute("DELETE FROM stats.guilds")
 
             guild_data = []
@@ -679,7 +683,7 @@ class Cache(Base):
             async with self.ex.conn.acquire() as direct_conn:
                 await direct_conn.copy_records_to_table('guilds', records=guild_data, schema_name="stats")
         except Exception as e:
-            log.console(f"{e} - Failed to update guild cache")
+            log.console(f"{e} (Exception) - Failed to update guild cache", method=self.create_guild_cache)
 
     async def create_idols(self):
         """Set cache for idol photo count"""
@@ -719,13 +723,16 @@ class Cache(Base):
                     for user_id, super_patron in cached_patrons:
                         user = await self.ex.get_user(user_id)
                         if super_patron:
-                            log.console(f"Made {user_id} a temporary super patron & patron.")
+                            log.console(f"Made {user_id} a temporary super patron & patron.",
+                                        method=self.update_patron_and_guild_cache)
                             user.super_patron = True
                         else:
-                            log.console(f"Made {user_id} a temporary patron.")
+                            log.console(f"Made {user_id} a temporary patron.",
+                                        method=self.update_patron_and_guild_cache)
                         user.patron = True
                     self.ex.temp_patrons_loaded = True
-                    log.console("Cache for Temporary Patrons has been created.")
+                    log.console("Cache for Temporary Patrons has been created.",
+                                method=self.update_patron_and_guild_cache)
                 while not self.ex.discord_cache_loaded:
                     await asyncio.sleep(60)  # check every minute if discord cache has loaded.
 
@@ -734,7 +741,7 @@ class Cache(Base):
                     self.update_patron_cache_hour.start()
                     self.update_patron_and_guild_cache.stop()
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.update_patron_and_guild_cache)
 
     @tasks.loop(seconds=0, minutes=0, hours=1, reconnect=True)
     async def update_patron_cache_hour(self):
@@ -853,8 +860,8 @@ class Cache(Base):
                         result = (self.ex.thread_pool.submit(self.ex.u_data_dog.send_metric, metric_name,
                                                              metric_value)).result()
                     except Exception as e:
-                        log.console(e)
+                        log.console(f"{e} (Exception)", method=self.send_cache_data_to_data_dog)
         except Exception as e:
             # loop appears to stop working after a while and no errors were recognized in log file
             # adding this try except to see if issue continues.
-            log.console(e)
+            log.console(f"{e} (Exception2", method=self.send_cache_data_to_data_dog)

@@ -28,7 +28,7 @@ def get_class(method):
             return cls
 
     this_class = getattr(method, '__objclass__', None)  # handle special descriptor objects
-    return this_class.__name__ if this_class else ""
+    return this_class.__name__ if this_class else "Unknown_Class"
 
 
 def debug():

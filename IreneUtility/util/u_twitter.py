@@ -63,7 +63,7 @@ class Twitter(Base):
             await self.ex.sql.s_twitter.insert_photo_uploaded(image_id, media.media_id)
             return status.text
         except Exception as e:
-            log.console(f"{e} - Failed to post image -> u_twitter.upload_random_image")
+            log.console(f"{e} (Exception)", method=self.upload_random_image)
 
     def get_random_idol_photo(self):
         """Get a random idol photo existing in the file directory.
