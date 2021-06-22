@@ -2,6 +2,33 @@ import logging
 import datetime
 import aiofiles
 import asyncio
+import functools
+import inspect
+
+
+def get_class(method):
+    """
+    Returns the class that belongs to the method.
+    :param method: The method that needs to be checked.
+
+    REF -> https://stackoverflow.com/a/25959545/13159093
+    """
+    if isinstance(method, functools.partial):
+        return get_class(method.func)
+    if inspect.ismethod(method) or (inspect.isbuiltin(method) and getattr(method, '__self__', None) is not None and getattr(method.__self__, '__class__', None)):
+        for cls in inspect.getmro(method.__self__.__class__):
+            if method.__name__ in cls.__dict__:
+                return cls
+        method = getattr(method, '__func__', method)  # fallback to __qualname__ parsing
+    if inspect.isfunction(method):
+        cls = getattr(inspect.getmodule(method),
+                      method.__qualname__.split('.<locals>', 1)[0].rsplit('.', 1)[0],
+                      None)
+        if isinstance(cls, type):
+            return cls
+
+    this_class = getattr(method, '__objclass__', None)  # handle special descriptor objects
+    return this_class.__name__ if this_class else ""
 
 
 def debug():
@@ -37,7 +64,7 @@ def manage_log(body_msg, log_type, method=None):
     :param log_type: (str) The end of the file name that differentiates the type of logging it is.
     :param method: The function/method that called this function.
     """
-    msg = f"{datetime.datetime.now()} -- {body_msg} --> {method.__name__ if method else ''}\n"
+    msg = f"{datetime.datetime.now()} -- {body_msg} {f'--> {get_class(method)}.{method.__name__}' if method else ''}\n"
     coroutine = write_to_file(f"Logs/{datetime.date.today()}-{log_type}.log",  msg)
 
     asyncio.run_coroutine_threadsafe(coroutine, asyncio.get_event_loop())

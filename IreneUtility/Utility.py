@@ -214,7 +214,7 @@ class Utility:
         """restart the api"""
         source_link = "http://127.0.0.1:5123/restartAPI"
         async with self.session.get(source_link):
-            log.console("Restarting API.")
+            log.console("Restarting API.", method=self.kill_api)
 
     @staticmethod
     async def get_server_id(ctx):
@@ -236,12 +236,12 @@ class Utility:
                 dm_channel = user.dm_channel
             return dm_channel
         except discord.errors.HTTPException as e:
-            log.console(f"{e} - get_dm_channel 1")
+            log.console(f"{e} (HTTPException)", method=self.get_dm_channel)
             return
         except AttributeError:
             return
         except Exception as e:
-            log.console(f"{e} - get_dm_channel 2")
+            log.console(f"{e} (Exception)", method=self.get_dm_channel)
             return
 
     async def check_interaction_enabled(self, ctx=None, server_id=None, interaction=None):
@@ -350,7 +350,7 @@ class Utility:
                     pass
                 await change_page(c_page)
             except Exception as e:
-                log.console(f"check_left_or_right_reaction_embed - {e}")
+                log.console(f"{e} (Exception)", method=self.check_left_or_right_reaction_embed)
                 await change_page(c_page)
         await change_page(original_page_number)
 

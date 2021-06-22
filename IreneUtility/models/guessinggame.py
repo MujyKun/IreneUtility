@@ -138,7 +138,8 @@ class GuessingGame(Game_Base):
                                         for group_id in self.idol.groups]
                 except:
                     # cache is not loaded.
-                    log.console(f"Ending GG in {self.channel.id} due to the cache not being loaded.")
+                    log.console(f"Ending GG in {self.channel.id} due to the cache not being loaded.",
+                                method=self.create_new_question)
                     await self.end_game()
 
                 """
@@ -154,7 +155,7 @@ class GuessingGame(Game_Base):
                                 f" took more than {self.post_attempt_timeout}")
                     continue
                 """
-                log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}')
+                log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}', method=self.create_new_question)
 
                 try:
                     self.idol_post_msg, self.photo_link = await self.ex.u_group_members.idol_post(
@@ -162,7 +163,8 @@ class GuessingGame(Game_Base):
                         msg_timeout=self.timeout + 5)
                 except discord.Forbidden:
                     # end the game if unable to post in the channel.
-                    log.console(f"Ending GG in {self.channel.id} since we cannot send a message to the channel.")
+                    log.console(f"Ending GG in {self.channel.id} since we cannot send a message to the channel.",
+                                method=self.create_new_question)
                     await self.end_game()
 
                 if not self.idol_post_msg:
@@ -172,7 +174,7 @@ class GuessingGame(Game_Base):
             except LookupError as e:
                 raise e
             except Exception as e:
-                log.console(f"{e} - {self.channel.id} - guessinggame.create_new_question")
+                log.console(f"{e} (Exception) - {self.channel.id}", method=self.create_new_question)
                 continue
 
     async def display_winners(self):
@@ -226,7 +228,7 @@ class GuessingGame(Game_Base):
                 asyncio.create_task(self.ex.u_group_members.check_idol_post_reactions(
                     msg, self.host_ctx.message, self.idol, self.photo_link, guessing_game=True))
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.print_answer)
 
     async def create_acceptable_answers(self):
         """Create acceptable answers."""
@@ -268,10 +270,10 @@ class GuessingGame(Game_Base):
 
                     await self.channel.send(f"The gender, difficulty, and filtered settings selected have no idols. "
                                             f"Ending Game. {filter_msg}")
-                    log.console(e)
+                    log.console(f"{e} (LookupError)", method=self.process_game)
                     return
                 await self.check_message()
             await self.end_game()
         except Exception as e:
             await self.channel.send(f"An error has occurred and the game has ended. Please report this.")
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.process_game)

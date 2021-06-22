@@ -110,7 +110,7 @@ class UnScrambleGame(Game_Base):
                 # Create acceptable answers
                 await self.create_acceptable_answers()
 
-                log.console(f"{self.correct_answer} - Unscramble {self.channel.id}")
+                log.console(f"{self.correct_answer} - Unscramble {self.channel.id}", method=self.create_new_question)
 
                 """
                 In order to create the scrambled word:
@@ -139,7 +139,7 @@ class UnScrambleGame(Game_Base):
             except LookupError as e:
                 raise e
             except Exception as e:
-                log.console(f"{e} - unscramblegame.create_new_question")
+                log.console(f"{e} (Exception)", method=self.create_new_question)
                 continue
 
     async def display_winners(self):
@@ -224,10 +224,10 @@ class UnScrambleGame(Game_Base):
                 except LookupError as e:
                     await self.channel.send(f"The gender, difficulty, and filtered settings selected have no idols. "
                                             f"Ending Game.")
-                    log.console(e)
+                    log.console(f"{e} (LookupError)", method=self.process_game)
                     return
                 await self.check_message()
             await self.end_game()
         except Exception as e:
             await self.channel.send(f"An error has occurred and the game has ended. Please report this.")
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.process_game)

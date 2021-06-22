@@ -272,4 +272,4 @@ class BlackJackGame(Game_Base):
 
         except Exception as e:
             await self.channel.send(await self.ex.get_msg(self.host_id, 'biasgame', 'unexpected_error'))
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.process_game)

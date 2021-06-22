@@ -148,7 +148,7 @@ Remaining Idols: {self.number_of_idols_left}
                     await self.run_current_bracket()
                 except Exception as e:
                     # this would usually error if the file location set is incorrect.
-                    log.console(e)
+                    log.console(f"{e} (Exception)", method=self.process_game)
                     raise RuntimeError
             if self.force_ended:
                 return
@@ -157,4 +157,4 @@ Remaining Idols: {self.number_of_idols_left}
             await self.update_user_wins()
         except Exception as e:
             await self.channel.send(await self.ex.get_msg(self.host_id, 'biasgame', 'unexpected_error'))
-            log.console(e)
+            log.console(f"{e} (Exception2)", method=self.process_game)
