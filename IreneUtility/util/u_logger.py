@@ -47,7 +47,7 @@ def console(message):
 
     :param message: The message that will be printed out and logged.
     """
-    message = message.replace("**", "")  # getting rid of bold in markdown
+    message = f"{message}".replace("**", "")  # getting rid of bold in markdown
     print(message)
     manage_log(message, "console")
 
