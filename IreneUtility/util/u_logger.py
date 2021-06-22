@@ -1,8 +1,7 @@
 import logging
 import datetime
-from concurrent.futures import ThreadPoolExecutor
-
-thread_pool = ThreadPoolExecutor()
+import aiofiles
+import asyncio
 
 
 def debug():
@@ -21,34 +20,50 @@ def info():
     logger.addHandler(handler)
 
 
-def print_to_console(message):
-    message = message.replace("**", "")  # getting rid of bold in markdown
-    print(message)
-    with open(f"Logs/{datetime.date.today()}-console.log", "a+", encoding='utf-8') as file:
-        output = f"{datetime.datetime.now()} -- {message}\n"
-        file.write(output)
+async def write_to_file(location, body_msg):
+    """Write a line to a file.
+
+    :param location: (str) File Location
+    :param body_msg: (str) Line that should be appended to the file.
+    """
+    async with aiofiles.open(location, "a+", encoding='utf-8') as file:
+        await file.write(body_msg)
+
+
+def manage_log(body_msg, log_type):
+    """Process the type of logging it is and writes to file.
+
+    :param body_msg: (str) Line that should be appended to the file.
+    :param log_type: (str) The end of the file name that differentiates the type of logging it is.
+    """
+    coroutine = write_to_file(f"Logs/{datetime.date.today()}-{log_type}.log", f"{datetime.datetime.now()} -- "
+                                                                              f"{body_msg}\n")
+
+    asyncio.run_coroutine_threadsafe(coroutine, asyncio.get_event_loop())
 
 
 def console(message):
-    # run in a separate thread to avoid blocking.
-    (thread_pool.submit(print_to_console, f"{message}")).result()
+    """Prints message to console and adds to logging.
+
+    :param message: The message that will be printed out and logged.
+    """
+    message = message.replace("**", "")  # getting rid of bold in markdown
+    print(message)
+    manage_log(message, "console")
 
 
 def logfile(message):
-    with open(f"Logs/{datetime.date.today()}-info.log", "a+", encoding='utf-8') as file:
-        output = f"{datetime.datetime.now()} -- {message}\n"
-        file.write(output)
+    """Logs a message to the info file.
+
+    :param message: The message that will be logged.
+    """
+    manage_log(message, "info")
 
 
 def useless(message):
-    """Submits Loggings Try-Except-Passes to Thread Pool."""
-    (thread_pool.submit(loguseless, f"{message}")).result()
-
-
-def loguseless(message):
     """Logs Try-Except-Passes. This will put the exceptions into a log file specifically for cases with no exception
-    needed. """
-    with open(f"Logs/{datetime.date.today()}-useless.log", "a+", encoding='utf-8') as file:
-        output = f"{datetime.datetime.now()} -- {message}\n"
-        file.write(output)
+    needed.
 
+    :param message: The message that will be logged.
+    """
+    manage_log(message, "useless")
