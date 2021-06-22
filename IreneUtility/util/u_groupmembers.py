@@ -898,6 +898,11 @@ class GroupMembers(Base):
                 if await self.ex.u_patreon.check_if_patreon(message.author.id):
                     raise self.ex.exceptions.Pass
 
+                # if the user is requesting from the support server
+                if channel.guild:
+                    if channel.guild.id == self.ex.keys.bot_support_server_id:
+                        raise self.ex.exceptions.Pass
+
                 # If the user has not voted and they have passed the no vote limit.
                 if await self.check_user_limit(message.author, message.channel, no_vote_limit=True):
                     if not await self.get_if_user_voted(message.author.id):
