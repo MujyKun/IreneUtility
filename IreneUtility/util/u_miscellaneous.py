@@ -287,7 +287,7 @@ class Miscellaneous(Base):
             member_count = sum([guild.member_count for guild in self.ex.client.guilds])
             return member_count
         except Exception as e:
-            log.useless(f"{e} - u_miscellaneous.get_user_count")
+            log.useless(f"{e} (Exception)", method=self.get_user_count)
             return 0
 
     def get_server_count(self):

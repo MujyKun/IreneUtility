@@ -222,4 +222,5 @@ class Weverse(Base):
                     try:
                         await msg.publish()
                     except Exception as e:
-                        log.useless(f"{e} - Failed to publish Message {msg.id}.")
+                        log.useless(f"{e} (Exception) - Failed to publish Message {msg.id}.",
+                                    method=self.send_weverse_to_channel)

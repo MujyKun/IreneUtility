@@ -144,7 +144,7 @@ class Cache(Base):
                 await self.ex.sql.s_groupmembers.delete_send_idol_photo_channel(text_channel)
                 continue
             except Exception as e:
-                log.useless(f"{e} - create_send_idol_photo_cache")
+                log.useless(f"{e} (Exception)", method=self.create_send_idol_photo_cache)
                 channel = None
 
             text_channel = channel or text_channel
@@ -436,7 +436,7 @@ class Cache(Base):
         try:
             self.ex.cache.dead_image_channel = await self.ex.client.fetch_channel(self.ex.keys.dead_image_channel_id)
         except Exception as e:
-            log.useless(f"{e} - Failed to fetch dead image channel - Cache.create_dead_link_cache")
+            log.useless(f"{e} (Exception) - Failed to fetch dead image channel", method=self.create_dead_link_cache)
 
         for dead_link, user_id, message_id, idol_id, guessing_game in await self.ex.sql.s_groupmembers.fetch_dead_links():
             await asyncio.sleep(0)  # bare yield

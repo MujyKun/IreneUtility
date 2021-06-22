@@ -82,12 +82,14 @@ class BiasGame(Game_Base):
                 first_idol_group = (await self.ex.u_group_members.get_group(random.choice(first_idol.groups))).name
             except Exception as e:
                 first_idol_group = first_idol.full_name
-                log.useless(f"{e} -> Using Idol Full Name instead of Group Name for {first_idol_group}")
+                log.useless(f"{e} (Exception)-> Using Idol Full Name instead of Group Name for {first_idol_group}",
+                            method=self.run_current_bracket)
             try:
                 second_idol_group = (await self.ex.u_group_members.get_group(random.choice(second_idol.groups))).name
             except Exception as e:
                 second_idol_group = second_idol.full_name
-                log.useless(f"{e} -> Using Idol Full Name instead of Group Name for {second_idol_group}")
+                log.useless(f"{e} (Exception2) -> Using Idol Full Name instead of Group Name for {second_idol_group}",
+                            method=self.run_current_bracket)
 
             msg_body = f"""
 **@{self.host_ctx.author.display_name}**

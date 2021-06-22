@@ -64,10 +64,14 @@ def manage_log(body_msg, log_type, method=None):
     :param log_type: (str) The end of the file name that differentiates the type of logging it is.
     :param method: The function/method that called this function.
     """
-    msg = f"{datetime.datetime.now()} -- {body_msg} {f'--> {get_class(method)}.{method.__name__}' if method else ''}\n"
-    coroutine = write_to_file(f"Logs/{datetime.date.today()}-{log_type}.log",  msg)
+    try:
+        msg = f"{datetime.datetime.now()} -- {body_msg} " \
+              f"{f'--> {get_class(method)}.{method.__name__}' if method else ''}\n"
+        coroutine = write_to_file(f"Logs/{datetime.date.today()}-{log_type}.log",  msg)
 
-    asyncio.run_coroutine_threadsafe(coroutine, asyncio.get_event_loop())
+        asyncio.run_coroutine_threadsafe(coroutine, asyncio.get_event_loop())
+    except Exception as e:
+        print(f"{e} (Exception) - Failed to log. - {body_msg} - u_logger.manage_log")
 
 
 def console(message, method=None):

@@ -95,7 +95,8 @@ class BlackJackGame(Game_Base):
         try:
             self.ex.cache.blackjack_games.remove(self)
         except Exception as e:
-            log.useless(f"{BlackJackGame.end_game()} could not find the game to remove from cache.")
+            log.useless(f"{e} (Exception) - Could not find the BlackJack Game to remove from cache.",
+                        method=BlackJackGame.end_game)
         return True
 
     async def hit(self, first_player=True):
