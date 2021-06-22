@@ -65,8 +65,16 @@ def manage_log(body_msg, log_type, method=None):
     :param method: The function/method that called this function.
     """
     try:
+        class_name = ""
+        func_name = ""
+        if method:
+            class_name = f"{get_class(method)}"
+            try:
+                func_name = f"{method.__name__}"
+            except AttributeError:
+                func_name = f"{method}"
         msg = f"{datetime.datetime.now()} -- {body_msg} " \
-              f"{f'--> {get_class(method)}.{method.__name__}' if method else ''}\n"
+              f"{f'--> {class_name}.{func_name}' if method else ''}\n"
         coroutine = write_to_file(f"Logs/{datetime.date.today()}-{log_type}.log",  msg)
 
         asyncio.run_coroutine_threadsafe(coroutine, asyncio.get_event_loop())
