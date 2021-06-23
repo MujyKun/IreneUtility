@@ -14,7 +14,7 @@ class Weverse(Base):
         """Add a channel to get updates for a community"""
         community_name = community_name.lower()
         await self.ex.conn.execute("INSERT INTO weverse.channels(channelid, communityname) VALUES($1, $2)", channel_id,
-                              community_name)
+                                   community_name)
         await self.add_weverse_channel_to_cache(channel_id, community_name)
 
     async def add_weverse_channel_to_cache(self, channel_id, community_name):
@@ -22,9 +22,9 @@ class Weverse(Base):
         community_name = community_name.lower()
         channels = self.ex.cache.weverse_channels.get(community_name)
         if channels:
-            channels.append([channel_id, None, False])
+            channels.append([channel_id, None, False, False])
         else:
-            self.ex.cache.weverse_channels[community_name] = [[channel_id, None, False]]
+            self.ex.cache.weverse_channels[community_name] = [[channel_id, None, False, False]]
 
     async def check_weverse_channel(self, channel_id, community_name):
         """Check if a channel is already getting updates for a community"""
