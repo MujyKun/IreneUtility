@@ -386,11 +386,18 @@ class Cache(Base):
         """Create cache for channels that are following a community on weverse."""
         self.ex.cache.weverse_channels = {}
 
-        for channel_id, community_name, role_id, comments_disabled in await self.ex.sql.s_weverse.fetch_weverse():
+        for channel_id, community_name, role_id, comments_disabled, media_disabled in \
+                await self.ex.sql.s_weverse.fetch_weverse():
             await asyncio.sleep(0)  # bare yield
+            # add channel to cache
             await self.ex.u_weverse.add_weverse_channel_to_cache(channel_id, community_name)
+            # add weverse roles
             await self.ex.u_weverse.add_weverse_role(channel_id, community_name, role_id)
-            await self.ex.u_weverse.change_weverse_comment_status(channel_id, community_name, comments_disabled)
+            # create comment disabled status
+            await self.ex.u_weverse.change_weverse_comment_media_status(channel_id, community_name, comments_disabled)
+            # create media disabled status
+            await self.ex.u_weverse.change_weverse_comment_media_status(channel_id, community_name, media_disabled,
+                                                                        media=True)
 
     async def create_command_counter(self):
         """Updates Cache for command counter and sessions"""

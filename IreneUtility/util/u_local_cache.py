@@ -110,7 +110,7 @@ class Cache(Base):
         self.unscramble_games = {}  # {channelid: Game}
 
         # Text channels to send Weverse updates to.
-        self.weverse_channels = {}  # { community_name: [ [channel_id, role_id, comments_disabled] ] }
+        self.weverse_channels = {}  # { community_name: [ [channel_id, role_id, comments_disabled, media_disabled] ] }
 
         # languages available, also the file names
         self.languages_available = ["en_us"]

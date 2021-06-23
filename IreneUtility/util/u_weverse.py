@@ -76,19 +76,35 @@ class Weverse(Base):
             if cache_channel_id == channel_id:
                 channel[1] = role_id
 
-    async def change_weverse_comment_status(self, channel_id, community_name, comments_disabled, updated=False):
-        """Change a channel's subscription and whether or not they receive updates on comments."""
-        comments_disabled = bool(comments_disabled)
+    async def change_weverse_comment_media_status(self, channel_id, community_name, t_disabled, updated=False,
+                                                  media=False):
+        """Change a channel's subscription and whether or not they receive updates on comments/comments.
+
+        :param channel_id: (int) Channel id on discord
+        :param community_name: (str) Community name on Weverse
+        :param t_disabled: (integer) Represents the current status of the disable.
+        :param updated: (bool) Whether it needs to be updated.
+        :param media: (bool) Whether to disable media or not.
+        """
+        t_disabled = bool(t_disabled)
         community_name = community_name.lower()
+
         if updated:
             await self.ex.conn.execute(
-                "UPDATE weverse.channels SET commentsdisabled = $1 WHERE channelid = $2 AND communityname = $3",
-                int(comments_disabled), channel_id, community_name)
+                f"UPDATE weverse.channels SET {'comments' if not media else 'media'}disabled "
+                f"= $1 WHERE channelid = $2 AND communityname = $3",
+                int(t_disabled), channel_id, community_name)
         channels = self.ex.cache.weverse_channels.get(community_name)
         for channel in channels:
             cache_channel_id = channel[0]
             if cache_channel_id == channel_id:
-                channel[2] = comments_disabled
+                if media:
+                    channel[3] = t_disabled
+                else:
+                    channel[2] = t_disabled
+
+    async def change_weverse_media_status(self, channel_id, community_name, media_disabled, updated=False):
+        """Change a channel's subscription and whether or not they receive updates on media."""
 
     async def set_comment_embed(self, notification, embed_title):
         """Set Comment Embed for Weverse."""
