@@ -191,56 +191,59 @@ class Weverse(Base):
             return embed, message
         return None, None
 
-    async def send_weverse_to_channel(self, channel_info, message_text, embed, is_comment, community_name):
+    async def send_weverse_to_channel(self, channel_info, message_text, embed, is_comment, is_media, community_name):
         channel_id = channel_info[0]
         role_id = channel_info[1]
         comments_disabled = channel_info[2]
+        media_disabled = channel_info[3]
 
-        if not (is_comment and comments_disabled):
-            try:
-                channel = self.ex.client.get_channel(channel_id)
-                if not channel:
-                    # fetch channel instead (assuming discord.py cache did not load)
-                    channel = await self.ex.client.fetch_channel(channel_id)
-            except:
-                # remove the channel from future updates as it cannot be found.
-                return await self.delete_weverse_channel(channel_id, community_name.lower())
-            msg_list = []
-            file_list = []
-            try:
-                msg_list.append(await channel.send(embed=embed))
-                if message_text:
-                    # Since an embed already exists, any individual content will not load
-                    # as an embed -> Make it it's own message.
-                    if isinstance(message_text, list):
-                        # a list of file locations
-                        for photo_location in message_text:
-                            file_list.append(discord.File(photo_location))
+        if (is_comment and comments_disabled) or (is_media and media_disabled):
+            return  # if the user has the post disabled, we should not post it.
 
-                    if role_id:
-                        message_text = f"<@&{role_id}>\n{message_text if not file_list else ''}"
-                    msg_list.append(await channel.send(message_text if not file_list else None, files=(file_list or
-                                                                                                       None)))
-                    log.console(f"Weverse Post for {community_name} sent to {channel_id}.",
+        try:
+            channel = self.ex.client.get_channel(channel_id)
+            if not channel:
+                # fetch channel instead (assuming discord.py cache did not load)
+                channel = await self.ex.client.fetch_channel(channel_id)
+        except:
+            # remove the channel from future updates as it cannot be found.
+            return await self.delete_weverse_channel(channel_id, community_name.lower())
+        msg_list = []
+        file_list = []
+        try:
+            msg_list.append(await channel.send(embed=embed))
+            if message_text:
+                # Since an embed already exists, any individual content will not load
+                # as an embed -> Make it it's own message.
+                if isinstance(message_text, list):
+                    # a list of file locations
+                    for photo_location in message_text:
+                        file_list.append(discord.File(photo_location))
+
+                if role_id:
+                    message_text = f"<@&{role_id}>\n{message_text if not file_list else ''}"
+                msg_list.append(await channel.send(message_text if not file_list else None, files=(file_list or
+                                                                                                   None)))
+                log.console(f"Weverse Post for {community_name} sent to {channel_id}.",
+                            method=self.send_weverse_to_channel)
+        except discord.Forbidden as e:
+            # no permission to post
+            log.console(f"{e} (discord.Forbidden) - Weverse Post Failed to {channel_id} for {community_name}",
+                        method=self.send_weverse_to_channel)
+            # remove the channel from future updates as we do not want it to clog our rate-limits.
+            return await self.delete_weverse_channel(channel_id, community_name.lower())
+        except Exception as e:
+            log.console(f"{e} (Exception) - Weverse Post Failed to {channel_id} for {community_name}",
+                        method=self.send_weverse_to_channel)
+            return
+
+        if self.ex.weverse_announcements:
+            for msg in msg_list:
+                try:
+                    await msg.publish()
+                except Exception as e:
+                    log.useless(f"{e} (Exception) - Failed to publish Message {msg.id}.",
                                 method=self.send_weverse_to_channel)
-            except discord.Forbidden as e:
-                # no permission to post
-                log.console(f"{e} (discord.Forbidden) - Weverse Post Failed to {channel_id} for {community_name}",
-                            method=self.send_weverse_to_channel)
-                # remove the channel from future updates as we do not want it to clog our rate-limits.
-                return await self.delete_weverse_channel(channel_id, community_name.lower())
-            except Exception as e:
-                log.console(f"{e} (Exception) - Weverse Post Failed to {channel_id} for {community_name}",
-                            method=self.send_weverse_to_channel)
-                return
-
-            if self.ex.weverse_announcements:
-                for msg in msg_list:
-                    try:
-                        await msg.publish()
-                    except Exception as e:
-                        log.useless(f"{e} (Exception) - Failed to publish Message {msg.id}.",
-                                    method=self.send_weverse_to_channel)
 
     async def disable_type(self, ctx, community_name, media=False):
         """Disable media/comments on a community and deal with the user messages.
