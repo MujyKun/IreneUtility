@@ -2,6 +2,7 @@ import discord
 from ..Base import Base
 from . import u_logger as log
 import aiofiles
+import asyncio
 
 
 # noinspection PyBroadException,PyPep8
@@ -240,3 +241,32 @@ class Weverse(Base):
                     except Exception as e:
                         log.useless(f"{e} (Exception) - Failed to publish Message {msg.id}.",
                                     method=self.send_weverse_to_channel)
+
+    async def disable_type(self, ctx, community_name, media=False):
+        """Disable media/comments on a community and deal with the user messages.
+
+
+        :param ctx: Context Object
+        :param community_name: Weverse community name
+        :param media: Whether the post type is media
+        """
+        post_type = "media" if media else "comments"
+        if self.ex.weverse_announcements:
+            if ctx.author.id != self.ex.keys.owner_id:
+                msg = await self.ex.get_msg(ctx.author.id, "weverse", "bot_owner_only",
+                                            ["support_server_link", self.ex.keys.bot_support_server_link])
+                return await ctx.send(msg)
+
+        channel_id = ctx.channel.id
+        if not await self.ex.u_weverse.check_weverse_channel(channel_id, community_name):
+            return await ctx.send(f"This channel is not subscribed to weverse updates from {community_name}.")
+        for channel in await self.ex.u_weverse.get_weverse_channels(community_name):
+            await asyncio.sleep(0)
+            if channel[0] != channel_id:
+                continue
+            await self.change_weverse_comment_media_status(channel_id, community_name,
+                                                           (not channel[2]) if not media else
+                                                           (not channel[3]), updated=True, media=media)
+            if channel[2]:
+                return await ctx.send(f"> This channel will no longer receive {post_type} from {community_name}.")
+            return await ctx.send(f"> This channel will now receive {post_type} from {community_name}.")
