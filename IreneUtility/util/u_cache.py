@@ -866,7 +866,7 @@ class Cache(Base):
                 'servers_using_self_assignable_roles': self.ex.cache.assignable_roles.keys() or []
             },
             'method_call': {  # we need to call a custom method to get the value.
-                'discord_ping': self.ex.get_ping()
+                'discord_ping': self.ex.get_ping
             },
             'sum_length': {  # need to sum a list after getting the len()
                 'weverse_channels_following': self.ex.cache.weverse_channels.values(),
