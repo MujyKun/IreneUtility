@@ -809,10 +809,9 @@ class Cache(Base):
         user_copy = self.ex.cache.users.copy()
         gg_filtered_enabled = len([user for user in user_copy.values() if user.gg_filter])
 
-
-        weverse_groups = ["txt","bts","gfriend","seventeen","enhypen","nu'est","cl","p1harmony","weeekly","sunmi",
-                          "henry","dreamcatcher","cherry bullet","mirae","treasure","letteamor","everglow",
-                          "ftisland","woo!ah!","ikon", "blackpink"]
+        weverse_groups = ["txt","bts", "gfriend", "seventeen", "enhypen", "nu'est", "cl", "p1harmony", "weeekly",
+                          "sunmi", "henry", "dreamcatcher", "cherry bullet", "mirae", "treasure", "letteamor",
+                          "everglow", "ftisland", "woo!ah!", "ikon", "blackpink"]
 
         metric_info = {}  # contains all final data.
 
@@ -861,10 +860,10 @@ class Cache(Base):
                 'dead_image_cache': self.ex.cache.dead_image_cache,
                 'user_objects': self.ex.cache.users,
                 'welcome_roles': self.ex.cache.welcome_roles,
-                'members_in_support_server': len(self.ex.cache.member_ids_in_support_server),
-                'active_unscramble_games': len(self.ex.cache.unscramble_games),
-                'channels_with_automatic_photos': len(self.ex.cache.send_idol_photos.keys()),
-                'servers_using_self_assignable_roles': len(self.ex.cache.assignable_roles.keys() or [])
+                'members_in_support_server': self.ex.cache.member_ids_in_support_server,
+                'active_unscramble_games': self.ex.cache.unscramble_games,
+                'channels_with_automatic_photos': self.ex.cache.send_idol_photos.keys(),
+                'servers_using_self_assignable_roles': self.ex.cache.assignable_roles.keys() or []
             },
             'method_call': {  # we need to call a custom method to get the value.
                 'discord_ping': self.ex.get_ping()
@@ -888,7 +887,6 @@ class Cache(Base):
             except Exception as e:
                 log.console(f"{e} (Exception) - Failed to set key of normal datadog value {key} - {value}.",
                             method=self.get_metric_info)
-
 
         length_data = metric_in_detail.get("length_needed")
         for key, iterable in length_data.items():
