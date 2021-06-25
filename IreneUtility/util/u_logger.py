@@ -57,12 +57,13 @@ async def write_to_file(location, body_msg):
         await file.write(body_msg)
 
 
-def manage_log(body_msg, log_type, method=None):
+def manage_log(body_msg, log_type, method=None, event_loop=None):
     """Process the type of logging it is and writes to file.
 
     :param body_msg: (str) Line that should be appended to the file.
     :param log_type: (str) The end of the file name that differentiates the type of logging it is.
     :param method: The function/method that called this function.
+    :param event_loop: An existing event loop.
     """
     try:
         class_name = ""
@@ -77,20 +78,21 @@ def manage_log(body_msg, log_type, method=None):
               f"{f'--> {class_name}.{func_name}' if method else ''}\n"
         coroutine = write_to_file(f"Logs/{datetime.date.today()}-{log_type}.log",  msg)
 
-        asyncio.run_coroutine_threadsafe(coroutine, asyncio.get_event_loop())
+        asyncio.run_coroutine_threadsafe(coroutine, event_loop or asyncio.get_event_loop())
     except Exception as e:
         print(f"{e} (Exception) - Failed to log. - {body_msg} - u_logger.manage_log")
 
 
-def console(message, method=None):
+def console(message, method=None, event_loop=None):
     """Prints message to console and adds to logging.
 
     :param message: The message that will be printed out and logged.
     :param method: The function/method that called this function.
+    :param event_loop: An existing event loop.
     """
     message = f"{message}".replace("**", "")  # getting rid of bold in markdown
     print(message)
-    manage_log(message, "console", method=method)
+    manage_log(message, "console", method=method, event_loop=event_loop)
 
 
 def logfile(message):
