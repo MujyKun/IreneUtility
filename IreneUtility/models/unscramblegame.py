@@ -201,7 +201,8 @@ class UnScrambleGame(Game_Base):
                     possible_answers.append(alias)
 
         else:
-            raise self.ex.exceptions.ShouldNotBeHere("unscramblegame.create_acceptable_answers")
+            raise self.ex.exceptions.ShouldNotBeHere(f"Difficulty: {self.difficulty} - "
+                                                     f"unscramblegame.create_acceptable_answers")
 
         self.correct_answer = (random.choice(possible_answers))  # we do not worry/care about case-sensitivity here.
 
