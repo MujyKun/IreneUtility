@@ -1,3 +1,5 @@
+import concurrent.futures
+
 from .util import u_exceptions, u_logger as log, u_local_cache
 from typing import TYPE_CHECKING
 from discord.ext.commands import Context
@@ -61,7 +63,7 @@ class Utility:
         self.cache = u_local_cache.Cache(*util_args)  # instance for loaded cache
         self.temp_patrons_loaded = False
         self.running_loop = None  # current asyncio running loop
-        self.thread_pool = None  # ThreadPoolExecutor for operations that block the event loop.
+        # self.thread_pool = None  # ThreadPoolExecutor for operations that block the event loop.
         self.keys: models.Keys = keys  # access to keys file
 
         self.api: tweepy.API = None
@@ -469,3 +471,17 @@ class Utility:
         if inputs_to_change:
             msg = await self.replace(msg, inputs_to_change)
         return msg
+
+    async def run_blocking_code(self, func, *args):
+        """Run blocking code safely in a new process.
+
+        :param func: The blocking function that needs to be called.
+        :param args: The args to pass into the blocking function.
+        :returns: asyncio.Future object
+        """
+        loop = asyncio.get_running_loop()
+
+        with concurrent.futures.ProcessPoolExecutor() as pool:
+            result = await loop.run_in_executor(pool, func, *args)
+            log.console(f'Custom Process Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.loop)
+            return result

@@ -762,7 +762,7 @@ class Cache(Base):
     async def send_cache_data_to_data_dog(self):
         """Sends metric information about cache to data dog every minute."""
         try:
-            if self.ex.thread_pool:
+            if self.ex.irene_cache_loaded:
                 metric_info = self.get_metric_info()
 
                 # set all per minute metrics to 0 since this is a 60 second loop.
@@ -780,8 +780,12 @@ class Cache(Base):
                         metric_value = metric_info.get(metric_name)
                         # add to thread pool to prevent blocking.
                         # noinspection PyUnusedLocal
-                        result = (self.ex.thread_pool.submit(self.ex.u_data_dog.send_metric, metric_name,
-                                                             metric_value)).result()
+
+                        # result = (self.ex.thread_pool.submit(self.ex.u_data_dog.send_metric, metric_name,
+                        # metric_value)).result()
+
+                        await self.ex.run_blocking_code(self.ex.u_data_dog.send_metric, metric_name, metric_value)
+
                     except Exception as e:
                         log.console(f"{e} (Exception)", method=self.send_cache_data_to_data_dog)
         except Exception as e:

@@ -29,7 +29,8 @@ class Twitter(Base):
         :returns: twitter body message & twitter link to the post.
         """
         try:
-            random_file = (self.ex.thread_pool.submit(self.get_random_idol_photo)).result()
+            # random_file = (self.ex.thread_pool.submit(self.get_random_idol_photo)).result()
+            random_file = (await self.ex.run_blocking_code(self.get_random_idol_photo)).result()
             if not random_file:
                 return False
 

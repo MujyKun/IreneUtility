@@ -1,3 +1,5 @@
+import asyncio
+
 from PIL import Image
 from ..Base import Base
 
@@ -8,7 +10,8 @@ class BiasGame(Base):
 
     async def create_bias_game_image(self, first_idol_id, second_idol_id):
         """Uses thread pool to create bias game image to prevent IO blocking."""
-        (self.ex.thread_pool.submit(self.merge_images, first_idol_id, second_idol_id)).result()
+        # (self.ex.thread_pool.submit(self.merge_images, first_idol_id, second_idol_id)).result()
+        await self.ex.run_blocking_code(self.merge_images, first_idol_id, second_idol_id)
         return f"{ self.ex.keys.bias_game_location}{first_idol_id}_{second_idol_id}.png"
 
     def merge_images(self, first_idol_id, second_idol_id):
@@ -39,7 +42,8 @@ class BiasGame(Base):
                 versus_image.save(f"{self.ex.keys.bias_game_location}{file_name}")
 
     async def create_bias_game_bracket(self, all_games, user_id, bracket_winner):
-        (self.ex.thread_pool.submit(self.create_bracket, all_games, user_id, bracket_winner)).result()
+        # (self.ex.thread_pool.submit(self.create_bracket, all_games, user_id, bracket_winner)).result()
+        await self.ex.run_blocking_code(self.create_bracket, all_games, user_id, bracket_winner)
         return f"{self.ex.keys.bias_game_location}{user_id}.png"
 
     def create_bracket(self, all_games, user_id, bracket_winner):
