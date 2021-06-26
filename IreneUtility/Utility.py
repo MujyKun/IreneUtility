@@ -473,7 +473,7 @@ class Utility:
         return msg
 
     async def run_blocking_code(self, func, *args):
-        """Run blocking code safely in a new process.
+        """Run blocking code safely in a new thread.
 
         :param func: The blocking function that needs to be called.
         :param args: The args to pass into the blocking function.
@@ -481,7 +481,7 @@ class Utility:
         """
         loop = asyncio.get_running_loop()
 
-        with concurrent.futures.ProcessPoolExecutor() as pool:
+        async with concurrent.futures.ThreadPoolExecutor() as pool:
             result = await loop.run_in_executor(pool, func, *args)
             log.console(f'Custom Process Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.loop)
             return result
