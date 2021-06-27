@@ -480,8 +480,11 @@ class Utility:
         :returns: result of asyncio.Future object
         """
         loop = asyncio.get_running_loop()
-
-        async with concurrent.futures.ThreadPoolExecutor() as pool:
-            result = await loop.run_in_executor(pool, func, *args)
-            log.console(f'Custom Process Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.loop)
-            return result.result()
+        try:
+            async with concurrent.futures.ThreadPoolExecutor() as pool:
+                result = await loop.run_in_executor(pool, func, *args)
+                log.console(f'Custom Process Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.
+                            loop)
+                return result.result()
+        except Exception as e:
+            log.console(f"{e} (Exception)", method=self.run_blocking_code, event_loop=self.client.loop)
