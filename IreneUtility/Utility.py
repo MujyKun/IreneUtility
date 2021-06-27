@@ -481,9 +481,9 @@ class Utility:
         """
         loop = asyncio.get_running_loop()
         try:
-            async with concurrent.futures.ThreadPoolExecutor() as pool:
+            with concurrent.futures.ThreadPoolExecutor() as pool:
                 result = await loop.run_in_executor(pool, func, *args)
-                log.console(f'Custom Process Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.
+                log.console(f'Custom Threaed Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.
                             loop)
                 return result.result()
         except Exception as e:

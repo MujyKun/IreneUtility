@@ -150,7 +150,7 @@ Remaining Idols: {self.number_of_idols_left}
                     await self.run_current_bracket()
                 except Exception as e:
                     # this would usually error if the file location set is incorrect.
-                    log.console(f"{e} (Exception)", method=self.process_game)
+                    log.console(f"{e} (RuntimeError)", method=self.process_game)
                     raise RuntimeError
             if self.force_ended:
                 return
