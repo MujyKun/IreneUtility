@@ -30,7 +30,7 @@ class Twitter(Base):
         """
         try:
             # random_file = (self.ex.thread_pool.submit(self.get_random_idol_photo)).result()
-            random_file = (await self.ex.run_blocking_code(self.get_random_idol_photo)).result()
+            random_file = (await self.ex.run_blocking_code(self.get_random_idol_photo))
             if not random_file:
                 return False
 

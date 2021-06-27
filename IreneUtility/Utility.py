@@ -477,11 +477,11 @@ class Utility:
 
         :param func: The blocking function that needs to be called.
         :param args: The args to pass into the blocking function.
-        :returns: asyncio.Future object
+        :returns: result of asyncio.Future object
         """
         loop = asyncio.get_running_loop()
 
         async with concurrent.futures.ThreadPoolExecutor() as pool:
             result = await loop.run_in_executor(pool, func, *args)
             log.console(f'Custom Process Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.loop)
-            return result
+            return result.result()
