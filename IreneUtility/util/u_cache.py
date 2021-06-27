@@ -14,10 +14,10 @@ class Cache(Base):
     def __init__(self, *args):
         super().__init__(*args)
 
-    async def process_cache_time(self, method, name):
+    async def process_cache_time(self, method, name, *args, **kwargs):
         """Process the cache time."""
         past_time = time.time()
-        result = await method()
+        result = await method(*args, **kwargs)
         if result is None or result:  # expecting False on methods that fail to load, do not simplify None.
             creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
             log.console(f"Cache for {name} Created in {creation_time}.", method=self.process_cache_time)
@@ -88,7 +88,7 @@ class Cache(Base):
                 # do not load weverse cache if the bot has already been running.
                 if not self.ex.test_bot and not self.ex.weverse_client.cache_loaded and on_boot_up:
                     # noinspection PyUnusedLocal
-                    task = asyncio.create_task(self.process_cache_time(method, "Weverse"))
+                    task = asyncio.create_task(self.process_cache_time(method, "Weverse", create_old_posts=False))
                 continue
 
             await self.process_cache_time(method, cache_name)
