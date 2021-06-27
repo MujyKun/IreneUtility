@@ -483,8 +483,8 @@ class Utility:
         try:
             with concurrent.futures.ThreadPoolExecutor() as pool:
                 result = await loop.run_in_executor(pool, func, *args)
-                log.console(f'Custom Threaed Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.
+                log.console(f'Custom Thread Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.
                             loop)
-                return result.result()
+                return result if None else result.result()
         except Exception as e:
             log.console(f"{e} (Exception)", method=self.run_blocking_code, event_loop=self.client.loop)
