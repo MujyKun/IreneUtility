@@ -486,5 +486,7 @@ class Utility:
                 log.console(f'Custom Thread Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.
                             loop)
                 return result if None else result.result()
+        except AttributeError:
+            return
         except Exception as e:
             log.console(f"{e} (Exception)", method=self.run_blocking_code, event_loop=self.client.loop)
