@@ -39,6 +39,8 @@ class BlackJackGame(Game_Base):
 
         self.deck = [i+1 for i in range(52)]  # a deck containing the ids of each non-custom playing card.
 
+        self.bust_value = 21
+
     async def check_message(self):
         """Check incoming messages in the text channel and determines if the player wants to hit or stand."""
         if self.force_ended:
@@ -153,7 +155,6 @@ class BlackJackGame(Game_Base):
         """
         return self.first_player_stand if first_player else self.second_player_stand
 
-
     async def choose_random_card(self) -> PlayingCard:
         """Chooses a random card that is available in the deck."""
         random_card_id = random.choice(self.deck)
@@ -179,8 +180,8 @@ class BlackJackGame(Game_Base):
             if card.value == 11:
                 aces += 1
 
-        # handle aces by reducing the value from 11 to 1 if the total value is over 21
-        while aces > 0 and total_card_value > 21:
+        # handle aces by reducing the value from 11 to 1 if the total value is over the bust value
+        while aces > 0 and total_card_value > self.bust_value:
             total_card_value -= 10
             aces -= 1
 
@@ -193,20 +194,25 @@ class BlackJackGame(Game_Base):
         if first_player_score == second_player_score:
             # tie
             return None
-        elif first_player_score > 21 and second_player_score > 21:
+
+        elif first_player_score > self.bust_value and second_player_score > self.bust_value:
             # both busted
-            winner = self.first_player if (first_player_score - 21) < (second_player_score - 21) \
-                else self.second_player
-        elif first_player_score <= 21 and second_player_score <= 21:
+            winner = self.first_player if (first_player_score - self.bust_value) < (
+                    second_player_score - self.bust_value) else self.second_player
+
+        elif first_player_score <= self.bust_value > second_player_score:
             # neither busted
-            winner = self.first_player if (21 - first_player_score) < (21 - second_player_score) \
-                else self.second_player
-        elif first_player_score > 21 and second_player_score <= 21:
+            winner = self.first_player if (self.bust_value - first_player_score) < (
+                    self.bust_value - second_player_score) else self.second_player
+
+        elif first_player_score > self.bust_value >= second_player_score:
             # player 1 busted
-            winner = second_player_score
-        elif second_player_score > 21 and first_player_score <= 21:
+            winner = self.second_player
+
+        elif second_player_score > self.bust_value >= first_player_score:
             # player 2 busted
-            winner = first_player_score
+            winner = self.first_player
+
         else:
             raise self.ex.exceptions.ShouldNotBeHere("A condition was not properly checked for in "
                                                      "BlackJackGame.determine_winner().")
