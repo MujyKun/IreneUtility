@@ -114,7 +114,7 @@ Remaining Idols: {self.number_of_idols_left}
 
     async def end_game(self):
         """End the game"""
-        if self.force_ended:
+        if not self.force_ended:
             await self.channel.send(await self.ex.get_msg(self.host_id, 'biasgame', 'force_closed'))
         self.force_ended = True
         return True
