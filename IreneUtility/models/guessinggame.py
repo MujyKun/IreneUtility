@@ -8,7 +8,7 @@ from ..util import u_logger as log
 
 # noinspection PyBroadException,PyPep8
 class GuessingGame(Game_Base):
-    def __init__(self, *args, max_rounds=20, timeout=20, gender="all", difficulty="medium"):
+    def __init__(self, *args, max_rounds=20, timeout=20, gender="all", difficulty="medium", game_mode="idol"):
         """
 
         :param utility_obj: Utility object.
@@ -23,6 +23,10 @@ class GuessingGame(Game_Base):
         self.host_user = None  # Utility user object
         # user_id : score
         self.players = {}
+
+        # The user has to guess group names instead of idol names if true.
+        self.group_mode = True if game_mode == "group" else False
+
         self.rounds = 0
         self.idol = None
         self.group_names = None
@@ -210,37 +214,54 @@ class GuessingGame(Game_Base):
         skipped = ""
         if question_skipped:
             skipped = "Question Skipped. "
-        msg = await self.channel.send(f"{skipped}The correct answer was "
-                                      f"`{self.idol.full_name} ({self.idol.stage_name})`"
-                                      f" from the following group(s): `{', '.join(self.group_names)}`", delete_after=15)
 
-        # create_task should not be awaited because this is meant to run in the background to check for reactions.
-        try:
-            # noinspection PyUnusedLocal
-            """
-            # create task to check image reactions.
-            
-            # We will no longer create a whole task to check for a dead link reaction. 
-            # Instead we will just check for a "dead" or "report" during the message check.
-            # This is now used as a confirmation message for a dead link after the user types "dead" or "report".
-            """
-            if dead_link:
-                asyncio.create_task(self.ex.u_group_members.check_idol_post_reactions(
-                    msg, self.host_ctx.message, self.idol, self.photo_link, guessing_game=True))
-        except Exception as e:
-            log.console(f"{e} (Exception)", method=self.print_answer)
+        idol_name_str = f"{self.idol.full_name} ({self.idol.stage_name})"  # The idol name the image belonged to.
+        if not self.group_mode:  # guessing only idol names
+            answer_msg = f"{skipped}The correct answer was `{idol_name_str}`"
+            f" from the following group(s): `{', '.join(self.group_names)}`"
+        else:  # guessing group names
+            answer_msg = f"{skipped}The correct answers were: `{', '.join(self.correct_answers)}`. The image " \
+                         f"belonged to {idol_name_str}."
+
+        msg = await self.channel.send(answer_msg, delete_after=15)
+
+        if dead_link:
+            try:
+                # noinspection PyUnusedLocal
+                """
+                # create task to check image reactions.
+                
+                # We will no longer create a whole task to check for a dead link reaction. 
+                # Instead we will just check for a "dead" or "report" during the message check.
+                # This is now used as a confirmation message for a dead link after the user types "dead" or "report".
+                """
+                if dead_link:
+                    # create_task should not be awaited because this is meant to run in the background to
+                    # check for reactions.
+                    asyncio.create_task(self.ex.u_group_members.check_idol_post_reactions(
+                        msg, self.host_ctx.message, self.idol, self.photo_link, guessing_game=True))
+            except Exception as e:
+                log.console(f"{e} (Exception)", method=self.print_answer)
 
     async def create_acceptable_answers(self):
         """Create acceptable answers."""
-        self.correct_answers = [alias.lower() for alias in self.idol.aliases]
-        if self.idol.full_name:
-            self.correct_answers.append(self.idol.full_name.lower())
-        if self.idol.stage_name:
-            self.correct_answers.append(self.idol.stage_name.lower())
-        if self.idol.former_full_name:
-            self.correct_answers.append(self.idol.former_full_name.lower())
-        if self.idol.former_stage_name:
-            self.correct_answers.append(self.idol.former_stage_name.lower())
+
+        if not self.group_mode:  # only idol names will be guessed.
+            self.correct_answers = [alias.lower() for alias in self.idol.aliases]
+            if self.idol.full_name:
+                self.correct_answers.append(self.idol.full_name.lower())
+            if self.idol.stage_name:
+                self.correct_answers.append(self.idol.stage_name.lower())
+            if self.idol.former_full_name:
+                self.correct_answers.append(self.idol.former_full_name.lower())
+            if self.idol.former_stage_name:
+                self.correct_answers.append(self.idol.former_stage_name.lower())
+        else:  # only group names will be guessed.
+            self.correct_answers = []
+            for group_id in self.idol.groups:
+                group = await self.ex.u_group_members.get_group(group_id)
+                self.correct_answers.append(group.name.lower())
+                self.correct_answers.append(alias.lower() for alias in group.aliases)
 
     async def create_idol_pool(self):
         """Create the game's idol pool."""

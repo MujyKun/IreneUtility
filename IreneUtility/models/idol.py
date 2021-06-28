@@ -23,7 +23,7 @@ class Idol:
         self.tiktok = kwargs.get('tiktok')
         self.aliases = []
         self.local_aliases = {}  # server_id: [aliases]
-        self.groups = []
+        self.groups = []  # group ids, not group objects.
         self.zodiac = kwargs.get('zodiac')
         self.thumbnail = kwargs.get('thumbnail')
         self.banner = kwargs.get('banner')
