@@ -261,7 +261,8 @@ class GuessingGame(Game_Base):
             for group_id in self.idol.groups:
                 group = await self.ex.u_group_members.get_group(group_id)
                 self.correct_answers.append(group.name.lower())
-                self.correct_answers.append(alias.lower() for alias in group.aliases)
+                for alias in group.aliases:
+                    self.correct_answers.append(alias.lower())
 
     async def create_idol_pool(self):
         """Create the game's idol pool."""
@@ -288,7 +289,6 @@ class GuessingGame(Game_Base):
                     await self.create_new_question()
                 except LookupError as e:
                     filter_msg = "Type `ggfilter` to disable your filter." if self.host_user.gg_filter else ""
-
                     await self.channel.send(f"The gender, difficulty, and filtered settings selected have no idols. "
                                             f"Ending Game. {filter_msg}")
                     log.console(f"{e} (LookupError)", method=self.process_game)
