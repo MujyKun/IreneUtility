@@ -22,7 +22,7 @@ class DataDog(Base):
         else:
             if not value:
                 return
-        if self.ex.test_bot:
+        if self.ex.test_bot or self.ex.dev_mode:
             metric_name = 'test_bot_' + metric_name
         else:
             metric_name = 'irene_' + metric_name

@@ -47,6 +47,10 @@ class Utility:
         self.conn = db_connection  # db connection
         self.create_db_structure: bool = create_db_structure  # whether to create db structure on run.
 
+        # Set to True if not on the production server (useful if testing ex.test_bot as False).
+        # This was initially created to not flood datadog with incorrect input while ex.test_bot was False
+        self.dev_mode = True
+
         # Set to True if you intend to have announcement text channels on the support server and would like
         # the weverse updates command to be private only to the bot owner. This should be specified on client side.
         # this will also Publish (as an announcement) every single message if set to True.
