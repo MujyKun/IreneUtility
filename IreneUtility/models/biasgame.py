@@ -82,12 +82,14 @@ class BiasGame(Game_Base):
                 first_idol_group = (await self.ex.u_group_members.get_group(random.choice(first_idol.groups))).name
             except Exception as e:
                 first_idol_group = first_idol.full_name
-                log.useless(f"{e} -> Using Idol Full Name instead of Group Name for {first_idol_group}")
+                log.useless(f"{e} (Exception)-> Using Idol Full Name instead of Group Name for {first_idol_group}",
+                            method=self.run_current_bracket)
             try:
                 second_idol_group = (await self.ex.u_group_members.get_group(random.choice(second_idol.groups))).name
             except Exception as e:
                 second_idol_group = second_idol.full_name
-                log.useless(f"{e} -> Using Idol Full Name instead of Group Name for {second_idol_group}")
+                log.useless(f"{e} (Exception2) -> Using Idol Full Name instead of Group Name for {second_idol_group}",
+                            method=self.run_current_bracket)
 
             msg_body = f"""
 **@{self.host_ctx.author.display_name}**
@@ -112,7 +114,7 @@ Remaining Idols: {self.number_of_idols_left}
 
     async def end_game(self):
         """End the game"""
-        if self.force_ended:
+        if not self.force_ended:
             await self.channel.send(await self.ex.get_msg(self.host_id, 'biasgame', 'force_closed'))
         self.force_ended = True
         return True
@@ -148,7 +150,7 @@ Remaining Idols: {self.number_of_idols_left}
                     await self.run_current_bracket()
                 except Exception as e:
                     # this would usually error if the file location set is incorrect.
-                    log.console(e)
+                    log.console(f"{e} (RuntimeError)", method=self.process_game)
                     raise RuntimeError
             if self.force_ended:
                 return
@@ -157,4 +159,4 @@ Remaining Idols: {self.number_of_idols_left}
             await self.update_user_wins()
         except Exception as e:
             await self.channel.send(await self.ex.get_msg(self.host_id, 'biasgame', 'unexpected_error'))
-            log.console(e)
+            log.console(f"{e} (Exception2)", method=self.process_game)

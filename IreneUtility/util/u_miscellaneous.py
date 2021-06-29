@@ -93,8 +93,8 @@ class Miscellaneous(Base):
             embed.set_image(url=link[0])
             return await ctx.send(embed=embed)
         except Exception as e:
-            log.console(e)
-            msg = await self.ex.get_msg(ctx, "interactions")
+            log.console(f"{e} (Exception)", method=self.interact_with_user)
+            msg = await self.ex.get_msg(ctx, "interactions", "no_interactions")
             msg = await self.ex.replace(msg, ['name', ctx.author.display_name])
             return await ctx.send(msg)
 
@@ -273,7 +273,7 @@ class Miscellaneous(Base):
                 else:
                     return None
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.translate)
 
     async def get_language_code(self, input_language):
         """Returns a language code that is compatible with the papago framework."""
@@ -283,7 +283,12 @@ class Miscellaneous(Base):
 
     def get_user_count(self):
         """Get the amount of users that the bot is watching over."""
-        return sum([guild.member_count for guild in self.ex.client.guilds])
+        try:
+            member_count = sum([guild.member_count for guild in self.ex.client.guilds])
+            return member_count
+        except Exception as e:
+            log.useless(f"{e} (Exception)", method=self.get_user_count)
+            return 0
 
     def get_server_count(self):
         """Returns the guild count the bot is connected to."""

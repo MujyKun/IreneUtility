@@ -1,3 +1,5 @@
+import concurrent.futures
+
 from .util import u_exceptions, u_logger as log, u_local_cache
 from typing import TYPE_CHECKING
 from discord.ext.commands import Context
@@ -39,10 +41,24 @@ class Utility:
         # A lot of these properties may be created via client side
         # in order to make Utility more portable when needed and client friendly.
         self.test_bot = None  # this is changed on the client side in run.py
+        self.upload_from_host = False  # this is changed on the client side in run.py
         self.client: discord.AutoShardedClient = d_py_client  # discord.py client
         self.session: ClientSession = aiohttp_session  # aiohttp client session
         self.conn = db_connection  # db connection
         self.create_db_structure: bool = create_db_structure  # whether to create db structure on run.
+
+        # Set to True if not on the production server (useful if testing ex.test_bot as False).
+        # This was initially created to not flood datadog with incorrect input while ex.test_bot was False
+        self.dev_mode = True
+
+        # Set to True if you intend to have announcement text channels on the support server and would like
+        # the weverse updates command to be private only to the bot owner. This should be specified on client side.
+        # this will also Publish (as an announcement) every single message if set to True.
+        self.weverse_announcements: bool = False
+
+        # Set to False if you do not want the cache to reset itself every 12 hours.
+        self.reset_cache: bool = True
+
         s_sql.self.conn = self.conn  # update our SQL connection.
         util_args = {self}
 
@@ -51,7 +67,7 @@ class Utility:
         self.cache = u_local_cache.Cache(*util_args)  # instance for loaded cache
         self.temp_patrons_loaded = False
         self.running_loop = None  # current asyncio running loop
-        self.thread_pool = None  # ThreadPoolExecutor for operations that block the event loop.
+        # self.thread_pool = None  # ThreadPoolExecutor for operations that block the event loop.
         self.keys: models.Keys = keys  # access to keys file
 
         self.api: tweepy.API = None
@@ -204,7 +220,7 @@ class Utility:
         """restart the api"""
         source_link = "http://127.0.0.1:5123/restartAPI"
         async with self.session.get(source_link):
-            log.console("Restarting API.")
+            log.console("Restarting API.", method=self.kill_api)
 
     @staticmethod
     async def get_server_id(ctx):
@@ -226,12 +242,12 @@ class Utility:
                 dm_channel = user.dm_channel
             return dm_channel
         except discord.errors.HTTPException as e:
-            log.console(f"{e} - get_dm_channel 1")
+            log.console(f"{e} (HTTPException)", method=self.get_dm_channel)
             return
         except AttributeError:
             return
         except Exception as e:
-            log.console(f"{e} - get_dm_channel 2")
+            log.console(f"{e} (Exception)", method=self.get_dm_channel)
             return
 
     async def check_interaction_enabled(self, ctx=None, server_id=None, interaction=None):
@@ -340,7 +356,7 @@ class Utility:
                     pass
                 await change_page(c_page)
             except Exception as e:
-                log.console(f"check_left_or_right_reaction_embed - {e}")
+                log.console(f"{e} (Exception)", method=self.check_left_or_right_reaction_embed)
                 await change_page(c_page)
         await change_page(original_page_number)
 
@@ -459,3 +475,22 @@ class Utility:
         if inputs_to_change:
             msg = await self.replace(msg, inputs_to_change)
         return msg
+
+    async def run_blocking_code(self, func, *args):
+        """Run blocking code safely in a new thread.
+
+        :param func: The blocking function that needs to be called.
+        :param args: The args to pass into the blocking function.
+        :returns: result of asyncio.Future object
+        """
+        loop = asyncio.get_running_loop()
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                result = await loop.run_in_executor(pool, func, *args)
+                log.console(f'Custom Thread Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.
+                            loop)
+                return result if None else result.result()
+        except AttributeError:
+            return
+        except Exception as e:
+            log.console(f"{e} (Exception)", method=self.run_blocking_code, event_loop=self.client.loop)

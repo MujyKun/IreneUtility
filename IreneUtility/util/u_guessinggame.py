@@ -19,7 +19,7 @@ class GuessingGame(Base):
             user_scores[difficulty] = difficulty_score + score
             await self.update_user_score_in_db(difficulty, user_scores[difficulty], user_id)
         except Exception as e:
-            log.console(f"{e} -> update_user_guessing_game_score")
+            log.console(f"{e} (Exception)", method=self.update_user_guessing_game_score)
 
     async def create_user_in_guessing_game(self, user_id):
         """Inserts a user into the guessing game db with no scores. This allows for updating scores easier."""
@@ -28,7 +28,7 @@ class GuessingGame(Base):
 
     async def update_user_score_in_db(self, difficulty, score, user_id):
         return await self.ex.conn.execute(f"UPDATE stats.guessinggame SET {difficulty} = $1 WHERE userid = $2", score,
-                                     user_id)
+                                          user_id)
 
     async def get_guessing_game_top_ten(self, difficulty, members=None):
         """Get the top ten of a certain guessing game difficulty"""

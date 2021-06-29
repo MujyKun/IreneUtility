@@ -7,6 +7,12 @@ class TooLarge(Exception):
         super(TooLarge, self).__init__("That number was too large.")
 
 
+class Limit(Exception):
+    """A limit was reached."""
+    def __init__(self):
+        super(Limit, self).__init__("A Limit was reached for something.")
+
+
 class ImproperFormat(Exception):
     """Invalid Format was given."""
     def __init__(self):

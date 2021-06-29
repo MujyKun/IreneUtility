@@ -27,6 +27,7 @@ class Cache(Base):
         self.errors_per_minute = 0  # errors per minute
         self.wolfram_per_minute = 0  # wolfram calls per minute
         self.urban_per_minute = 0  # Urban dictionary calls per minute
+        self.twitter_channel = None  # discord.TextChannel for auto twitter posts
 
         self.idol_images = {}  # { idol_id: [IreneUtility.models.Image] }
 
@@ -109,7 +110,7 @@ class Cache(Base):
         self.unscramble_games = {}  # {channelid: Game}
 
         # Text channels to send Weverse updates to.
-        self.weverse_channels = {}  # { community_name: [ [channel_id, role_id, comments_disabled] ] }
+        self.weverse_channels = {}  # { community_name: [ [channel_id, role_id, comments_disabled, media_disabled] ] }
 
         # languages available, also the file names
         self.languages_available = ["en_us"]
@@ -198,6 +199,9 @@ class Cache(Base):
 
         self.playing_cards = {}  # {card_id: [custom playing card 1, custom playing card 2]}
 
+        # used for the loop to send idol photos to a text channel after t time.
+        self.send_idol_photos = {}  # (text channel id OR discord.TextChannel) : [list of idol ids]
+
         self.member_ids_in_support_server = []  # [user ids]
 
         self.welcome_roles = {}  # d.py Guild object : d.py Role object
@@ -221,7 +225,6 @@ class Cache(Base):
             14: {'img_size': (100, 100), 'pos': (390, 225)},
             15: {'img_size': (134, 130), 'pos': (235, 55)}
         }
-
 
         # Equivalent keyword for translate languages
         # { papago_code : lang_keyword_aliases }

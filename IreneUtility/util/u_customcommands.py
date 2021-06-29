@@ -29,7 +29,7 @@ class CustomCommands(Base):
         try:
             custom_commands.pop(command_name)
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.remove_custom_command)
 
     async def get_custom_command(self, server_id, command_name):
         commands = self.ex.cache.custom_commands.get(server_id)

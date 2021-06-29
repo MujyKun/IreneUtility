@@ -113,7 +113,7 @@ class SelfAssignRoles(Base):
                     role, role_name = await self.get_self_role(msg, server_id)
                     await self.process_member_roles(message, role, role_name, prefix, author)
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.check_for_self_assignable_role)
 
     async def check_self_assignable_channel(self, server_id, channel):
         """Check if a channel is a self assignable role channel."""

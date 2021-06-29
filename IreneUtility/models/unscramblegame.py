@@ -65,7 +65,7 @@ class UnScrambleGame(Game_Base):
             if msg_lower == self.correct_answer.lower():
                 return True
             if message.author.id == self.host_id:
-                return msg_lower in self.ex.cache.stop_phrases
+                return (msg_lower in self.ex.cache.stop_phrases) or (msg_lower in self.ex.cache.skip_phrases)
         try:
             msg = await self.ex.client.wait_for('message', check=check_correct_answer, timeout=self.timeout)
             await msg.add_reaction(self.ex.keys.check_emoji)
@@ -74,6 +74,8 @@ class UnScrambleGame(Game_Base):
                 await self.credit_user(msg.author.id)
             elif message_lower in self.ex.cache.stop_phrases or self.force_ended:
                 self.force_ended = True
+                return
+            elif message_lower in self.ex.cache.skip_phrases:
                 return
             else:
                 # the only time this code is reached is when a prefix was changed in the middle of a round.
@@ -108,7 +110,7 @@ class UnScrambleGame(Game_Base):
                 # Create acceptable answers
                 await self.create_acceptable_answers()
 
-                log.console(f"{self.correct_answer} - Unscramble {self.channel.id}")
+                log.console(f"{self.correct_answer} - Unscramble {self.channel.id}", method=self.create_new_question)
 
                 """
                 In order to create the scrambled word:
@@ -130,13 +132,14 @@ class UnScrambleGame(Game_Base):
                 if self.difficulty == "hard":
                     scrambled_word = scrambled_word.lower()
 
-                await self.channel.send(f"The name I want you to unscramble is `{scrambled_word}`.")
+                await self.channel.send(f"The name I want you to unscramble is `{scrambled_word}`.",
+                                        delete_after=self.timeout + 15)
 
                 question_posted = True
             except LookupError as e:
                 raise e
             except Exception as e:
-                log.console(f"{e} - unscramblegame.create_new_question")
+                log.console(f"{e} (Exception)", method=self.create_new_question)
                 continue
 
     async def display_winners(self):
@@ -162,12 +165,13 @@ class UnScrambleGame(Game_Base):
     async def update_scores(self):
         """Updates all player scores"""
         for user_id in self.players:
+            await asyncio.sleep(0)  # bare yield
             await self.ex.u_unscramblegame.update_user_unscramble_game_score(self.difficulty, user_id=user_id,
                                                                              score=self.players.get(user_id))
 
     async def print_answer(self):
         """Prints the current round's answer."""
-        await self.channel.send(f"The correct answer was {self.correct_answer}")
+        await self.channel.send(f"The correct answer was {self.correct_answer}", delete_after=15)
 
     async def create_acceptable_answers(self):
         """Create acceptable answers."""
@@ -197,7 +201,8 @@ class UnScrambleGame(Game_Base):
                     possible_answers.append(alias)
 
         else:
-            raise self.ex.exceptions.ShouldNotBeHere("unscramblegame.create_acceptable_answers")
+            raise self.ex.exceptions.ShouldNotBeHere(f"Difficulty: {self.difficulty} - "
+                                                     f"unscramblegame.create_acceptable_answers")
 
         self.correct_answer = (random.choice(possible_answers))  # we do not worry/care about case-sensitivity here.
 
@@ -220,10 +225,10 @@ class UnScrambleGame(Game_Base):
                 except LookupError as e:
                     await self.channel.send(f"The gender, difficulty, and filtered settings selected have no idols. "
                                             f"Ending Game.")
-                    log.console(e)
+                    log.console(f"{e} (LookupError)", method=self.process_game)
                     return
                 await self.check_message()
             await self.end_game()
         except Exception as e:
             await self.channel.send(f"An error has occurred and the game has ended. Please report this.")
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.process_game)

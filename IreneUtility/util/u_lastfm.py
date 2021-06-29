@@ -41,7 +41,7 @@ class LastFM(Base):
                 await self.ex.conn.execute("UPDATE lastfm.users SET username = $1 WHERE userid = $2", username, user_id)
             return True
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.set_fm_username)
             return e
 
 

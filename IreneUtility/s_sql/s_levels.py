@@ -7,7 +7,11 @@ async def create_level_row(user_id: int):
 
     :param user_id: Discord User ID
     """
-    await self.conn.execute("INSERT INTO currency.levels VALUES($1, NULL, NULL, NULL, NULL, 1)", user_id)
+    try:
+        await self.conn.execute("INSERT INTO currency.levels VALUES($1, NULL, NULL, NULL, NULL, 1)", user_id)
+    except:
+        # user already has a row.
+        pass
 
 
 async def update_level(user_id: int, column_name: str, level: int):
@@ -37,4 +41,4 @@ async def fetch_levels():
 
 async def level_row_exists(user_id: int):
     """Check if a user has a row in the levels table."""
-    return (await self.conn.fetchrow("SELECT COUNT(*) FROM currency.level WHERE userid = $1", user_id))[0]
+    return (await self.conn.fetchrow("SELECT COUNT(*) FROM currency.levels WHERE userid = $1", user_id))[0]

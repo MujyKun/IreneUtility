@@ -1,19 +1,20 @@
+import discord
+
 from . import Game as Game_Base
 import asyncio
 import random
-import async_timeout
 from ..util import u_logger as log
 
 
 # noinspection PyBroadException,PyPep8
 class GuessingGame(Game_Base):
-    def __init__(self, *args, max_rounds=20, timeout=20, gender="all", difficulty="medium"):
+    def __init__(self, *args, max_rounds=20, timeout=20, gender="all", difficulty="medium", game_mode="idol"):
         """
 
         :param utility_obj: Utility object.
         :param ctx: Context
         :param max_rounds: The amount of rounds to stop at.
-        :param timeout: Amount of time to guess a phoot.
+        :param timeout: Amount of time to guess a photo.
         :param gender: Male/Female/All Gender of the idols in the photos.
         :param difficulty: Easy/Medium/Hard difficulty of the game.
         """
@@ -22,6 +23,10 @@ class GuessingGame(Game_Base):
         self.host_user = None  # Utility user object
         # user_id : score
         self.players = {}
+
+        # The user has to guess group names instead of idol names if true.
+        self.group_mode = True if game_mode == "group" else False
+
         self.rounds = 0
         self.idol = None
         self.group_names = None
@@ -132,25 +137,48 @@ class GuessingGame(Game_Base):
                 await self.create_acceptable_answers()
 
                 # Create list of idol group names.
-                self.group_names = [(await self.ex.u_group_members.get_group(group_id)).name
-                                    for group_id in self.idol.groups]
+                try:
+                    self.group_names = [(await self.ex.u_group_members.get_group(group_id)).name
+                                        for group_id in self.idol.groups]
+                except:
+                    # cache is not loaded.
+                    log.console(f"Ending GG in {self.channel.id} due to the cache not being loaded.",
+                                method=self.create_new_question)
+                    await self.end_game()
 
+                """
                 # Skip this idol if it is taking too long
                 async with async_timeout.timeout(self.post_attempt_timeout) as posting:
                     self.idol_post_msg, self.photo_link = await self.ex.u_group_members.idol_post(
                         self.channel, self.idol, user_id=self.host_id, guessing_game=True, scores=self.players,
                         msg_timeout=self.timeout + 5)
-                    log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}')
+                log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}')
 
                 if posting.expired:
                     log.console(f"Posting for {self.idol.full_name} ({self.idol.stage_name}) [{self.idol.id}]"
                                 f" took more than {self.post_attempt_timeout}")
                     continue
+                """
+                log.console(f'{", ".join(self.correct_answers)} - {self.channel.id}', method=self.create_new_question)
+
+                try:
+                    self.idol_post_msg, self.photo_link = await self.ex.u_group_members.idol_post(
+                        self.channel, self.idol, user_id=self.host_id, guessing_game=True, scores=self.players,
+                        msg_timeout=self.timeout + 5)
+                except discord.Forbidden:
+                    # end the game if unable to post in the channel.
+                    log.console(f"Ending GG in {self.channel.id} since we cannot send a message to the channel.",
+                                method=self.create_new_question)
+                    await self.end_game()
+
+                if not self.idol_post_msg:
+                    continue
+
                 question_posted = True
             except LookupError as e:
                 raise e
             except Exception as e:
-                log.console(f"{e} - guessinggame.create_new_question")
+                log.console(f"{e} (Exception) - {self.channel.id}", method=self.create_new_question)
                 continue
 
     async def display_winners(self):
@@ -186,37 +214,55 @@ class GuessingGame(Game_Base):
         skipped = ""
         if question_skipped:
             skipped = "Question Skipped. "
-        msg = await self.channel.send(f"{skipped}The correct answer was "
-                                      f"`{self.idol.full_name} ({self.idol.stage_name})`"
-                                      f" from the following group(s): `{', '.join(self.group_names)}`", delete_after=15)
 
-        # create_task should not be awaited because this is meant to run in the background to check for reactions.
-        try:
-            # noinspection PyUnusedLocal
-            """
-            # create task to check image reactions.
-            
-            # We will no longer create a whole task to check for a dead link reaction. 
-            # Instead we will just check for a "dead" or "report" during the message check.
-            # This is now used as a confirmation message for a dead link after the user types "dead" or "report".
-            """
-            if dead_link:
-                asyncio.create_task(self.ex.u_group_members.check_idol_post_reactions(
-                    msg, self.host_ctx.message, self.idol, self.photo_link, guessing_game=True))
-        except Exception as e:
-            log.console(e)
+        idol_name_str = f"{self.idol.full_name} ({self.idol.stage_name})"  # The idol name the image belonged to.
+        if not self.group_mode:  # guessing only idol names
+            answer_msg = f"{skipped}The correct answer was `{idol_name_str}`"
+            f" from the following group(s): `{', '.join(self.group_names)}`"
+        else:  # guessing group names
+            answer_msg = f"{skipped}The correct answers were: `{', '.join(self.correct_answers)}`. The image " \
+                         f"belonged to {idol_name_str}."
+
+        msg = await self.channel.send(answer_msg, delete_after=15)
+
+        if dead_link:
+            try:
+                # noinspection PyUnusedLocal
+                """
+                # create task to check image reactions.
+                
+                # We will no longer create a whole task to check for a dead link reaction. 
+                # Instead we will just check for a "dead" or "report" during the message check.
+                # This is now used as a confirmation message for a dead link after the user types "dead" or "report".
+                """
+                if dead_link:
+                    # create_task should not be awaited because this is meant to run in the background to
+                    # check for reactions.
+                    asyncio.create_task(self.ex.u_group_members.check_idol_post_reactions(
+                        msg, self.host_ctx.message, self.idol, self.photo_link, guessing_game=True))
+            except Exception as e:
+                log.console(f"{e} (Exception)", method=self.print_answer)
 
     async def create_acceptable_answers(self):
         """Create acceptable answers."""
-        self.correct_answers = [alias.lower() for alias in self.idol.aliases]
-        if self.idol.full_name:
-            self.correct_answers.append(self.idol.full_name.lower())
-        if self.idol.stage_name:
-            self.correct_answers.append(self.idol.stage_name.lower())
-        if self.idol.former_full_name:
-            self.correct_answers.append(self.idol.former_full_name.lower())
-        if self.idol.former_stage_name:
-            self.correct_answers.append(self.idol.former_stage_name.lower())
+
+        if not self.group_mode:  # only idol names will be guessed.
+            self.correct_answers = [alias.lower() for alias in self.idol.aliases]
+            if self.idol.full_name:
+                self.correct_answers.append(self.idol.full_name.lower())
+            if self.idol.stage_name:
+                self.correct_answers.append(self.idol.stage_name.lower())
+            if self.idol.former_full_name:
+                self.correct_answers.append(self.idol.former_full_name.lower())
+            if self.idol.former_stage_name:
+                self.correct_answers.append(self.idol.former_stage_name.lower())
+        else:  # only group names will be guessed.
+            self.correct_answers = []
+            for group_id in self.idol.groups:
+                group = await self.ex.u_group_members.get_group(group_id)
+                self.correct_answers.append(group.name.lower())
+                for alias in group.aliases:
+                    self.correct_answers.append(alias.lower())
 
     async def create_idol_pool(self):
         """Create the game's idol pool."""
@@ -243,13 +289,12 @@ class GuessingGame(Game_Base):
                     await self.create_new_question()
                 except LookupError as e:
                     filter_msg = "Type `ggfilter` to disable your filter." if self.host_user.gg_filter else ""
-
                     await self.channel.send(f"The gender, difficulty, and filtered settings selected have no idols. "
                                             f"Ending Game. {filter_msg}")
-                    log.console(e)
+                    log.console(f"{e} (LookupError)", method=self.process_game)
                     return
                 await self.check_message()
             await self.end_game()
         except Exception as e:
             await self.channel.send(f"An error has occurred and the game has ended. Please report this.")
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.process_game)

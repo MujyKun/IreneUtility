@@ -221,7 +221,7 @@ class Reminder(Base):
                     if current_reminder_id == reminder_id:
                         reminders.remove(reminder)
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.remove_user_reminder)
         await self.ex.conn.execute("DELETE FROM reminders.reminders WHERE id = $1", reminder_id)
 
 

@@ -1,3 +1,4 @@
+import discord
 from discord.ext import tasks
 from ..Base import Base
 from . import u_logger as log
@@ -12,21 +13,25 @@ import json
 class Cache(Base):
     def __init__(self, *args):
         super().__init__(*args)
-        
-    async def process_cache_time(self, method, name):
+
+    async def process_cache_time(self, method, name, *args, **kwargs):
         """Process the cache time."""
         past_time = time.time()
-        result = await method()
+        result = await method(*args, **kwargs)
         if result is None or result:  # expecting False on methods that fail to load, do not simplify None.
             creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
-            log.console(f"Cache for {name} Created in {creation_time}.")
+            log.console(f"Cache for {name} Created in {creation_time}.", method=self.process_cache_time)
         return result
 
     async def create_cache(self, on_boot_up=True):
         """Create the general cache on startup"""
+
         past_time = time.time()
         # reset custom user cache
         self.ex.cache.users = {}
+        if not self.ex.cache.maintenance_mode and on_boot_up:
+            self.ex.cache.maintenance_mode = True
+            self.ex.cache.maintenance_reason = "Cache is currently being reset."
 
         cache_info = [
             # patrons are no longer instantly after intents were pushed in place making d.py cache a lot slower.
@@ -65,7 +70,10 @@ class Cache(Base):
             [self.ex.weverse_client.start, "Weverse"],
             [self.create_gg_filter_cache, "Guessing Game Filter"],
             [self.create_welcome_role_cache, "Welcome Roles"],
-            [self.create_disabled_games_cache, "Disabled Games In Channels"]
+            [self.create_disabled_games_cache, "Disabled Games In Channels"],
+            [self.create_send_idol_photo_cache, "Send Idol Photo"],
+            [self.request_support_server_members, "Support Server Member"],
+            [self.request_twitter_channel, "Twitter Channel"]
             # [self.create_image_cache, "Image"],
 
         ]
@@ -80,13 +88,69 @@ class Cache(Base):
                 # do not load weverse cache if the bot has already been running.
                 if not self.ex.test_bot and not self.ex.weverse_client.cache_loaded and on_boot_up:
                     # noinspection PyUnusedLocal
-                    task = asyncio.create_task(self.process_cache_time(method, "Weverse"))
+                    task = asyncio.create_task(self.process_cache_time(method, "Weverse", create_old_posts=False))
                 continue
 
             await self.process_cache_time(method, cache_name)
         creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
-        log.console(f"Cache Completely Created in {creation_time}.")
+        log.console(f"Cache Completely Created in {creation_time}.", method=self.create_cache)
+        if on_boot_up:
+            self.ex.cache.maintenance_mode = False
+            self.ex.cache.maintenance_reason = None
         self.ex.irene_cache_loaded = True
+
+    async def request_twitter_channel(self):
+        """Fetch twitter channel and store it in cache."""
+        if self.ex.cache.twitter_channel:
+            # no need to reset it.
+            return True
+
+        try:
+            self.ex.cache.twitter_channel = self.ex.client.get_channel(self.ex.keys.twitter_channel_id) or await \
+                self.ex.client.fetch_channel(self.ex.keys.twitter_channel_id)
+        except discord.Forbidden:
+            log.console("ERROR (discord.Forbidden): Unable to access twitter channel (403)",
+                        method=self.request_twitter_channel)
+        except Exception as e:
+            log.console(f"{e} (Exception)", method=self.request_twitter_channel)
+
+    async def request_support_server_members(self):
+        """Request the support server to be chunked and be put in cache.
+
+        We need this so that we can accurately determine if a user is in the support server or not.
+        """
+        try:
+            guild: discord.Guild = self.ex.client.get_guild(self.ex.keys.bot_support_server_id) or await self.ex. \
+                client.fetch_guild(self.ex.keys.bot_support_server_id)
+            if not guild.chunked:
+                await guild.chunk(cache=True)
+        except discord.Forbidden:
+            log.console("ERROR (discord.Forbidden): Unable to access Support Server (403)",
+                        method=self.request_support_server_members)
+        except discord.ClientException:
+            log.console("ERROR (discord.ClientException): Can not access Support Server without members intent "
+                        "enabled. - ", method=self.request_support_server_members)
+        except Exception as e:
+            log.console(f"{e} (Exception)", method=self.request_support_server_members)
+
+    async def create_send_idol_photo_cache(self):
+        """Creates the list of idols that needs to be sent to a text channel after t time."""
+        self.ex.cache.send_idol_photos = {}
+        for text_channel, idol_ids in await self.ex.sql.s_groupmembers.fetch_send_idol_photos():
+            try:
+                channel = self.ex.client.get_channel(text_channel) or \
+                          await self.ex.client.fetch_channel(text_channel)
+            except discord.Forbidden or discord.NotFound:
+                await self.ex.sql.s_groupmembers.delete_send_idol_photo_channel(text_channel)
+                continue
+            except Exception as e:
+                log.useless(f"{e} (Exception)", method=self.create_send_idol_photo_cache)
+                channel = None
+
+            text_channel = channel or text_channel
+
+            # we will allow either the id or the discord.TextChannel to be in the cache.
+            self.ex.cache.send_idol_photos[text_channel] = idol_ids
 
     async def create_disabled_games_cache(self):
         """Creates a list of channels with disabled games."""
@@ -128,7 +192,8 @@ class Cache(Base):
                 try:
                     guild = self.ex.client.get_guild(guild_id) or await self.ex.client.fetch_guild(guild_id)
                 except Exception as e:
-                    log.console(f"{e} -> Do not have access to fetch guild {guild_id}.")
+                    log.console(f"{e} (Exception) -> Do not have access to fetch guild {guild_id}.",
+                                method=self.create_welcome_role_cache)
                     guild = None
 
                 if not guild:
@@ -138,13 +203,15 @@ class Cache(Base):
                     if role.id == role_id:
                         self.ex.cache.welcome_roles[guild] = role
             except Exception as e:
-                log.console(f"{e} ->  Failed to process welcome role cache for {guild_id}")
+                log.console(f"{e} (Exception2) ->  Failed to process welcome role cache for {guild_id}",
+                            method=self.create_welcome_role_cache)
 
     async def create_playing_cards(self):
         """Crache cache for playing cards."""
         self.ex.cache.playing_cards = {}
 
-        for custom_card_id, file_name, card_id, card_name, value, bg_idol_id in await self.ex.sql.s_blackjack.fetch_playing_cards():
+        for custom_card_id, file_name, card_id, card_name, value, bg_idol_id in await self.ex.sql.s_blackjack.\
+                fetch_playing_cards():
             await asyncio.sleep(0)  # bare yield
             idol = await self.ex.u_group_members.get_member(bg_idol_id)
             card = self.ex.u_objects.PlayingCard(custom_card_id, file_name,
@@ -189,8 +256,18 @@ class Cache(Base):
     @staticmethod
     def apply_bold_to_braces(text: str) -> str:
         """Applys bold markdown in between braces."""
+        keywords_to_not_bold = [
+            "server_prefix", "bot_id",
+        ]
+        for keyword in keywords_to_not_bold:
+            text = text.replace("{" + f"{keyword}" + "}", keyword)  # we do not want to bold these words
+
+        # bold the words
         text = text.replace("{", "**{")
         text = text.replace("}", "}**")
+
+        for keyword in keywords_to_not_bold:
+            text = text.replace(keyword, "{" + f"{keyword}" + "}")  # return the keywords back to their initial state.
         return text
 
     async def create_levels_cache(self):
@@ -255,7 +332,8 @@ class Cache(Base):
 
         for user_id, easy_score, medium_score, hard_score in await self.ex.sql.s_guessinggame.fetch_gg_stats():
             await asyncio.sleep(0)  # bare yield
-            self.ex.cache.guessing_game_counter[user_id] = {"easy": easy_score, "medium": medium_score, "hard": hard_score}
+            self.ex.cache.guessing_game_counter[user_id] = {"easy": easy_score, "medium": medium_score,
+                                                            "hard": hard_score}
 
     async def create_unscramble_game_cache(self):
         """Create cache for unscramble game scores"""
@@ -263,7 +341,8 @@ class Cache(Base):
 
         for user_id, easy_score, medium_score, hard_score in await self.ex.sql.s_unscramblegame.fetch_us_stats():
             await asyncio.sleep(0)  # bare yield
-            self.ex.cache.unscramble_game_counter[user_id] = {"easy": easy_score, "medium": medium_score, "hard": hard_score}
+            self.ex.cache.unscramble_game_counter[user_id] = {"easy": easy_score, "medium": medium_score,
+                                                              "hard": hard_score}
 
     async def create_timezone_cache(self):
         """Create cache for timezones"""
@@ -308,11 +387,18 @@ class Cache(Base):
         """Create cache for channels that are following a community on weverse."""
         self.ex.cache.weverse_channels = {}
 
-        for channel_id, community_name, role_id, comments_disabled in await self.ex.sql.s_weverse.fetch_weverse():
+        for channel_id, community_name, role_id, comments_disabled, media_disabled in \
+                await self.ex.sql.s_weverse.fetch_weverse():
             await asyncio.sleep(0)  # bare yield
+            # add channel to cache
             await self.ex.u_weverse.add_weverse_channel_to_cache(channel_id, community_name)
+            # add weverse roles
             await self.ex.u_weverse.add_weverse_role(channel_id, community_name, role_id)
-            await self.ex.u_weverse.change_weverse_comment_status(channel_id, community_name, comments_disabled)
+            # create comment disabled status
+            await self.ex.u_weverse.change_weverse_comment_media_status(channel_id, community_name, comments_disabled)
+            # create media disabled status
+            await self.ex.u_weverse.change_weverse_comment_media_status(channel_id, community_name, media_disabled,
+                                                                        media=True)
 
     async def create_command_counter(self):
         """Updates Cache for command counter and sessions"""
@@ -323,7 +409,8 @@ class Cache(Base):
             await asyncio.sleep(0)  # bare yield
             self.ex.cache.command_counter[command_name] = count
 
-        self.ex.cache.current_session = self.ex.first_result(await self.ex.sql.s_session.fetch_session_usage(datetime.date.today()))
+        self.ex.cache.current_session = self.ex.first_result(
+            await self.ex.sql.s_session.fetch_session_usage(datetime.date.today()))
 
     async def create_restricted_channel_cache(self):
         """Create restricted idol channel cache"""
@@ -357,7 +444,7 @@ class Cache(Base):
         try:
             self.ex.cache.dead_image_channel = await self.ex.client.fetch_channel(self.ex.keys.dead_image_channel_id)
         except Exception as e:
-            log.useless(f"{e} - Failed to fetch dead image channel - Cache.create_dead_link_cache")
+            log.useless(f"{e} (Exception) - Failed to fetch dead image channel", method=self.create_dead_link_cache)
 
         for dead_link, user_id, message_id, idol_id, guessing_game in await self.ex.sql.s_groupmembers.fetch_dead_links():
             await asyncio.sleep(0)  # bare yield
@@ -409,7 +496,7 @@ class Cache(Base):
             await asyncio.sleep(0)  # bare yield
             group_obj = self.ex.u_objects.Group(**group)
             group_obj.aliases, group_obj.local_aliases = await self.ex.u_group_members.get_db_aliases(group_obj.id,
-                                                                                                 group=True)
+                                                                                                      group=True)
             # add all idol ids and remove potential duplicates
             group_obj.members = list(
                 dict.fromkeys(await self.ex.u_group_members.get_db_members_in_group(group_obj.id)))
@@ -421,13 +508,15 @@ class Cache(Base):
         current_time_format = datetime.date.today()
         if self.ex.cache.session_id is None:
             if self.ex.cache.total_used is None:
-                self.ex.cache.total_used = (self.ex.first_result(await self.ex.sql.s_session.fetch_total_session_usage())) or 0
+                self.ex.cache.total_used = (self.ex.first_result(
+                    await self.ex.sql.s_session.fetch_total_session_usage())) or 0
             try:
                 await self.ex.sql.s_session.add_new_session(self.ex.cache.total_used, 0, current_time_format)
             except:
                 # session for today already exists.
                 pass
-            self.ex.cache.session_id = self.ex.first_result(await self.ex.sql.s_session.fetch_session_id(datetime.date.today()))
+            self.ex.cache.session_id = self.ex.first_result(
+                await self.ex.sql.s_session.fetch_session_id(datetime.date.today()))
             self.ex.cache.session_time_format = current_time_format
         else:
             # check that the date is correct, and if not, call get_session_id to get the new session id.
@@ -464,7 +553,8 @@ class Cache(Base):
 
         for channel_id, server_id, message_id, enabled in await self.ex.sql.s_general.fetch_welcome_messages():
             await asyncio.sleep(0)  # bare yield
-            self.ex.cache.welcome_messages[server_id] = {"channel_id": channel_id, "message": message_id, "enabled": enabled}
+            self.ex.cache.welcome_messages[server_id] = {"channel_id": channel_id, "message": message_id,
+                                                         "enabled": enabled}
 
     async def create_server_prefixes(self):
         """Create the cache for server prefixes."""
@@ -513,8 +603,10 @@ class Cache(Base):
         try:
             permanent_patrons = await self.ex.u_patreon.get_patreon_users()
             # normal patrons contains super patrons as well
-            normal_patrons = [patron.id for patron in await self.ex.u_patreon.get_patreon_role_members(super_patron=False)]
-            super_patrons = [patron.id for patron in await self.ex.u_patreon.get_patreon_role_members(super_patron=True)]
+            normal_patrons = [patron.id for patron in
+                              await self.ex.u_patreon.get_patreon_role_members(super_patron=False)]
+            super_patrons = [patron.id for patron in
+                             await self.ex.u_patreon.get_patreon_role_members(super_patron=True)]
 
             # the reason for db cache is because of the new discord rate limit
             # where it now takes 20+ minutes for discord cache to fully load, meaning we can only
@@ -557,7 +649,7 @@ class Cache(Base):
                 user.super_patron = True
             return True
         except Exception as e:
-            log.console(f"{e} - create_patreons")
+            log.console(f"{e} (Exception)", method=self.create_patreons)
             return False
 
     async def create_user_notifications(self):
@@ -581,7 +673,7 @@ class Cache(Base):
         """Update the DB Guild Cache. Useful for updating info for API."""
         # much simpler to just delete all of the cache and reinsert instead of updating fields.
         try:
-            log.console("Attempting to send guild information to DB.")
+            log.console("Attempting to send guild information to DB.", self.create_guild_cache)
             await self.ex.conn.execute("DELETE FROM stats.guilds")
 
             guild_data = []
@@ -599,7 +691,7 @@ class Cache(Base):
             async with self.ex.conn.acquire() as direct_conn:
                 await direct_conn.copy_records_to_table('guilds', records=guild_data, schema_name="stats")
         except Exception as e:
-            log.console(f"{e} - Failed to update guild cache")
+            log.console(f"{e} (Exception) - Failed to update guild cache", method=self.create_guild_cache)
 
     async def create_idols(self):
         """Set cache for idol photo count"""
@@ -615,6 +707,11 @@ class Cache(Base):
         while not self.ex.conn:
             await asyncio.sleep(1)
         await self.create_cache(on_boot_up=not self.ex.irene_cache_loaded)
+
+        # only allow the cache to be loaded up one time (boot up) if the user does not want the cache to be reset
+        # every 12 hrs.
+        if not self.ex.reset_cache:
+            self.update_cache.stop()
 
     @tasks.loop(seconds=0, minutes=0, hours=0, reconnect=True)
     async def update_patron_and_guild_cache(self):
@@ -634,13 +731,16 @@ class Cache(Base):
                     for user_id, super_patron in cached_patrons:
                         user = await self.ex.get_user(user_id)
                         if super_patron:
-                            log.console(f"Made {user_id} a temporary super patron & patron.")
+                            log.console(f"Made {user_id} a temporary super patron & patron.",
+                                        method=self.update_patron_and_guild_cache)
                             user.super_patron = True
                         else:
-                            log.console(f"Made {user_id} a temporary patron.")
+                            log.console(f"Made {user_id} a temporary patron.",
+                                        method=self.update_patron_and_guild_cache)
                         user.patron = True
                     self.ex.temp_patrons_loaded = True
-                    log.console("Cache for Temporary Patrons has been created.")
+                    log.console("Cache for Temporary Patrons has been created.",
+                                method=self.update_patron_and_guild_cache)
                 while not self.ex.discord_cache_loaded:
                     await asyncio.sleep(60)  # check every minute if discord cache has loaded.
 
@@ -649,7 +749,7 @@ class Cache(Base):
                     self.update_patron_cache_hour.start()
                     self.update_patron_and_guild_cache.stop()
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.update_patron_and_guild_cache)
 
     @tasks.loop(seconds=0, minutes=0, hours=1, reconnect=True)
     async def update_patron_cache_hour(self):
@@ -662,112 +762,4 @@ class Cache(Base):
     @tasks.loop(seconds=0, minutes=1, hours=0, reconnect=True)
     async def send_cache_data_to_data_dog(self):
         """Sends metric information about cache to data dog every minute."""
-        try:
-            if self.ex.thread_pool:
-                user_notifications = 0
-                patron_count = 0
-                mod_mail = 0
-                bot_banned = 0
-                active_user_reminders = 0
-                for user in self.ex.cache.users.values():
-                    user_notifications += len(user.notifications)
-                    if user.patron:
-                        patron_count += 1
-                    if user.mod_mail_channel_id:
-                        mod_mail += 1
-                    if user.bot_banned:
-                        bot_banned += 1
-                    active_user_reminders += len(user.reminders)
-
-                playing_card_amount = 0
-                for list_of_playing_card in self.ex.cache.playing_cards.values():
-                    playing_card_amount += len(list_of_playing_card)
-
-                user_copy = self.ex.cache.users.copy()
-                gg_filtered_enabled = len([user for user in user_copy.values() if user.gg_filter])
-
-                metric_info = {
-                    'total_commands_used': self.ex.cache.total_used,
-                    'bias_games': len(self.ex.cache.bias_games),
-                    'guessing_games': len(self.ex.cache.guessing_games),
-                    'patrons': patron_count,
-                    'custom_server_prefixes': len(self.ex.cache.server_prefixes),
-                    'session_commands_used': self.ex.cache.current_session,
-                    'user_notifications': user_notifications,
-                    'mod_mail': mod_mail,
-                    'banned_from_bot': bot_banned,
-                    'logged_servers': len(self.ex.cache.logged_channels),
-                    # server count is based on discord.py guild cache which takes a large amount of time to load fully.
-                    # There may be inaccurate data points on a new instance of the bot due to the amount of
-                    # time that it takes.
-                    'server_count': len(self.ex.client.guilds),
-                    'welcome_messages': len(self.ex.cache.welcome_messages),
-                    'temp_channels': len(self.ex.cache.temp_channels),
-                    'amount_of_idols': len(self.ex.cache.idols),
-                    'amount_of_groups': len(self.ex.cache.groups),
-                    'channels_restricted': len(self.ex.cache.restricted_channels),
-                    'amount_of_bot_statuses': len(self.ex.cache.bot_statuses),
-                    'commands_per_minute': self.ex.cache.commands_per_minute,
-                    'amount_of_custom_commands': len(self.ex.cache.custom_commands),
-                    'discord_ping': self.ex.get_ping(),
-                    'n_words_per_minute': self.ex.cache.n_words_per_minute,
-                    'bot_api_idol_calls': self.ex.cache.bot_api_idol_calls,
-                    'bot_api_translation_calls': self.ex.cache.bot_api_translation_calls,
-                    'messages_received_per_min': self.ex.cache.messages_received_per_minute,
-                    'errors_per_minute': self.ex.cache.errors_per_minute,
-                    'wolfram_per_minute': self.ex.cache.wolfram_per_minute,
-                    'urban_per_minute': self.ex.cache.urban_per_minute,
-                    'active_user_reminders': active_user_reminders,
-                    'weverse_channels_following': sum([len(channels) for channels in self.ex.cache.weverse_channels.
-                                                      values()]),
-                    'weverse_following_txt': len(self.ex.cache.weverse_channels.get("txt") or []),
-                    'weverse_following_bts': len(self.ex.cache.weverse_channels.get("bts") or []),
-                    'weverse_following_gfriend': len(self.ex.cache.weverse_channels.get("gfriend") or []),
-                    'weverse_following_seventeen': len(self.ex.cache.weverse_channels.get("seventeen") or []),
-                    'weverse_following_enhypen': len(self.ex.cache.weverse_channels.get("enhypen") or []),
-                    'weverse_following_nuest': len(self.ex.cache.weverse_channels.get("nu'est") or []),
-                    'weverse_following_cl': len(self.ex.cache.weverse_channels.get("cl") or []),
-                    'weverse_following_p1harmony': len(self.ex.cache.weverse_channels.get("p1harmony") or []),
-                    'weverse_following_weeekly': len(self.ex.cache.weverse_channels.get("weeekly") or []),
-                    'weverse_following_sunmi': len(self.ex.cache.weverse_channels.get("sunmi") or []),
-                    'weverse_following_henry': len(self.ex.cache.weverse_channels.get("henry") or []),
-                    'weverse_following_dreamcatcher': len(self.ex.cache.weverse_channels.get("dreamcatcher") or []),
-                    'twitch_channels_followed': len(self.ex.cache.twitch_channels.keys() or []),
-                    'text_channels_following_twitch': sum([len(channels) for channels in self.ex.cache.twitch_channels.
-                                                          values()]),
-                    'voice_clients': len(self.ex.client.voice_clients or []),
-                    'servers_using_self_assignable_roles': len(self.ex.cache.assignable_roles.keys() or []),
-                    'total_amount_of_self_assignable_roles': sum([len(channel_and_roles.get('roles') or [])
-                                                                  for channel_and_roles in
-                                                                  self.ex.cache.assignable_roles.values()]),
-                    'channels_with_games_disabled': len(self.ex.cache.channels_with_disabled_games),
-                    'dead_image_cache': len(self.ex.cache.dead_image_cache),
-                    'user_objects': len(self.ex.cache.users),
-                    'welcome_roles': len(self.ex.cache.welcome_roles),
-                    'playing_cards': playing_card_amount,
-                    'members_in_support_server': len(self.ex.cache.member_ids_in_support_server),
-                    'gg_filter_enabled': gg_filtered_enabled
-                }
-
-                # set all per minute metrics to 0 since this is a 60 second loop.
-                self.ex.cache.n_words_per_minute = 0
-                self.ex.cache.commands_per_minute = 0
-                self.ex.cache.bot_api_idol_calls = 0
-                self.ex.cache.bot_api_translation_calls = 0
-                self.ex.cache.messages_received_per_minute = 0
-                self.ex.cache.errors_per_minute = 0
-                self.ex.cache.wolfram_per_minute = 0
-                self.ex.cache.urban_per_minute = 0
-                for metric_name in metric_info:
-                    await asyncio.sleep(0)  # bare yield
-                    try:
-                        metric_value = metric_info.get(metric_name)
-                        # add to thread pool to prevent blocking.
-                        # noinspection PyUnusedLocal
-                        result = (self.ex.thread_pool.submit(self.ex.u_data_dog.send_metric, metric_name, metric_value)).result()
-                    except Exception as e:
-                        log.console(e)
-        except Exception as e:
-            # loop appears to stop working after a while and no errors were recognized in log file
-            # adding this try except to see if issue continues.
-            log.console(e)
+        await self.ex.run_blocking_code(self.ex.u_data_dog.send_metrics)

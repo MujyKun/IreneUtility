@@ -34,6 +34,8 @@ class Keys:
         self.add_idol_channel_id: int = self.get_kwarg("add_idol_channel_id")
         # channel id for unregistered groups ( user filled out forms ).
         self.add_group_channel_id: int = self.get_kwarg("add_group_channel_id")
+        # channel id for new twitter posts (automatically posted every after t time).
+        self.twitter_channel_id: int = self.get_kwarg("twitter_channel_id")
         # amount of idol photos a user can send daily with voting.
         self.idol_post_send_limit: int = self.get_kwarg("idol_post_send_limit")
         # amount of idol photos a user can request with a server owner as a super patron.
@@ -41,6 +43,8 @@ class Keys:
         # amount of idol photos a user can request daily without voting.
         self.idol_no_vote_send_limit: int = self.get_kwarg("idol_no_vote_send_limit")
         self.reminder_limit: int = self.get_kwarg("reminder_limit")  # maximum amount of reminders
+        # maximum amount of automatic idol photos a non-patron can be sent
+        self.idol_send_limit: int = self.get_kwarg("idol_send_limit")
         self.currency_name: str = self.get_kwarg("currency_name")  # name of main currency
         self.icon_url: str = self.get_kwarg("icon_url")  # embed icon url
         self.footer_url: str = self.get_kwarg("footer_url")  # embed footer url

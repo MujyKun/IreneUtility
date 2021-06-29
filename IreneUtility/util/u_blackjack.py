@@ -35,9 +35,10 @@ class BlackJack(Base):
         await self.ex.sql.s_blackjack.delete_playing_cards()
         try:
             # remove all player cards existing on OS.
-            (self.ex.thread_pool.submit(self.remove_all_card_files)).result()
+            # (self.ex.thread_pool.submit(self.remove_all_card_files)).result()
+            await self.ex.run_blocking_code(self.remove_all_card_files)
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.generate_playing_cards)
 
         for idol in self.ex.cache.idols:
             try:
@@ -45,10 +46,12 @@ class BlackJack(Base):
                     await asyncio.sleep(0)
                     unique_id = await self.ex.sql.s_blackjack.generate_playing_card(i+1, idol.id)
 
-                    (self.ex.thread_pool.submit(self.merge_images, f"{i+1}.png", f"{idol.id}_IDOL.png", unique_id
-                                                )).result()
+                    # (self.ex.thread_pool.submit(self.merge_images, f"{i+1}.png", f"{idol.id}_IDOL.png", unique_id
+                    # )).result()
+                    await self.ex.run_blocking_code(self.merge_images, f"{i+1}.png", f"{idol.id}_IDOL.png", unique_id)
+
             except Exception as e:
-                log.console(e)
+                log.console(f"{e} (Exception2)", method=self.generate_playing_cards)
 
         await self.ex.u_cache.create_playing_cards()  # reset playing card cache.
         await self.ex.u_cache.process_cache_time(self.ex.u_cache.create_playing_cards, "Playing Cards")

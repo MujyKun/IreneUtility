@@ -11,9 +11,7 @@ class DataBase(Base):
 
     @tasks.loop(seconds=0, minutes=0, hours=0, reconnect=True)
     async def set_start_up_connection(self):
-        """Looping Until A Stable Connection to DB is formed. This is to confirm Irene starts before the DB connects.
-        Also creates thread pool and increases recursion limit.
-        """
+        """Looping Until A Stable Connection to DB is formed. This is to confirm Irene starts before the DB connects."""
         if not self.ex:
             return
 
@@ -24,16 +22,12 @@ class DataBase(Base):
             self.ex.conn = await self.get_db_connection()  # set the db connection
             self.ex.sql.self.conn = self.ex.conn
             self.ex.running_loop = asyncio.get_running_loop()  # set running asyncio loop
-            await self.create_thread_pool()  # set new thread pool
 
             if self.ex.create_db_structure:
                 await self.ex.sql.db_structure.create_db_structure()  # has blocking file io
         except Exception as e:
-            log.console(e)
+            log.console(f"{e} (Exception)", method=self.set_start_up_connection)
         self.set_start_up_connection.stop()  # stop this method from loop.
-
-    async def create_thread_pool(self):
-        self.ex.thread_pool = ThreadPoolExecutor()
 
     @tasks.loop(seconds=0, minutes=1, reconnect=True)
     async def show_irene_alive(self):
