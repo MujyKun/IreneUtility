@@ -686,8 +686,10 @@ class GroupMembers(Base):
 
         # params to pass into api endpoint.
         api_params = {
-            'allow_group_photos': int(not guessing_game),
-            'redirect': 0  # we do not want the endpoint to redirect us to the image.
+            'allow_video': int(not guessing_game),
+            'redirect': 0,  # we do not want the endpoint to redirect us to the image.
+            'min_faces': 1,
+            'max_faces': 1 if guessing_game else 999
         }
 
         # increment amount of times we are calling api.
@@ -710,6 +712,8 @@ class GroupMembers(Base):
                     file = await self.__handle_file(file_location, file_name)
             elif r.status == 415:  # handle videos
                 # Make sure we do not get videos in a guessing game.
+                # The new api params will make sure that we do not reach this point in a guessing game.
+                # However, just in case the file was not properly scanned (new uploads), this condition will remain.
                 if guessing_game:
                     return await self.__get_image_msg(*args, **kwargs)
 
