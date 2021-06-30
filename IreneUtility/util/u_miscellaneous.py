@@ -75,7 +75,7 @@ class Miscellaneous(Base):
     async def interact_with_user(self, ctx, user, interaction, interaction_type, self_interaction=False):
         await self.ex.u_patreon.reset_patreon_cooldown(ctx)
         try:
-            if user == discord.Member:
+            if not user:
                 user = ctx.author
             list_of_links = await self.ex.conn.fetch("SELECT url FROM general.interactions WHERE interaction = $1",
                                                 interaction_type)
