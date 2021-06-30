@@ -10,29 +10,6 @@ class Miscellaneous(Base):
     def __init__(self, *args):
         super().__init__(*args)
 
-    async def check_for_nword(self, message):
-        """Processes new messages that contains the N word."""
-        message_sender = message.author
-        if message_sender.bot:
-            return
-        message_content = message.clean_content
-        if self.ex.u_miscellaneous.check_message_not_empty(message):
-            # check if the message belongs to the bot
-            if message_content[0] == '%':
-                return
-            if not self.ex.u_miscellaneous.check_nword(message_content):
-                return
-            self.ex.cache.n_words_per_minute += 1
-            author_id = message_sender.id
-            user = await self.ex.get_user(author_id)
-            if user.n_word:
-                await self.ex.conn.execute("UPDATE general.nword SET nword = $1 WHERE userid = $2::bigint",
-                                      user.n_word + 1, author_id)
-                user.n_word += 1
-            else:
-                await self.ex.conn.execute("INSERT INTO general.nword VALUES ($1,$2)", author_id, 1)
-                user.n_word = 1
-
     async def check_if_temp_channel(self, channel_id):
         """Check if a channel is a temp channel"""
         return self.ex.cache.temp_channels.get(channel_id) is not None  # do not change structure
@@ -218,13 +195,6 @@ class Miscellaneous(Base):
     async def check_if_bot_banned(self, user_id):
         """Check if the user can use the bot."""
         return (await self.ex.get_user(user_id)).bot_banned
-
-    def check_nword(self, message_content):
-        """Check if a message contains the NWord."""
-        message_split = message_content.lower().split()
-        for n_word in self.ex.keys.n_word_list:
-            if n_word in message_split and ':' not in message_split:
-                return True
 
     @staticmethod
     def get_int_index(number, index):

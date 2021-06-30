@@ -47,7 +47,6 @@ class Cache(Base):
             [self.create_server_prefixes, "Server Prefixes"],
             [self.create_welcome_message_cache, "Welcome Messages"],
             [self.create_temp_channels, "Temp Channels"],
-            [self.create_n_word_counter, "NWord Counter"],
             [self.create_command_counter, "Command Counter"],
             [self.create_idol_cache, "Idol Objects"],
             [self.create_group_cache, "Group Objects"],
@@ -529,12 +528,6 @@ class Cache(Base):
         """Force get the session id, this will also set total used and the session id."""
         await self.process_session()
         return self.ex.cache.session_id
-
-    async def create_n_word_counter(self):
-        """Update NWord Cache"""
-        for user_id, n_word_counter in await self.ex.sql.s_general.fetch_n_word():
-            user = await self.ex.get_user(user_id)
-            user.n_word = n_word_counter
 
     async def create_temp_channels(self):
         """Create the cache for temp channels."""

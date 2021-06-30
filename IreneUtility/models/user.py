@@ -20,7 +20,6 @@ class User:
         self.notifications: list = []  # [ [guild_id, phrase], ... ]
         self.reminders: list = []  # [ [remind_id, remind_reason, remind_time], ... ]
         self.timezone: str = ""
-        self.n_word: int = 0  # amount of times the user has said the N-Word.
         self.gg_filter: bool = False
         self.gg_groups: list = []
         self.balance: int = -1
