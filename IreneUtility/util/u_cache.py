@@ -103,16 +103,16 @@ class Cache(Base):
         self.ex.irene_cache_loaded = True
 
     async def create_original_command_cache(self):
-        """Creates Unique Command objects if a json file named 'commands.json' is given."""
+        """Creates Unique Command objects if a json file is given."""
         self.ex.cache.original_commands = {}
         try:
             async with aiofiles.open(self.ex.unique_command_file_name, "r") as file:
-                cogs: dict = json.loads(await file.read())
-                for cog in cogs.items():
-                    commands = cogs.get(cog)
+                cogs = json.loads(await file.read())
+                for cog, commands in cogs.items():
                     for command in commands:
+                        command_name = command
+                        command = commands.get(command)
                         cog_name = f"{cog}"
-                        command_name = f"{command}"
                         description = command.get("description")
                         example_image_url = command.get("example_image_url")
                         syntax = command.get("syntax")
@@ -130,6 +130,8 @@ class Cache(Base):
         except FileNotFoundError:
             log.console(f"{self.ex.unique_command_file_name} was not found for creating unique command objects.",
                         method=self.create_original_command_cache)
+        except Exception as e:
+            log.console(e)
 
     async def request_twitter_channel(self):
         """Fetch twitter channel and store it in cache."""
