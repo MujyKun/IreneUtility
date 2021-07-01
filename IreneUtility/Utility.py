@@ -480,7 +480,7 @@ class Utility:
             msg = await self.replace(msg, inputs_to_change)
         return msg
 
-    def get_unique_command(self, command_name):
+    def get_unique_command(self, command_name) -> models.Command:
         """
         Get the unique command object.
 
