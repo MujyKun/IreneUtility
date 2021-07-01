@@ -100,6 +100,10 @@ class Cache(Base):
         # custom server commands
         self.custom_commands = {}  # {server_id: {command_name:info, command_name:info}}
 
+        # d.py has their own attainable way for similar information, but it has been rewritten into a file.
+        # this may be used for a better help command without using the descriptions of the command cogs.
+        self.original_commands = {}  # {Cog Name: [Utility Command Objects]}
+
         # Guessing Game Objects
         self.guessing_games = {}  # {channelid: Game}
         # Bias Game Objects

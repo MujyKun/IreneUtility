@@ -59,6 +59,10 @@ class Utility:
         # Set to False if you do not want the cache to reset itself every 12 hours.
         self.reset_cache: bool = True
 
+        # file that contains more detailed command information.
+        # this file is not a requirement, but will be checked if it exists.
+        self.unique_command_file_name = "commands.json"
+
         s_sql.self.conn = self.conn  # update our SQL connection.
         util_args = {self}
 

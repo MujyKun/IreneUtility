@@ -72,31 +72,64 @@ class Cache(Base):
             [self.create_disabled_games_cache, "Disabled Games In Channels"],
             [self.create_send_idol_photo_cache, "Send Idol Photo"],
             [self.request_support_server_members, "Support Server Member"],
-            [self.request_twitter_channel, "Twitter Channel"]
+            [self.request_twitter_channel, "Twitter Channel"],
+            [self.create_original_command_cache, "Original Commands"]
             # [self.create_image_cache, "Image"],
 
         ]
         for method, cache_name in cache_info:
-            if cache_name in ["DB Guild", "Patrons"]:
-                # if the discord cache is loaded, make sure to update the patreon cache since our user objects
-                # are reset every time this function is called.
-                if not self.ex.discord_cache_loaded or on_boot_up:
+            try:
+                if cache_name in ["DB Guild", "Patrons"]:
+                    # if the discord cache is loaded, make sure to update the patreon cache since our user objects
+                    # are reset every time this function is called.
+                    if not self.ex.discord_cache_loaded or on_boot_up:
+                        continue
+
+                if cache_name == "Weverse":
+                    # do not load weverse cache if the bot has already been running.
+                    if not self.ex.test_bot and not self.ex.weverse_client.cache_loaded and on_boot_up:
+                        # noinspection PyUnusedLocal
+                        task = asyncio.create_task(self.process_cache_time(method, "Weverse", create_old_posts=False))
                     continue
 
-            if cache_name == "Weverse":
-                # do not load weverse cache if the bot has already been running.
-                if not self.ex.test_bot and not self.ex.weverse_client.cache_loaded and on_boot_up:
-                    # noinspection PyUnusedLocal
-                    task = asyncio.create_task(self.process_cache_time(method, "Weverse", create_old_posts=False))
-                continue
-
-            await self.process_cache_time(method, cache_name)
+                await self.process_cache_time(method, cache_name)
+            except:
+                log.console(f"Failed to load Cache for {method} - {cache_name}.")
         creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
         log.console(f"Cache Completely Created in {creation_time}.", method=self.create_cache)
         if on_boot_up:
             self.ex.cache.maintenance_mode = False
             self.ex.cache.maintenance_reason = None
         self.ex.irene_cache_loaded = True
+
+    async def create_original_command_cache(self):
+        """Creates Unique Command objects if a json file named 'commands.json' is given."""
+        self.ex.cache.original_commands = {}
+        try:
+            async with aiofiles.open(self.ex.unique_command_file_name, "r") as file:
+                cogs: dict = json.loads(await file.read())
+                for cog in cogs.items():
+                    commands = cogs.get(cog)
+                    for command in commands:
+                        cog_name = f"{cog}"
+                        command_name = f"{command}"
+                        description = command.get("description")
+                        example_image_url = command.get("example_image_url")
+                        syntax = command.get("syntax")
+                        example_syntax = command.get("example_syntax")
+                        permissions_needed = command.get("permissions_needed")
+                        aliases = command.get("aliases")
+                        notes = command.get("note")
+                        obj = self.ex.u_objects.Command(cog_name, command_name, description, example_image_url, syntax,
+                                                        example_syntax, permissions_needed, aliases, notes)
+                        cog_original_commands = self.ex.cache.original_commands.get(cog_name)
+                        if not cog_original_commands:
+                            self.ex.cache.original_commands[cog_name] = [obj]
+                        else:
+                            cog_original_commands.append(obj)
+        except FileNotFoundError:
+            log.console(f"{self.ex.unique_command_file_name} was not found for creating unique command objects.",
+                        method=self.create_original_command_cache)
 
     async def request_twitter_channel(self):
         """Fetch twitter channel and store it in cache."""
