@@ -480,6 +480,16 @@ class Utility:
             msg = await self.replace(msg, inputs_to_change)
         return msg
 
+    def get_unique_command(self, command_name):
+        """
+        Get the unique command object.
+
+        :param command_name: The command name.
+        """
+        for command in self.cache.original_commands.values():
+            if command_name.lower() == command.command_name.lower():
+                return command
+
     async def run_blocking_code(self, func, *args):
         """Run blocking code safely in a new thread.
 
