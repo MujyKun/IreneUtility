@@ -480,14 +480,16 @@ class Utility:
             msg = await self.replace(msg, inputs_to_change)
         return msg
 
-    def get_unique_command(self, command_name) -> models.Command:
+    def get_unique_command(self, cog_name, command_name) -> models.Command:
         """
         Get the unique command object.
 
+        :param cog_name: The cog name
         :param command_name: The command name.
         """
-        for command in self.cache.original_commands.values():
-            if command_name.lower() == command.command_name.lower():
+        cog_commands = self.cache.original_commands.get(cog_name)
+        for command in cog_commands:
+            if command.command_name == command_name:
                 return command
 
     async def run_blocking_code(self, func, *args):
