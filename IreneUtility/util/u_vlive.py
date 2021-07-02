@@ -52,3 +52,19 @@ class Vlive(Base):
             channel = self.ex.client.get_channel(channel_id)
 
         return vlive_id, vlive_obj, channel, channel_id
+
+    async def follow_or_unfollow(self, channel, vlive_id, role_id=None):
+        """
+        Will follow or unfollow based on the current status of the channel.
+
+        Will also send message to channel based on whether they followed or unfollowed.
+        """
+        # attempt to follow first, if it didn't go through, unfollow.
+        if not await self.ex.u_vlive.follow_vlive(channel, vlive_id, role_id=role_id):
+            # unfollow
+            await self.ex.u_vlive.unfollow_vlive(channel, vlive_id)
+            # TODO: send message that they are no longer followed.
+        else:
+            # follow worked.
+            # TODO: send message that they are now following.
+            pass
