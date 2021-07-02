@@ -18,7 +18,7 @@ class Vlive(Base):
         """
         vlive_id, vlive_obj, channel, channel_id = self.get_necessities(channel, vlive_id)
 
-        if not vlive_obj.check_channel_followed(vlive_obj):
+        if not vlive_obj.check_channel_followed(channel):
             await self.ex.sql.s_vlive.follow(channel_id, vlive_id, role_id)
             vlive_obj += channel if channel else channel_id
             return True
