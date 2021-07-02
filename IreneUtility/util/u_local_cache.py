@@ -1,5 +1,6 @@
 from .. import models
 from ..Base import Base
+from ..models import VliveChannel
 from typing import List
 import time
 import json

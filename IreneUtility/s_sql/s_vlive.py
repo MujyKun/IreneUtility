@@ -27,4 +27,4 @@ async def fetch_followed_channels():
     """
     Fetch all followed vlive channels.
     """
-    await self.conn.fetch("SELECT channelid, roleid, vliveid FROM vlive.followers")
+    return await self.conn.fetch("SELECT channelid, roleid, vliveid FROM vlive.followers")

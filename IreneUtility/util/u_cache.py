@@ -117,8 +117,8 @@ class Cache(Base):
                 vlive_obj = VliveChannel(vlive_id)
                 self.ex.cache.vlive_channels[vlive_id] = vlive_obj
 
-            # make sure the channel wasn't already added.
             channel = self.ex.client.get_channel(channel_id)
+            # make sure the channel wasn't already added.
             if not vlive_obj.check_channel_followed(channel if channel else channel_id):
                 vlive_obj += channel if channel else channel_id
                 if role_id:
