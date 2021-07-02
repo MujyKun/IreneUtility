@@ -148,6 +148,10 @@ class Keys:
         self.site_port: str = self.get_kwarg("site_port")  # port of Bot Site
         self.bot_website: str = self.get_kwarg("bot_website")  # link to bot website (with slash at end)
 
+        """Vlive"""
+        self.vlive_base_url: str = self.get_kwarg("vlive_base_url")
+        self.vlive_app_id: str = self.get_kwarg("vlive_app_id")
+
     def get_kwarg(self, kwarg_name):
         """Get a kwarg"""
         return self.kwargs.get(kwarg_name)

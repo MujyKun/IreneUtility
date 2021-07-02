@@ -105,7 +105,6 @@ class User:
         # then the user succeeded in robbing the user.
         return rob_percentage == random.choice(selector_values)
 
-
     async def register_currency(self):
         """Registers the user to the currency system."""
         if self.balance == -1:

@@ -73,7 +73,8 @@ class Cache(Base):
             [self.create_send_idol_photo_cache, "Send Idol Photo"],
             [self.request_support_server_members, "Support Server Member"],
             [self.request_twitter_channel, "Twitter Channel"],
-            [self.create_original_command_cache, "Original Commands"]
+            [self.create_original_command_cache, "Original Commands"],
+            [self.create_vlive_followers_cache, "Vlive Text Channel Followers"]
             # [self.create_image_cache, "Image"],
 
         ]
@@ -101,6 +102,12 @@ class Cache(Base):
             self.ex.cache.maintenance_mode = False
             self.ex.cache.maintenance_reason = None
         self.ex.irene_cache_loaded = True
+
+    async def create_vlive_followers_cache(self):
+        """Create the cache for Text Channels following an Idol or Group's Vlive.
+
+        Note that a Group or Idol does not need to exist for
+        """
 
     async def create_original_command_cache(self):
         """Creates Unique Command objects if a json file is given."""

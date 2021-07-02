@@ -1,3 +1,9 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .. import Utility
+
+
 class BaseUtil:
     """Serves as an extension to avoid Circular imports while maintaining the main Utility object
     across the models that need to utilize certain methods.
@@ -6,12 +12,13 @@ class BaseUtil:
     much easier to maintain.
     """
     def __init__(self):
-        self.ex = None
+        self.ex: Utility = None
 
 
 base_util = BaseUtil()
 
 from .file import File
+from .vlivechannel import VliveChannel
 from .group import Group
 from .idol import Idol
 from .user import User

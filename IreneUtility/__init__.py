@@ -1,4 +1,1 @@
-import IreneUtility.Utility
-import IreneUtility.util
-import IreneUtility.models
-import IreneUtility.s_sql
+from . import Utility, util, models, s_sql

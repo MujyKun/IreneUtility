@@ -97,6 +97,8 @@ class Cache(Base):
         self.dead_image_channel = None  # Channel for all dead images to be sent to.
         self.bot_statuses = []
 
+        self.vlive_channels = {}  # Vlive Channel ID: VliveChannel object
+
         # custom server commands
         self.custom_commands = {}  # {server_id: {command_name:info, command_name:info}}
 

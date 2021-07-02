@@ -1,3 +1,6 @@
+from . import VliveChannel, base_util
+
+
 class Idol:
     """Represents an Idol/Celebrity."""
     def __init__(self, **kwargs):
@@ -17,6 +20,9 @@ class Idol:
         self.melon = kwargs.get('melon')
         self.instagram = kwargs.get('instagram')
         self.vlive = kwargs.get('vlive')
+        if self.vlive:
+            self.vlive = VliveChannel(self.vlive)
+            base_util.ex.cache.vlive_channels[self.vlive.id.lower()] = self.vlive
         self.spotify = kwargs.get('spotify')
         self.fancafe = kwargs.get('fancafe')
         self.facebook = kwargs.get('facebook')

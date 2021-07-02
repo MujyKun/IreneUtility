@@ -115,6 +115,7 @@ class Utility:
         self.u_twitch = util.u_twitch.Twitch(*util_args)
         self.u_gacha = util.u_gacha.Gacha(*util_args)
         self.u_unscramblegame = util.u_unscramblegame.UnScrambleGame(*util_args)
+        self.u_vlive = util.u_vlive.Vlive(*util_args)
 
         # ensure that any models needed methods from this instance can do so without circular import problems.
         models.base_util.ex = self
@@ -287,14 +288,12 @@ class Utility:
         return int(('%02X%02X%02X' % (r(), r(), r())), 16)  # must be specified to base 16 since 0x is not present
 
     async def create_embed(self, title="Irene", color=None, title_desc=None, footer_desc="Thanks for using Irene!",
-                           icon_url=None, footer_url=None):
+                           icon_url=None, footer_url=None, title_url=None):
         """Create a discord Embed."""
         icon_url = self.keys.icon_url if not icon_url else icon_url
         footer_url = self.keys.footer_url if not footer_url else footer_url
         color = self.get_random_color() if not color else color
-        embed = discord.Embed(title=title, color=color) if not title_desc \
-            else discord.Embed(title=title, color=color, description=title_desc)
-
+        embed = discord.Embed(title=title, color=color, description=title_desc or None, url=title_url or None)
         embed.set_author(name="Irene", url=self.keys.bot_website,
                          icon_url=icon_url)
         embed.set_footer(text=footer_desc, icon_url=footer_url)
