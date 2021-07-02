@@ -21,3 +21,10 @@ async def unfollow(channel_id: int, vlive_id: str):
     """
     await self.conn.execute("DELETE FROM vlive.followers WHERE channelid = $1 AND vliveid = $2",
                             channel_id, vlive_id.lower())
+
+
+async def fetch_followed_channels():
+    """
+    Fetch all followed vlive channels.
+    """
+    await self.conn.fetch("SELECT channelid, roleid, vliveid FROM vlive.followers")

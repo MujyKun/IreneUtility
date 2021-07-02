@@ -191,12 +191,14 @@ class VliveChannel:
         :returns: (discord.TextChannel or int) The object that is following the vlive channel.
         """
         if isinstance(channel, discord.TextChannel):
-            if channel in self._followed_channels:
-                return channel
             channel_id = channel.id
         else:  # should be an int // taking consideration for string too.
             channel_id = int(channel)
+            channel = base_util.ex.client.get_channel(channel_id)
 
+        if channel:
+            if channel in self._followed_channels:
+                return channel
         if channel_id in self._followed_channels:
             return channel_id
 

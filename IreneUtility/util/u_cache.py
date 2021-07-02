@@ -2,6 +2,7 @@ import discord
 from discord.ext import tasks
 from ..Base import Base
 from . import u_logger as log
+from ..models import VliveChannel
 import time
 import asyncio
 import aiofiles
@@ -106,8 +107,22 @@ class Cache(Base):
     async def create_vlive_followers_cache(self):
         """Create the cache for Text Channels following an Idol or Group's Vlive.
 
-        Note that a Group or Idol does not need to exist for
+        Note that a Group or Idol does not need to exist for a vlive channel to exist.
         """
+        for channel_id, role_id, vlive_id in await self.ex.sql.s_vlive.fetch_followed_channels():
+            await asyncio.sleep(0)  # bare yield
+            vlive_id = vlive_id.lower()
+            vlive_obj: VliveChannel = self.ex.cache.vlive_channels.get(vlive_id)
+            if not vlive_obj:
+                vlive_obj = VliveChannel(vlive_id)
+                self.ex.cache.vlive_channels[vlive_id] = vlive_obj
+
+            # make sure the channel wasn't already added.
+            channel = self.ex.client.get_channel(channel_id)
+            if not vlive_obj.check_channel_followed(channel if channel else channel_id):
+                vlive_obj += channel if channel else channel_id
+                if role_id:
+                    vlive_obj.set_mention_role(channel if channel else channel_id, role_id)
 
     async def create_original_command_cache(self):
         """Creates Unique Command objects if a json file is given."""
