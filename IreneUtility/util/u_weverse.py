@@ -155,17 +155,24 @@ class Weverse(Base):
             embed = await self.ex.create_embed(title=embed_title, title_desc=embed_description)
 
             # will either be file locations or image links.
-            photos, from_host = [await self.download_weverse_post(photo.original_img_url, photo.file_name) for photo in
+            photos = [await self.download_weverse_post(photo.original_img_url, photo.file_name) for photo in
                       post.photos]
 
-            if from_host:
-                # file locations
-                return embed, photos
+            images = []
+            image_urls = []
+            for photo in photos:
+                image = photo[0]
+                from_host = photo[1]
 
-            # image links
-            message = "\n".join(photos)
-            return embed, message
-        return None, None
+                if from_host:
+                    # file locations
+                    images.append(image)
+                else:
+                    image_urls.append(image)
+
+            message = "\n".join(image_urls)
+            return embed, images, message
+        return None, None, None
 
     async def download_weverse_post(self, url, file_name):
         """Downloads an image url and returns image host url.
@@ -181,12 +188,12 @@ class Weverse(Base):
                 data = await resp.read()
                 await fd.write(data)
                 if len(data) >= 8000000:  # 8 mb
-                    return f"https://images.irenebot.com/weverse/{file_name}", from_host
+                    return [f"https://images.irenebot.com/weverse/{file_name}", from_host]
 
         if self.ex.upload_from_host:
             from_host = True
-            return f"{self.ex.keys.weverse_image_folder}{file_name}", from_host
-        return f"https://images.irenebot.com/weverse/{file_name}", from_host
+            return [f"{self.ex.keys.weverse_image_folder}{file_name}", from_host]
+        return [f"https://images.irenebot.com/weverse/{file_name}", from_host]
 
     async def set_media_embed(self, notification, embed_title):
         """Set Media Embed for Weverse."""
@@ -200,7 +207,8 @@ class Weverse(Base):
             return embed, message
         return None, None
 
-    async def send_weverse_to_channel(self, channel_info, message_text, embed, is_comment, is_media, community_name):
+    async def send_weverse_to_channel(self, channel_info, message_text, embed, is_comment, is_media, community_name,
+                                      images=None):
         channel_id = channel_info[0]
         role_id = channel_info[1]
         comments_disabled = channel_info[2]
@@ -217,22 +225,23 @@ class Weverse(Base):
         except:
             # remove the channel from future updates as it cannot be found.
             return await self.delete_weverse_channel(channel_id, community_name.lower())
+
         msg_list = []
         file_list = []
+
         try:
             msg_list.append(await channel.send(embed=embed))
             if message_text:
                 # Since an embed already exists, any individual content will not load
                 # as an embed -> Make it it's own message.
-                if isinstance(message_text, list):
+                if images:
                     # a list of file locations
-                    for photo_location in message_text:
+                    for photo_location in images:
                         file_list.append(discord.File(photo_location))
 
                 if role_id:
-                    message_text = f"<@&{role_id}>\n{message_text if not file_list else ''}"
-                msg_list.append(await channel.send(message_text if not file_list else None, files=(file_list or
-                                                                                                   None)))
+                    message_text = f"<@&{role_id}>\n{message_text if message_text else ''}"
+                msg_list.append(await channel.send(message_text if message_text else None, files=(file_list or None)))
                 log.console(f"Weverse Post for {community_name} sent to {channel_id}.",
                             method=self.send_weverse_to_channel)
         except discord.Forbidden as e:
