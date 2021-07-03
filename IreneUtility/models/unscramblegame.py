@@ -181,7 +181,7 @@ class UnScrambleGame(Game_Base):
             possible_answers.append(self.idol.stage_name)
 
         if self.difficulty in ["medium", "hard"]:
-            for group_id in self.idol:
+            for group_id in self.idol.groups:
                 await asyncio.sleep(0)  # bare yield
                 group = await self.ex.u_group_members.get_group(group_id)
                 if group.name == "NULL":  # we do not want a test group to be represented as the final question.
