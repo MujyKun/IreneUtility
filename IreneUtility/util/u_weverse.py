@@ -155,10 +155,10 @@ class Weverse(Base):
             embed = await self.ex.create_embed(title=embed_title, title_desc=embed_description)
 
             # will either be file locations or image links.
-            photos = [await self.download_weverse_post(photo.original_img_url, photo.file_name) for photo in
+            photos, from_host = [await self.download_weverse_post(photo.original_img_url, photo.file_name) for photo in
                       post.photos]
 
-            if self.ex.upload_from_host:
+            if from_host:
                 # file locations
                 return embed, photos
 
@@ -170,14 +170,23 @@ class Weverse(Base):
     async def download_weverse_post(self, url, file_name):
         """Downloads an image url and returns image host url.
 
-        If we are to upload from host, it will return the folder location instead.
+        If we are to upload from host, it will return the folder location instead (Unless the file is more than 8mb).
+
+
+        :returns: list of photos/image links, whether it is from the host.
         """
+        from_host = False
         async with self.ex.session.get(url) as resp:
             async with aiofiles.open(self.ex.keys.weverse_image_folder + file_name, mode='wb') as fd:
-                await fd.write(await resp.read())
+                data = await resp.read()
+                await fd.write(data)
+                if len(data) >= 8000000:  # 8 mb
+                    return f"https://images.irenebot.com/weverse/{file_name}", from_host
+
         if self.ex.upload_from_host:
-            return f"{self.ex.keys.weverse_image_folder}{file_name}"
-        return f"https://images.irenebot.com/weverse/{file_name}"
+            from_host = True
+            return f"{self.ex.keys.weverse_image_folder}{file_name}", from_host
+        return f"https://images.irenebot.com/weverse/{file_name}", from_host
 
     async def set_media_embed(self, notification, embed_title):
         """Set Media Embed for Weverse."""
