@@ -56,6 +56,10 @@ class VliveChannel:
         if isinstance(channel, discord.TextChannel) or isinstance(channel, int):
             self.remove_text_channel(channel)
 
+    def __len__(self):
+        """Get the amount of text channels following."""
+        return len(self._followed_channels)
+
     async def check_live(self):
         """Check if the Vlive channel is live."""
         if not await self._fetch_data():
