@@ -47,6 +47,7 @@ class VliveChannel:
         """
         if isinstance(channel, discord.TextChannel) or isinstance(channel, int):
             self.add_text_channel(channel)
+        return self
 
     def __isub__(self, channel):
         """Have a text channel unfollow this vlive channel.
@@ -55,6 +56,7 @@ class VliveChannel:
         """
         if isinstance(channel, discord.TextChannel) or isinstance(channel, int):
             self.remove_text_channel(channel)
+        return self
 
     def __len__(self):
         """Get the amount of text channels following."""
