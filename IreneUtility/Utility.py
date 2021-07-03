@@ -293,7 +293,16 @@ class Utility:
         icon_url = self.keys.icon_url if not icon_url else icon_url
         footer_url = self.keys.footer_url if not footer_url else footer_url
         color = self.get_random_color() if not color else color
-        embed = discord.Embed(title=title, color=color, description=title_desc or None, url=title_url or None)
+
+        if not title_desc and not title_url:
+            embed = discord.Embed(title=title, color=color)
+        elif title_desc and not title_url:
+            embed = discord.Embed(title=title, color=color, description=title_desc)
+        elif not title_desc and title_url:
+            embed = discord.Embed(title=title, color=color, url=title_url)
+        else:
+            embed = discord.Embed(title=title, color=color, description=title_desc, url=title_url)
+
         embed.set_author(name="Irene", url=self.keys.bot_website,
                          icon_url=icon_url)
         embed.set_footer(text=footer_desc, icon_url=footer_url)
