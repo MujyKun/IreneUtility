@@ -64,6 +64,7 @@ class VliveChannel:
         """Check if the Vlive channel is live."""
         if not await self._fetch_data():
             return False  # we were not able to successfully update our data.
+        return self._is_live
 
     async def send_live_to_followers(self):
         """Send live message to following channels
