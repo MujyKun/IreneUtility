@@ -102,17 +102,19 @@ class GroupMembers(Base):
             if group.id == group_id:
                 return group
 
-    @staticmethod
-    async def format_card_fields(obj, card_formats):
+    async def format_card_fields(self, obj, card_formats):
         """Formats all relevant card fields to be displayed"""
         final_string = ""
         for attr_name, display_format in card_formats.items():
-            if not getattr(obj, attr_name):
+            attribute = getattr(obj, attr_name)
+            if isinstance(attribute, self.ex.u_objects.VliveChannel):
+                attribute = attribute.id
+            if not attribute:
                 continue
             if isinstance(display_format, str):
-                final_string += f"{display_format}{getattr(obj, attr_name)}\n"
+                final_string += f"{display_format}{attribute}\n"
             elif isinstance(display_format, list) and len(display_format) == 2:
-                final_string += f"{display_format[0]}{getattr(obj, attr_name)}{display_format[1]}\n"
+                final_string += f"{display_format[0]}{attribute}{display_format[1]}\n"
             else:
                 raise TypeError
         return final_string
