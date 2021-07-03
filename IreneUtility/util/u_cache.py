@@ -313,7 +313,7 @@ class Cache(Base):
     def apply_bold_to_braces(text: str) -> str:
         """Applys bold markdown in between braces."""
         keywords_to_not_bold = [
-            "server_prefix", "bot_id",
+            "server_prefix", "bot_id", "support_server_link",
         ]
         for keyword in keywords_to_not_bold:
             text = text.replace("{" + f"{keyword}" + "}", keyword)  # we do not want to bold these words
