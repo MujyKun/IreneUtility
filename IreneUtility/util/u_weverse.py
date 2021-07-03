@@ -173,8 +173,8 @@ class Weverse(Base):
         If we are to upload from host, it will return the folder location instead.
         """
         async with self.ex.session.get(url) as resp:
-            fd = await aiofiles.open(self.ex.keys.weverse_image_folder + file_name, mode='wb')
-            await fd.write(await resp.read())
+            async with aiofiles.open(self.ex.keys.weverse_image_folder + file_name, mode='wb') as fd:
+                await fd.write(await resp.read())
         if self.ex.upload_from_host:
             return f"{self.ex.keys.weverse_image_folder}{file_name}"
         return f"https://images.irenebot.com/weverse/{file_name}"
