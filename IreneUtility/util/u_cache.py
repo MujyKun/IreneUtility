@@ -122,7 +122,7 @@ class Cache(Base):
             if not vlive_obj.check_channel_followed(channel if channel else channel_id):
                 vlive_obj += channel if channel else channel_id
                 if role_id:
-                    vlive_obj.set_mention_role(channel if channel else channel_id, role_id)
+                    vlive_obj.set_mention_role(channel_id, role_id)
 
     async def create_original_command_cache(self):
         """Creates Unique Command objects if a json file is given."""
