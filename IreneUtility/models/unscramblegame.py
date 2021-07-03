@@ -180,7 +180,7 @@ class UnScrambleGame(Game_Base):
         if self.difficulty in ["easy", "medium", "hard"]:
             possible_answers.append(self.idol.stage_name)
 
-        elif self.difficulty in ["medium", "hard"]:
+        if self.difficulty in ["medium", "hard"]:
             for group_id in self.idol:
                 await asyncio.sleep(0)  # bare yield
                 group = await self.ex.u_group_members.get_group(group_id)
@@ -190,7 +190,7 @@ class UnScrambleGame(Game_Base):
 
             possible_answers.append(self.idol.full_name)
 
-        elif self.difficulty in ["hard"]:
+        if self.difficulty in ["hard"]:
             if self.idol.former_full_name:
                 possible_answers.append(self.idol.former_full_name)
             if self.idol.former_stage_name:
@@ -199,10 +199,6 @@ class UnScrambleGame(Game_Base):
                 for alias in self.idol.aliases:
                     await asyncio.sleep(0)  # bare yield
                     possible_answers.append(alias)
-
-        else:
-            raise self.ex.exceptions.ShouldNotBeHere(f"Difficulty: {self.difficulty} - "
-                                                     f"unscramblegame.create_acceptable_answers")
 
         self.correct_answer = (random.choice(possible_answers))  # we do not worry/care about case-sensitivity here.
 
