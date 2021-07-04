@@ -246,7 +246,7 @@ class Weverse(Base):
 
                 if role_id:
                     message_text = f"<@&{role_id}>\n{message_text if message_text else ''}"
-                msg_list.append(await channel.send(message_text if message_text else None, files=(file_list or None)))
+                msg_list.append(await channel.send(message_text if message_text else None, files=file_list or None))
                 log.console(f"Weverse Post for {community_name} sent to {channel_id}.",
                             method=self.send_weverse_to_channel)
         except discord.Forbidden as e:
