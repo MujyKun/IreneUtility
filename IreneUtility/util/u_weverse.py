@@ -297,11 +297,12 @@ class Weverse(Base):
                 return await ctx.send(f"> This channel will no longer receive {post_type} from {community_name}.")
             return await ctx.send(f"> This channel will now receive {post_type} from {community_name}.")
 
-    async def send_notification(self, notification: Notification):
+    async def send_notification(self, notification: Notification, dev=False):
         """Send a notification to all of the needed channels.
 
 
         :param notification: (Weverse Notification)
+        :param dev: Whether to only post to a specific channel for testing.
         """
         is_comment = False
         is_media = False
@@ -349,6 +350,11 @@ class Weverse(Base):
             warning_msg = "WARNING: Support Server could not be found for Weverse Cache to get the text channel IDs."
             log.console(warning_msg)
             log.useless(warning_msg)
+
+        if dev:
+            await self.ex.u_weverse.send_weverse_to_channel([827707296456507402, None, False, False], message_text,
+                                                            embed, is_comment, is_media, community_name, images=images)
+            return
 
         for channel_info in channels:
             channel_id = channel_info[0]
