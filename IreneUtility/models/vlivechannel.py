@@ -77,35 +77,38 @@ class VliveChannel:
         channel_ids_to_remove = []
         embed = await self.create_embed()
         for channel in self._followed_channels:
-            if isinstance(channel, int):
-                try:
-                    channel = base_util.ex.client.get_channel(channel) or \
-                              await base_util.ex.client.fetch_channel(channel)
-                except discord.Forbidden:
-                    channel_ids_to_remove.append(channel)
-                    log.console(f"No Permission to fetch Channel ID: {channel}. (discord.Forbidden)",
-                                method=self.send_live_to_followers)
-                except discord.NotFound:
-                    channel_ids_to_remove.append(channel)
-                    log.console(f"Failed to fetch Invalid Channel ID: {channel}. (discord.NotFound)",
-                                method=self.send_live_to_followers)
-                    # invalid channel id.
-                except Exception as e:
-                    log.console(f"{e} (Exception)", method=self.send_live_to_followers)
-
-            role_id = self._mention_roles.get(channel.id)
-            msg_body = None
-            if role_id:
-                msg_body = f"<@&{role_id}>"
-
             try:
-                await channel.send(msg_body, embed=embed)
-            except discord.Forbidden:
-                channel_ids_to_remove.append(channel.id)
-                log.console(f"No perms to send vlive noti to {channel.id} (discord.Forbidden)",
-                            method=self.send_live_to_followers)
+                if isinstance(channel, int):
+                    try:
+                        channel = base_util.ex.client.get_channel(channel) or \
+                                  await base_util.ex.client.fetch_channel(channel)
+                    except discord.Forbidden:
+                        channel_ids_to_remove.append(channel)
+                        log.console(f"No Permission to fetch Channel ID: {channel}. (discord.Forbidden)",
+                                    method=self.send_live_to_followers)
+                    except discord.NotFound:
+                        channel_ids_to_remove.append(channel)
+                        log.console(f"Failed to fetch Invalid Channel ID: {channel}. (discord.NotFound)",
+                                    method=self.send_live_to_followers)
+                        # invalid channel id.
+                    except Exception as e:
+                        log.console(f"{e} (Exception)", method=self.send_live_to_followers)
+
+                role_id = self._mention_roles.get(channel.id)
+                msg_body = None
+                if role_id:
+                    msg_body = f"<@&{role_id}>"
+
+                try:
+                    await channel.send(msg_body, embed=embed)
+                except discord.Forbidden:
+                    channel_ids_to_remove.append(channel.id)
+                    log.console(f"No perms to send vlive noti to {channel.id} (discord.Forbidden)",
+                                method=self.send_live_to_followers)
+                except Exception as e:
+                    log.console(f"{e} (Exception2)", method=self.send_live_to_followers)
             except Exception as e:
-                log.console(f"{e} (Exception2)", method=self.send_live_to_followers)
+                log.console(f"{e} (Exception3)", method=self.send_live_to_followers)
 
         return channel_ids_to_remove
 
