@@ -236,7 +236,7 @@ class Weverse(Base):
 
         try:
             msg_list.append(await channel.send(embed=embed))
-            if message_text:
+            if message_text or images:
                 # Since an embed already exists, any individual content will not load
                 # as an embed -> Make it it's own message.
                 if images:
