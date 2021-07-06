@@ -76,6 +76,7 @@ class UnScrambleGame(Game_Base):
                 self.force_ended = True
                 return
             elif message_lower in self.ex.cache.skip_phrases:
+                await self.print_answer()
                 return
             else:
                 # the only time this code is reached is when a prefix was changed in the middle of a round.
@@ -169,9 +170,10 @@ class UnScrambleGame(Game_Base):
             await self.ex.u_unscramblegame.update_user_unscramble_game_score(self.difficulty, user_id=user_id,
                                                                              score=self.players.get(user_id))
 
-    async def print_answer(self):
+    async def print_answer(self, skipped=False):
         """Prints the current round's answer."""
-        await self.channel.send(f"The correct answer was {self.correct_answer}", delete_after=15)
+        await self.channel.send(f"{'Skipped. ' if skipped else ''}The correct answer was {self.correct_answer}",
+                                delete_after=15)
 
     async def create_acceptable_answers(self):
         """Create acceptable answers."""
