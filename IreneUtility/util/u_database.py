@@ -21,7 +21,7 @@ class DataBase(Base):
         try:
             self.ex.conn = await self.get_db_connection()  # set the db connection
             self.ex.sql.self.conn = self.ex.conn
-            self.ex.update_db()
+            await self.ex.update_db()
             self.ex.running_loop = asyncio.get_running_loop()  # set running asyncio loop
 
         except Exception as e:

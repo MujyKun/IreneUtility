@@ -184,7 +184,7 @@ class Utility:
         if events:
             self.events = events
 
-    def update_db(self):
+    async def update_db(self):
         """Runs checks to make sure the DB is up to date."""
         await self.u_cache.process_cache_time(asyncio.run_coroutine_threadsafe, "DB Structure",
                                               self.sql.db_structure.create_db_structure_from_file(verbose=False),
