@@ -164,5 +164,5 @@ class Keys:
         # instead of acquiring a connection from the pool, we just let the pool select a connection for us and
         # execute directly that way. this limits the amount of methods we have access to,
         # but in the case those methods are needed, just acquire the connection and use that instead.
-        self.db_conn = await asyncpg.create_pool(**self.postgres_options, command_timeout=60)
+        self.db_conn: asyncpg.pool.Pool = await asyncpg.create_pool(**self.postgres_options, command_timeout=60)
         return self.db_conn

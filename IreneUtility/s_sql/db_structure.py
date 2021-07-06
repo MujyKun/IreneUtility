@@ -1,7 +1,13 @@
 from . import self
 
+"""
+File meant for creating the DB Structure
 
-async def create_db_structure():
+There is a way to manually create the db structure from a file and also directly from code.
+"""
+
+
+async def create_db_structure_from_file():
     """
     Creates the db structure based on the existing version sql file.
 
@@ -27,3 +33,28 @@ async def create_db_structure():
             await self.conn.execute(query)
         except Exception as e:
             print(f"{e} -> Failed to execute query: {query} -> create_db_structure")
+
+
+async def get_db_info():
+    """Gets current connection information.
+
+    :returns: current username, database name, and the version info.
+    """
+    user_name, db_name, version = await self.conn.fetch("SELECT current_user, current_database(), version()")
+    return user_name, db_name, version
+
+
+async def create_schemas():
+    schema_list = ["archive", "biasgame", "blackjack", "currency", "dreamcatcher", "general", "gg", "groupmembers",
+                   "kiyomi", "lastfm", "logging", "patreon", "reminders", "selfassignroles", "stats", "testdb",
+                   "twitch", "twitter", "vlive", "weverse", "youtube"]
+
+    user, db_name, version = await get_db_info()
+
+    for schema in schema_list:
+        schema_query = f"""CREATE SCHEMA IF NOT EXISTS {schema} AUTHORIZATION {user}"""
+        await self.conn.execute(schema_query)
+
+
+async def create_tables():
+    pass

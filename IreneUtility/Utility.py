@@ -1,7 +1,8 @@
 import concurrent.futures
 
+import asyncpg
 from .util import u_exceptions, u_logger as log, u_local_cache
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from discord.ext.commands import Context
 from Weverse import WeverseClientAsync
 import discord
@@ -44,7 +45,7 @@ class Utility:
         self.upload_from_host = False  # this is changed on the client side in run.py
         self.client: discord.AutoShardedClient = d_py_client  # discord.py client
         self.session: ClientSession = aiohttp_session  # aiohttp client session
-        self.conn = db_connection  # db connection
+        self.conn: Optional[asyncpg.pool.Pool] = db_connection  # db connection
         self.create_db_structure: bool = create_db_structure  # whether to create db structure on run.
 
         # Set to True if not on the production server (useful if testing ex.test_bot as False).
@@ -74,7 +75,7 @@ class Utility:
         # self.thread_pool = None  # ThreadPoolExecutor for operations that block the event loop.
         self.keys: models.Keys = keys  # access to keys file
 
-        self.api: tweepy.API = None
+        self.api: Optional[tweepy.API] = None
         self.loop_count = 0
         self.recursion_limit = 10000
         self.api_issues = 0  # api issues in a given minute
@@ -87,7 +88,6 @@ class Utility:
         self.twitch_token = None  # access tokens are set everytime the token is refreshed.
 
         self.events = events  # Client-Sided Events class
-
         
         """
         IMPORTANT: This design implementation is a hack for circular imports.
@@ -185,6 +185,11 @@ class Utility:
 
         if events:
             self.events = events
+
+    async def update_db(self):
+        """Runs checks to make sure the DB is up to date."""
+        await self.sql.db_structure.create_schemas()  # create schemas if they do not exist.
+        await self.sql.db_structure.create_tables()  # create tables if they do not exist.
 
     async def get_user(self, user_id) -> models.User:
         """Creates a user if not created and adds it to the cache, then returns the user object.

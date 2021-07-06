@@ -1,8 +1,13 @@
+from typing import Optional
+
+import asyncpg
+
+
 class SqlConnection:
     """Used so that we have a stable reference to our DB Connection. This way we do not need to worry if our
     connection at any starting point is None as long as it gets set eventually"""
     def __init__(self):
-        self.conn = None
+        self.conn: Optional[asyncpg.pool.Pool] = None
 
 
 self = SqlConnection()
