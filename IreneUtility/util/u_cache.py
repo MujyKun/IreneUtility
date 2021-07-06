@@ -18,10 +18,11 @@ class Cache(Base):
     async def process_cache_time(self, method, name, *args, **kwargs):
         """Process the cache time."""
         past_time = time.time()
+        method_type = kwargs.get("method_type") or "Cache"
         result = await method(*args, **kwargs)
         if result is None or result:  # expecting False on methods that fail to load, do not simplify None.
             creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
-            log.console(f"Cache for {name} Created in {creation_time}.", method=self.process_cache_time)
+            log.console(f"{method_type} for {name} Created in {creation_time}.", method=self.process_cache_time)
         return result
 
     async def create_cache(self, on_boot_up=True):
