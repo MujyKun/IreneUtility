@@ -29,7 +29,7 @@ All categorized utility methods will be placed as objects prefixed with u_ as a 
 # noinspection PyBroadException,PyPep8
 class Utility:
     def __init__(self, keys=None, db_connection=None, events=None, d_py_client=None, aiohttp_session=None,
-                 weverse_client=None, create_db_structure=False):
+                 weverse_client=None):
         """
         :param keys:  Access to the key file
         :param db_connection:  DB Connection
@@ -37,7 +37,6 @@ class Utility:
         :param d_py_client: Discord.py client (Assumed to be an AutoShardedClient)
         :param aiohttp_session: Aiohttp client session
         :param weverse_client: Weverse client
-        :param create_db_structure: whether to create db structure on run.
         """
         # A lot of these properties may be created via client side
         # in order to make Utility more portable when needed and client friendly.
@@ -46,7 +45,6 @@ class Utility:
         self.client: discord.AutoShardedClient = d_py_client  # discord.py client
         self.session: ClientSession = aiohttp_session  # aiohttp client session
         self.conn: Optional[asyncpg.pool.Pool] = db_connection  # db connection
-        self.create_db_structure: bool = create_db_structure  # whether to create db structure on run.
 
         # Set to True if not on the production server (useful if testing ex.test_bot as False).
         # This was initially created to not flood datadog with incorrect input while ex.test_bot was False
@@ -186,10 +184,11 @@ class Utility:
         if events:
             self.events = events
 
-    async def update_db(self):
+    def update_db(self):
         """Runs checks to make sure the DB is up to date."""
-        await self.sql.db_structure.create_schemas()  # create schemas if they do not exist.
-        await self.sql.db_structure.create_tables()  # create tables if they do not exist.
+        # create schemas, tables if they do not exist.
+        asyncio.run_coroutine_threadsafe(self.sql.db_structure.create_schemas(), loop=asyncio.get_event_loop())
+        asyncio.run_coroutine_threadsafe(self.sql.db_structure.create_tables(), loop=asyncio.get_event_loop())
 
     async def get_user(self, user_id) -> models.User:
         """Creates a user if not created and adds it to the cache, then returns the user object.

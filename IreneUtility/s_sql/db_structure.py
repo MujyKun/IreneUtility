@@ -40,7 +40,7 @@ async def get_db_info():
 
     :returns: current username, database name, and the version info.
     """
-    user_name, db_name, version = await self.conn.fetch("SELECT current_user, current_database(), version()")
+    user_name, db_name, version = (await self.conn.fetch("SELECT current_user, current_database(), version()"))[0]
     return user_name, db_name, version
 
 
@@ -48,7 +48,6 @@ async def create_schemas():
     schema_list = ["archive", "biasgame", "blackjack", "currency", "dreamcatcher", "general", "gg", "groupmembers",
                    "kiyomi", "lastfm", "logging", "patreon", "reminders", "selfassignroles", "stats", "testdb",
                    "twitch", "twitter", "vlive", "weverse", "youtube"]
-
     user, db_name, version = await get_db_info()
 
     for schema in schema_list:
