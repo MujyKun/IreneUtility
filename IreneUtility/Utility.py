@@ -186,9 +186,12 @@ class Utility:
 
     async def update_db(self):
         """Runs checks to make sure the DB is up to date."""
-        await self.u_cache.process_cache_time(asyncio.run_coroutine_threadsafe, "DB Structure",
-                                              self.sql.db_structure.create_db_structure_from_file(verbose=False),
-                                              loop=asyncio.get_event_loop(), method_type="method_type")
+        kwargs = {
+            "method_type": "Update",
+            "verbose": False
+        }
+        await self.u_cache.process_cache_time(self.sql.db_structure.create_db_structure_from_file,
+                                              "DB Structure", **kwargs)
 
     async def get_user(self, user_id) -> models.User:
         """Creates a user if not created and adds it to the cache, then returns the user object.
