@@ -1,3 +1,5 @@
+import random
+
 import discord
 from ..Base import Base
 from Weverse.models import Notification
@@ -159,23 +161,33 @@ class Weverse(Base):
             embed = await self.ex.create_embed(title=embed_title, title_desc=embed_description)
 
             # will either be file locations or image links.
+
             photos = [await self.download_weverse_post(photo.original_img_url, photo.file_name) for photo in
                       post.photos]
 
-            images = []
-            image_urls = []
-            for photo in photos:
-                image = photo[0]
-                from_host = photo[1]
+            videos = []
+            for video in post.videos:
+                start_loc = video.video_url.find("/video/") + 7
+                if start_loc == -1:
+                    file_name = f"{post.id}_{random.randint(1, 50000000)}.mp4"
+                else:
+                    file_name = video.video_url[start_loc: len(video.video_url)]
+                videos.append(await self.download_weverse_post(video.video_url, file_name))
+
+            media_files = []  # can be photos or videos
+            file_urls = []  # urls of photos or videos
+            for file in photos + videos:  # a list of lists containing the image
+                media = file[0]
+                from_host = file[1]
 
                 if from_host:
                     # file locations
-                    images.append(image)
+                    media_files.append(media)
                 else:
-                    image_urls.append(image)
+                    file_urls.append(media)
 
-            message = "\n".join(image_urls)
-            return embed, images, message
+            message = "\n".join(file_urls)
+            return embed, media_files, message
         return None, None, None
 
     async def download_weverse_post(self, url, file_name):
@@ -184,7 +196,7 @@ class Weverse(Base):
         If we are to upload from host, it will return the folder location instead (Unless the file is more than 8mb).
 
 
-        :returns: list of photos/image links, whether it is from the host.
+        :returns: (photos/videos)/image links and whether it is from the host.
         """
         from_host = False
         async with self.ex.session.get(url) as resp:
@@ -213,7 +225,7 @@ class Weverse(Base):
         return None, None
 
     async def send_weverse_to_channel(self, channel_info, message_text, embed, is_comment, is_media, community_name,
-                                      images=None):
+                                      media=None):
         channel_id = channel_info[0]
         role_id = channel_info[1]
         comments_disabled = channel_info[2]
@@ -236,12 +248,12 @@ class Weverse(Base):
 
         try:
             msg_list.append(await channel.send(embed=embed))
-            if message_text or images:
+            if message_text or media:
                 # Since an embed already exists, any individual content will not load
                 # as an embed -> Make it it's own message.
-                if images:
+                if media:
                     # a list of file locations
-                    for photo_location in images:
+                    for photo_location in media:
                         file_list.append(discord.File(photo_location))
 
                 if role_id:
@@ -306,7 +318,7 @@ class Weverse(Base):
         """
         is_comment = False
         is_media = False
-        images = None
+        media = None
         community_name = notification.community_name or notification.bold_element
         if not community_name:
             return
@@ -323,7 +335,7 @@ class Weverse(Base):
             embed = await self.ex.u_weverse.set_comment_embed(notification, embed_title)
         elif noti_type == 'post':
             is_media = True
-            embed, images, message_text = await self.ex.u_weverse.set_post_embed(notification, embed_title)
+            embed, media, message_text = await self.ex.u_weverse.set_post_embed(notification, embed_title)
         elif noti_type == 'media':
             is_media = True
             embed, message_text = await self.ex.u_weverse.set_media_embed(notification, embed_title)
@@ -353,7 +365,7 @@ class Weverse(Base):
 
         if ctx:
             await self.ex.u_weverse.send_weverse_to_channel([ctx.channel.id, None, False, False], message_text,
-                                                            embed, is_comment, is_media, community_name, images=images)
+                                                            embed, is_comment, is_media, community_name, media=media)
             return
 
         for channel_info in channels:
@@ -374,7 +386,7 @@ class Weverse(Base):
             notification_ids = self.notifications_already_posted.get(channel_id)
             if not notification_ids:
                 await self.ex.u_weverse.send_weverse_to_channel(channel_info, message_text, embed, is_comment, is_media,
-                                                                community_name, images=images)
+                                                                community_name, media=media)
                 self.notifications_already_posted[channel_id] = [notification.id]
             else:
                 if notification.id in notification_ids:
@@ -383,4 +395,4 @@ class Weverse(Base):
 
                 self.notifications_already_posted[channel_id].append(notification.id)
                 await self.ex.u_weverse.send_weverse_to_channel(channel_info, message_text, embed,
-                                                                is_comment, is_media, community_name, images=images)
+                                                                is_comment, is_media, community_name, media=media)
