@@ -94,13 +94,11 @@ class Music(Base):
 
         """
         embed_list = []
-
+        queue_desc = ""
+        page_number = 1
         if hasattr(player, "playlist"):
             if not player.playlist:  # empty playlist.
                 return embed_list
-
-            queue_desc = ""
-            page_number = 1
 
             # get the track currently playing
             if player.is_playing:
@@ -120,6 +118,10 @@ class Music(Base):
                     page_number += 1
                     embed_list.append(embed)
 
+        if queue_desc:
+            embed_list.append(await self.ex.create_embed(title=f"Current Server Queue (Page {page_number})",
+                                                         title_desc=queue_desc))
+
         return embed_list
 
     async def get_track_info(self, track: wavelink.Track):
@@ -135,3 +137,4 @@ class Music(Base):
         if ctx:
             song_info += f" Requested by <@{ctx.author.id}>"
         song_info += "\n"
+        return song_info
