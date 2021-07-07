@@ -33,12 +33,13 @@ class Music(Base):
                 if player.loop:
                     player.playlist.append(track)  # add the track to the end of the queue if we are looping.
 
-            if hasattr(track, "ctx"):
-                msg = await self.ex.get_msg(track.ctx, "music", "now_playing", [
+            ctx = track.info.get("ctx")
+            if ctx:
+                msg = await self.ex.get_msg(ctx, "music", "now_playing", [
                     ["title", track.title],
                     ["author", track.author]
                 ])
-                await track.ctx.send(msg)
+                await ctx.send(msg)
 
     async def toggle_pause(self, ctx, pause=True) -> wavelink.Player:
         """Toggle the pause of a player.
@@ -93,6 +94,7 @@ class Music(Base):
 
         """
         embed_list = []
+
         if hasattr(player, "playlist"):
             if not player.playlist:  # empty playlist.
                 return embed_list
@@ -128,6 +130,7 @@ class Music(Base):
         :returns: (str) Message containing the title, author, duration, and mention of user that requested the song.
         """
         song_info = f"{track.title} by {track.author} ({self.ex.u_miscellaneous.get_cooldown_time(track.length//1000)})"
-        if hasattr(track, "ctx"):
+        ctx = track.info.get("ctx")
+        if ctx:
             song_info += f" Requested by <@{track.ctx.author.id}>"
         song_info += "\n"
