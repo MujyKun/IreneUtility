@@ -93,6 +93,9 @@ class Keys:
         self.postgres_options: dict = self.get_kwarg("postgres_options")  # host, database, user, and password for DB.
         self.db_conn: asyncpg.pool.Pool = self.get_kwarg("db_conn")  # connection to db
 
+        """Wavelink"""
+        self.wavelink_options: dict = self.get_kwarg("wavelink_options")  # host, port, rest_uri, password
+
         """Papago/Translator"""
         self.papago_client_id: str = self.get_kwarg("papago_client_id")  # papago client id
         self.papago_client_secret: str = self.get_kwarg("papago_client_secret")  # papago client secret
