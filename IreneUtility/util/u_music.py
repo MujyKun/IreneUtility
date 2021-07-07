@@ -1,11 +1,19 @@
 import wavelink
 import discord
 from ..Base import Base
+from . import u_logger as log
 
 
 class Music(Base):
     def __init__(self, *args):
         super().__init__(*args)
+
+    async def start_nodes(self):
+        """Initiate the wavelink nodes."""
+        for voice_region in self.ex.cache.voice_regions:
+            log.console(f"Started Wavelink node for {voice_region}.", method=self.start_nodes)
+            await self.ex.wavelink.initiate_node(identifier=voice_region, region=voice_region,
+                                                 **self.ex.keys.wavelink_options)
 
     async def toggle_pause(self, ctx, pause=True) -> wavelink.Player:
         """Toggle the pause of a player.

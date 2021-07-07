@@ -162,6 +162,10 @@ class Cache(Base):
         # possible levels for guessing game
         self.difficulty_levels = ['easy', 'medium', 'hard']
 
+        # discord voice regions
+        self.voice_regions = ["us_central", "us_west", "us_east", "us_south", "brazil", "europe", "hong_kong", "india",
+                              "japan", "russia", "singapore", "south_africa", "sydney"]
+
         # sets of idols for guessing game
         self.idols_female = set()
         self.idols_male = set()
