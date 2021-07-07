@@ -83,3 +83,51 @@ class Music(Base):
         player = self.ex.wavelink.get_player(ctx.guild.id)
         await ctx.send(await self.ex.get_msg(ctx, "music", "connecting", ["voice_channel", channel.name]))
         await player.connect(channel.id)
+
+    async def create_queue_embed(self, player: wavelink.Player):
+        """
+        Create and Return a list of embeds from a queue.
+
+        :param player: The wavelink Player.
+        :returns List[discord.Embed]
+
+        """
+        embed_list = []
+        if hasattr(player, "playlist"):
+            if not player.playlist:  # empty playlist.
+                return embed_list
+
+            queue_desc = ""
+            page_number = 1
+
+            # get the track currently playing
+            if player.is_playing:
+                if hasattr(player, "now_playing"):
+                    current_track: wavelink.Track = player.now_playing
+                    queue_desc += f"NOW PLAYING: {self.get_track_info(current_track)}\n"
+                    # Currently playing song does not count as a queue index.
+
+            # add the rest of the track descriptions.
+            for queue_index, track in enumerate(player.playlist, 1):
+                queue_desc += f"{queue_index}) {self.get_track_info(track)}"
+
+                if len(queue_desc) >= 1500:
+                    embed = await self.ex.create_embed(title=f"Current Server Queue (Page {page_number})",
+                                                       title_desc=queue_desc)
+                    queue_desc = ""
+                    page_number += 1
+                    embed_list.append(embed)
+
+        return embed_list
+
+    def get_track_info(self, track: wavelink.Track):
+        """
+        Puts Track into a displayable form for displaying a queue.
+
+        :param track: Wavelink Track.
+        :returns: (str) Message containing the title, author, duration, and mention of user that requested the song.
+        """
+        song_info = f"{track.title} by {track.author} ({self.ex.u_miscellaneous.get_cooldown_time(track.length//1000)})"
+        if hasattr(track, "ctx"):
+            song_info += f" Requested by <@{track.ctx.author.id}>"
+        song_info += "\n"
