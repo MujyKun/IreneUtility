@@ -132,5 +132,5 @@ class Music(Base):
         song_info = f"{track.title} by {track.author} ({self.ex.u_miscellaneous.get_cooldown_time(track.length//1000)})"
         ctx = track.info.get("ctx")
         if ctx:
-            song_info += f" Requested by <@{track.ctx.author.id}>"
+            song_info += f" Requested by <@{ctx.author.id}>"
         song_info += "\n"
