@@ -476,7 +476,7 @@ class Utility:
 
         return text
 
-    def get_message(self, user, module, keyword, inputs_to_change: list = None) -> str:
+    async def get_msg(self, user, module, keyword, inputs_to_change: list = None) -> str:
         """Get a msg from a user's language.
 
         :param user: User ID, Irene User object, or Context object
@@ -499,16 +499,6 @@ class Utility:
         if inputs_to_change:
             msg = await self.replace(msg, inputs_to_change)
         return msg
-
-    async def get_msg(self, *args, **kwargs) -> str:
-        """Get a msg from a user's language.
-
-        The original method used to be a coroutine, but since it's a hassle to make it entirely non-coro,
-        we will just return a non-coro method so the functions calling this method will still work as intended.
-
-        :return: message string from language pack.
-        """
-        return self.get_message(*args, **kwargs)
 
     def get_unique_command(self, cog_name, command_name) -> models.Command:
         """
