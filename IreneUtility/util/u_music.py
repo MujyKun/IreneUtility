@@ -109,9 +109,9 @@ class Music(Base):
 
             # add the rest of the track descriptions.
             for queue_index, track in enumerate(player.playlist, 1):
-                queue_desc += f"{queue_index}) {await self.get_track_info(track)}"
+                queue_desc += f"{queue_index}) {await self.get_track_info(track)}\n"
 
-                if len(queue_desc) >= 1500:
+                if len(queue_desc) >= 1000:
                     embed = await self.ex.create_embed(title=f"Current Server Queue (Page {page_number})",
                                                        title_desc=queue_desc)
                     queue_desc = ""
