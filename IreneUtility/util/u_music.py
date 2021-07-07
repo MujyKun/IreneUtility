@@ -106,12 +106,12 @@ class Music(Base):
             if player.is_playing:
                 if hasattr(player, "now_playing"):
                     current_track: wavelink.Track = player.now_playing
-                    queue_desc += f"NOW PLAYING: {self.get_track_info(current_track)}\n"
+                    queue_desc += f"NOW PLAYING: {await self.get_track_info(current_track)}\n"
                     # Currently playing song does not count as a queue index.
 
             # add the rest of the track descriptions.
             for queue_index, track in enumerate(player.playlist, 1):
-                queue_desc += f"{queue_index}) {self.get_track_info(track)}"
+                queue_desc += f"{queue_index}) {await self.get_track_info(track)}"
 
                 if len(queue_desc) >= 1500:
                     embed = await self.ex.create_embed(title=f"Current Server Queue (Page {page_number})",
@@ -122,7 +122,7 @@ class Music(Base):
 
         return embed_list
 
-    def get_track_info(self, track: wavelink.Track):
+    async def get_track_info(self, track: wavelink.Track):
         """
         Puts Track into a displayable form for displaying a queue.
 
