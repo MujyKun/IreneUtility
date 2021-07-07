@@ -3,7 +3,7 @@ import concurrent.futures
 import asyncpg
 from .util import u_exceptions, u_logger as log, u_local_cache
 from typing import TYPE_CHECKING, Optional
-from discord.ext.commands import Context
+from discord.ext.commands import Context, AutoShardedBot
 from Weverse import WeverseClientAsync
 import discord
 import random
@@ -42,7 +42,7 @@ class Utility:
         # in order to make Utility more portable when needed and client friendly.
         self.test_bot = None  # this is changed on the client side in run.py
         self.upload_from_host = False  # this is changed on the client side in run.py
-        self.client: discord.AutoShardedClient = d_py_client  # discord.py client
+        self.client: AutoShardedBot = d_py_client  # discord.py client
         self.session: ClientSession = aiohttp_session  # aiohttp client session
         self.conn: Optional[asyncpg.pool.Pool] = db_connection  # db connection
 
