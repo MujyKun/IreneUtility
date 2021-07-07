@@ -15,6 +15,27 @@ class Music(Base):
             await self.ex.wavelink.initiate_node(identifier=voice_region, region=voice_region,
                                                  **self.ex.keys.wavelink_options)
 
+    async def play_next(self, player: wavelink.Player):
+        """Play the next song in the player.
+
+        :param player: The wavelink Player for the guild.
+        """
+        if hasattr(player, "playlist"):
+            if not len(player.playlist):
+                return
+
+            track: wavelink.Track = player.playlist.pop[0]
+            await player.play(track)
+
+            player.now_playing = track
+
+            if hasattr(track, "ctx"):
+                msg = await self.ex.get_msg(track.ctx, "music", "now_playing", [
+                    ["title", track.title],
+                    ["author", track.author]
+                ])
+                await track.ctx.send(msg)
+
     async def toggle_pause(self, ctx, pause=True) -> wavelink.Player:
         """Toggle the pause of a player.
 
