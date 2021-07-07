@@ -1,6 +1,8 @@
 import concurrent.futures
 
 import asyncpg
+from discord.ext import commands
+
 from .util import u_exceptions, u_logger as log, u_local_cache
 from typing import TYPE_CHECKING, Optional
 from discord.ext.commands import Context, AutoShardedBot
@@ -88,7 +90,7 @@ class Utility:
         self.twitch_token = None  # access tokens are set everytime the token is refreshed.
 
         self.events = events  # Client-Sided Events class
-        
+
         """
         IMPORTANT: This design implementation is a hack for circular imports.
         The intended use is to allow a singular object to manage the entire Utility.
@@ -116,6 +118,7 @@ class Utility:
         self.u_gacha = util.u_gacha.Gacha(*util_args)
         self.u_unscramblegame = util.u_unscramblegame.UnScrambleGame(*util_args)
         self.u_vlive = util.u_vlive.Vlive(*util_args)
+        self.u_music = util.u_music.Music(*util_args)
 
         # ensure that any models needed methods from this instance can do so without circular import problems.
         models.base_util.ex = self
