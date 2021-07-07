@@ -10,6 +10,7 @@ import random
 import asyncio
 import os
 import tweepy
+import wavelink
 from . import models, s_sql, util, Base
 from typing import List
 
@@ -43,6 +44,7 @@ class Utility:
         self.test_bot = None  # this is changed on the client side in run.py
         self.upload_from_host = False  # this is changed on the client side in run.py
         self.client: AutoShardedBot = d_py_client  # discord.py client
+        self.wavelink: wavelink.Client = wavelink.Client(bot=self.client)
         self.session: ClientSession = aiohttp_session  # aiohttp client session
         self.conn: Optional[asyncpg.pool.Pool] = db_connection  # db connection
 
