@@ -29,6 +29,10 @@ class Music(Base):
 
             player.now_playing = track
 
+            if hasattr(player, "loop"):
+                if player.loop:
+                    player.playlist.append(track)  # add the track to the end of the queue if we are looping.
+
             if hasattr(track, "ctx"):
                 msg = await self.ex.get_msg(track.ctx, "music", "now_playing", [
                     ["title", track.title],
