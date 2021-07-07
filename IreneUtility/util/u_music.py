@@ -131,10 +131,10 @@ class Music(Base):
         :param track: Wavelink Track.
         :returns: (str) Message containing the title, author, duration, and mention of user that requested the song.
         """
-        song_info = f"{track.title} by {track.author} (" \
-                    f"{await self.ex.u_miscellaneous.get_cooldown_time(track.length//1000)})"
+        song_info = f"**{track.title}** by **{track.author}** (" \
+                    f"**{await self.ex.u_miscellaneous.get_cooldown_time(track.length//1000)}**)"
         ctx = track.info.get("ctx")
         if ctx:
-            song_info += f" Requested by <@{ctx.author.id}>"
+            song_info += f" - Requested by <@{ctx.author.id}>"
         song_info += "\n"
         return song_info
