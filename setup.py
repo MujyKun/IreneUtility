@@ -11,7 +11,8 @@ def parse_requirements(filename):
 
 
 repo_dependencies = [
-    "wavelink @ git+ssh://git@github.com/MujyKun/Wavelink@irenebot"
+    "wavelink @ git+https://github.com/MujyKun/Wavelink@irenebot",
+    "boats.py @ git+https://github.com/MujyKun/boats.py@master#boats.py"
 ]
 
 setup(
