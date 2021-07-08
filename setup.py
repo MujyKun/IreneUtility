@@ -10,11 +10,15 @@ def parse_requirements(filename):
     return [line for line in line_iter if line and not line.startswith("#")]
 
 
+repo_dependencies = [
+    "wavelink @ git+ssh://git@github.com/MujyKun/Wavelink@irenebot"
+]
+
 setup(
     name='IreneUtility',
     version='1.04.2',
     packages=find_packages(),
-    install_requires=parse_requirements("requirements.txt"),
+    install_requires=parse_requirements("requirements.txt") + repo_dependencies,
     url='https://github.com/MujyKun/IreneUtility/',
     license='MIT License',
     author='MujyKun',
