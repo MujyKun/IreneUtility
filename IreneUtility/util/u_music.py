@@ -38,7 +38,7 @@ class Music(Base):
             if ctx:
                 msg = await self.ex.get_msg(ctx, "music", "now_playing", [
                     ["title", track.title],
-                    ["author", track.author]
+                    ["artist", track.author]
                 ])
                 await ctx.send(msg)
 
@@ -129,7 +129,7 @@ class Music(Base):
         Puts Track into a displayable form for displaying a queue.
 
         :param track: Wavelink Track.
-        :returns: (str) Message containing the title, author, duration, and mention of user that requested the song.
+        :returns: (str) Message containing the title, artist, duration, and mention of user that requested the song.
         """
         song_info = f"**{track.title}** by **{track.author}** (" \
                     f"**{await self.ex.u_miscellaneous.get_cooldown_time(track.length//1000)}**)"
