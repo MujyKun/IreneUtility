@@ -27,8 +27,6 @@ class Music(Base):
             track: wavelink.Track = player.playlist.pop(0)
             await player.play(track)
 
-            player.now_playing = track
-
             if hasattr(player, "loop"):
                 if player.loop:
                     player.playlist.append(track)  # add the track to the end of the queue if we are looping.
@@ -101,11 +99,10 @@ class Music(Base):
                 return embed_list
 
             # get the track currently playing
-            if player.is_playing:
-                if hasattr(player, "now_playing"):
-                    current_track: wavelink.Track = player.now_playing
-                    queue_desc += f"NOW PLAYING: {await self.get_track_info(current_track)}\n"
-                    # Currently playing song does not count as a queue index.
+            current_track: wavelink.Track = player.current
+            if current_track:
+                queue_desc += f"NOW PLAYING: {await self.get_track_info(current_track)}\n"
+                # Currently playing song does not count as a queue index.
 
             # add the rest of the track descriptions.
             for queue_index, track in enumerate(player.playlist, 1):
