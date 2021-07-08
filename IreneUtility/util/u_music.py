@@ -24,7 +24,7 @@ class Music(Base):
             if not len(player.playlist):
                 return
 
-            track: wavelink.Track = player.playlist.pop[0]
+            track: wavelink.Track = player.playlist.pop(0)
             await player.play(track)
 
             player.now_playing = track
