@@ -25,5 +25,5 @@ parsedatetime==2.6
 Flask==1.1.2
 scipy>=1.5.4
 numexpr==2.7.3
--e git+git://github.com/MujyKun/Wavelink@irenebot#Wavelink
+-e https://github.com/MujyKun/Wavelink.git@irenebot#Wavelink
 Weverse==1.0.2.2
