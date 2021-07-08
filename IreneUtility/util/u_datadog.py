@@ -121,7 +121,7 @@ class DataDog(Base):
                 'amount_of_bot_statuses': self.ex.cache.bot_statuses,
                 'amount_of_custom_commands': self.ex.cache.custom_commands,
                 'twitch_channels_followed': self.ex.cache.twitch_channels.keys() or [],
-                'voice_clients': self.ex.client.voice_clients or [],
+                'voice_clients': self.ex.wavelink.players or [],
                 'channels_with_games_disabled': self.ex.cache.channels_with_disabled_games,
                 'dead_image_cache': self.ex.cache.dead_image_cache,
                 'user_objects': self.ex.cache.users,

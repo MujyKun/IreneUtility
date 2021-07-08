@@ -1,3 +1,5 @@
+from typing import Optional
+
 from ..Base import Base
 from .. import models
 from . import u_logger as log
@@ -78,7 +80,7 @@ class GroupMembers(Base):
             "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND serverid = $3 AND objectid = $4",
             alias, is_group, server_id, obj.id)
 
-    async def get_member(self, idol_id) -> models.Idol:
+    async def get_member(self, idol_id) -> Optional[models.Idol]:
         """Get a member by the idol id."""
         try:
             idol_id = int(idol_id)
@@ -90,7 +92,7 @@ class GroupMembers(Base):
             if idol.id == idol_id:
                 return idol
 
-    async def get_group(self, group_id) -> models.Group:
+    async def get_group(self, group_id) -> Optional[models.Group]:
         """Get a group by the group id."""
         try:
             group_id = int(group_id)
