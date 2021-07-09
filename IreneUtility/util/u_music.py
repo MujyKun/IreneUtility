@@ -151,9 +151,6 @@ class Music(Base):
         :param pause: Whether to pause.
         :returns: Wavelink Player
         """
-        if not ctx.guild:
-            return await ctx.send(await self.ex.get_msg(ctx, "general", "no_dm"))
-
         player = self.ex.wavelink.get_player(ctx.guild.id)
 
         if not player.is_connected:
@@ -175,10 +172,6 @@ class Music(Base):
         :param ctx: Context
         :param channel: Voice Channel
         """
-        if not ctx.guild:
-            await ctx.send(await self.ex.get_msg(ctx, "general", "no_dm"))
-            raise Exception  # we do not want the command to progress further than this message
-
         if not channel:
             try:
                 channel = ctx.author.voice.channel
