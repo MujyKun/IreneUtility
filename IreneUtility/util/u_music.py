@@ -82,6 +82,13 @@ class Music(Base):
 
         return controller
 
+    async def start_player_loop(self, player: wavelink.Player):
+        """Will start the player's loop if it isn't already started.
+
+        :param player: wavelink Player
+        """
+        self.get_controller(player)
+
     async def play_next(self, player: wavelink.Player):
         """Play the next song in the player.
 
