@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Union
 
 import asyncio
 import wavelink
@@ -18,11 +18,11 @@ class LoopController(Base):
         super().__init__(*args)
         self.guild_id = guild_id
         self.volume = 50
-        self.next = asyncio.Event()
+        self.next = asyncio.Event()  # will be triggered when the next song should be played.
         self.ex.client.loop.create_task(self.controller_loop())
 
     async def controller_loop(self):
-
+        """Manages when to play the next song."""
         player = self.ex.wavelink.get_player(self.guild_id)
         await player.set_volume(self.volume)
 
