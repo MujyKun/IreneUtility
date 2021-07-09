@@ -39,11 +39,6 @@ class LoopController(Base):
 
 class Music(Base):
     def __init__(self, *args):
-        """
-        Music Utility.
-
-        We want controller logic to be hidden to client.
-        """
         super().__init__(*args)
         self.controllers = {}  # guild_id: controller
 
@@ -77,7 +72,7 @@ class Music(Base):
             guild_id = value.guild_id
         controller = self.controllers.get(guild_id)
         if not controller:
-            controller = LoopController(guild_id)
+            controller = LoopController(guild_id, self.ex)
             self.controllers[guild_id] = controller
 
         return controller
@@ -94,7 +89,7 @@ class Music(Base):
 
         :param player: The wavelink Player for the guild.
         """
-        # Create the controller. This will start the controller loop and start playing songs.
+        # Create the controller if it doesn't exist. This will start the controller loop and start playing songs.
         self.get_controller(player)
 
         if hasattr(player, "playlist"):
