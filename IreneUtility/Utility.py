@@ -4,7 +4,7 @@ import asyncpg
 from discord.ext import commands
 
 from .util import u_exceptions, u_logger as log, u_local_cache
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 from discord.ext.commands import Context, AutoShardedBot
 from Weverse import WeverseClientAsync
 import discord
@@ -281,13 +281,19 @@ class Utility:
             return False
         return True
 
-    def check_if_mod(self, ctx, mode=0):  # as mode = 1, ctx is the author id.
-        """Check if the user is a bot mod/owner."""
-        if not mode:
-            user_id = ctx.author.id
-            return user_id in self.keys.mods_list or user_id == self.keys.owner_id
+    def check_if_mod(self, user: Union[commands.Context, models.User, discord.User, int]):
+        """Check if the user is a bot mod/owner.
+
+        :param user: Context, Irene User, Discord User, or User ID.
+        """
+        if isinstance(user, (models.User, discord.User)):
+            user_id = user.id
+        elif isinstance(user, commands.Context):
+            user_id = user.author.id
         else:
-            return ctx in self.keys.mods_list or ctx == self.keys.owner_id
+            user_id = user
+
+        return user_id in self.keys.mods_list or user_id == self.keys.owner_id
 
     def get_ping(self):
         """Get the client's ping."""
