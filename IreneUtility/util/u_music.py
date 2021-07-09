@@ -74,13 +74,15 @@ class Music(Base):
         :param channel: Voice Channel
         """
         if not ctx.guild:
-            return await ctx.send(await self.ex.get_msg(ctx, "general", "no_dm"))
+            await ctx.send(await self.ex.get_msg(ctx, "general", "no_dm"))
+            raise Exception  # we do not want the command to progress further than this message
 
         if not channel:
             try:
                 channel = ctx.author.voice.channel
             except AttributeError:
-                return await ctx.send(await self.ex.get_msg(ctx, "music", "no_channel"))
+                await ctx.send(await self.ex.get_msg(ctx, "music", "no_channel"))
+                raise Exception  # we do not want the command to progress further than this message
 
         player = self.ex.wavelink.get_player(ctx.guild.id)
         await ctx.send(await self.ex.get_msg(ctx, "music", "connecting", ["voice_channel", channel.name]))
