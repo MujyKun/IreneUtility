@@ -195,9 +195,6 @@ class Music(Base):
         queue_desc = ""
         page_number = 1
         if hasattr(player, "playlist"):
-            if not player.playlist:  # empty playlist.
-                return embed_list
-
             # get the track currently playing
             current_track: wavelink.Track = player.current
             if current_track:
