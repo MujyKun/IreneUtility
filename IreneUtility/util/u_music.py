@@ -50,7 +50,7 @@ class LoopController(Base):
 
             await self.next.wait()
 
-        self.ex.u_music.destroy_player(player)
+        await self.ex.u_music.destroy_player(player)
 
 
 class Music(Base):
@@ -76,7 +76,7 @@ class Music(Base):
         except KeyError:
             pass
 
-    def destroy_player(self, player: wavelink.Player):
+    async def destroy_player(self, player: wavelink.Player):
         """Destroys a player and the controller associated with it."""
         controller = self.get_controller(player, create_new=False)
         if controller:
