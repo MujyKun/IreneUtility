@@ -2,6 +2,7 @@ import discord
 from discord.ext import tasks
 from ..Base import Base
 from . import u_logger as log
+from ..models import VliveChannel
 import time
 import asyncio
 import aiofiles
@@ -17,10 +18,14 @@ class Cache(Base):
     async def process_cache_time(self, method, name, *args, **kwargs):
         """Process the cache time."""
         past_time = time.time()
+        method_type = "Cache"
+        if kwargs.get("method_type"):
+            method_type = kwargs.pop("method_type") or "Cache"
+
         result = await method(*args, **kwargs)
         if result is None or result:  # expecting False on methods that fail to load, do not simplify None.
             creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
-            log.console(f"Cache for {name} Created in {creation_time}.", method=self.process_cache_time)
+            log.console(f"{method_type} for {name} Created in {creation_time}.", method=self.process_cache_time)
         return result
 
     async def create_cache(self, on_boot_up=True):
@@ -47,7 +52,6 @@ class Cache(Base):
             [self.create_server_prefixes, "Server Prefixes"],
             [self.create_welcome_message_cache, "Welcome Messages"],
             [self.create_temp_channels, "Temp Channels"],
-            [self.create_n_word_counter, "NWord Counter"],
             [self.create_command_counter, "Command Counter"],
             [self.create_idol_cache, "Idol Objects"],
             [self.create_group_cache, "Group Objects"],
@@ -73,31 +77,87 @@ class Cache(Base):
             [self.create_disabled_games_cache, "Disabled Games In Channels"],
             [self.create_send_idol_photo_cache, "Send Idol Photo"],
             [self.request_support_server_members, "Support Server Member"],
-            [self.request_twitter_channel, "Twitter Channel"]
+            [self.request_twitter_channel, "Twitter Channel"],
+            [self.create_original_command_cache, "Original Commands"],
+            [self.create_vlive_followers_cache, "Vlive Text Channel Followers"]
             # [self.create_image_cache, "Image"],
 
         ]
         for method, cache_name in cache_info:
-            if cache_name in ["DB Guild", "Patrons"]:
-                # if the discord cache is loaded, make sure to update the patreon cache since our user objects
-                # are reset every time this function is called.
-                if not self.ex.discord_cache_loaded or on_boot_up:
+            try:
+                if cache_name in ["DB Guild", "Patrons"]:
+                    # if the discord cache is loaded, make sure to update the patreon cache since our user objects
+                    # are reset every time this function is called.
+                    if not self.ex.discord_cache_loaded or on_boot_up:
+                        continue
+
+                if cache_name == "Weverse":
+                    # do not load weverse cache if the bot has already been running.
+                    if not self.ex.test_bot and not self.ex.weverse_client.cache_loaded and on_boot_up:
+                        # noinspection PyUnusedLocal
+                        task = asyncio.create_task(self.process_cache_time(method, "Weverse", create_old_posts=False))
                     continue
 
-            if cache_name == "Weverse":
-                # do not load weverse cache if the bot has already been running.
-                if not self.ex.test_bot and not self.ex.weverse_client.cache_loaded and on_boot_up:
-                    # noinspection PyUnusedLocal
-                    task = asyncio.create_task(self.process_cache_time(method, "Weverse", create_old_posts=False))
-                continue
-
-            await self.process_cache_time(method, cache_name)
+                await self.process_cache_time(method, cache_name)
+            except:
+                log.console(f"Failed to load Cache for {method} - {cache_name}.")
         creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
         log.console(f"Cache Completely Created in {creation_time}.", method=self.create_cache)
         if on_boot_up:
             self.ex.cache.maintenance_mode = False
             self.ex.cache.maintenance_reason = None
         self.ex.irene_cache_loaded = True
+
+    async def create_vlive_followers_cache(self):
+        """Create the cache for Text Channels following an Idol or Group's Vlive.
+
+        Note that a Group or Idol does not need to exist for a vlive channel to exist.
+        """
+        for channel_id, role_id, vlive_id in await self.ex.sql.s_vlive.fetch_followed_channels():
+            await asyncio.sleep(0)  # bare yield
+            vlive_id = vlive_id.lower()
+            vlive_obj: VliveChannel = self.ex.cache.vlive_channels.get(vlive_id)
+            if not vlive_obj:
+                vlive_obj = VliveChannel(vlive_id)
+                self.ex.cache.vlive_channels[vlive_id] = vlive_obj
+
+            channel = self.ex.client.get_channel(channel_id)
+            # make sure the channel wasn't already added.
+            if not vlive_obj.check_channel_followed(channel if channel else channel_id):
+                vlive_obj += channel if channel else channel_id
+                if role_id:
+                    vlive_obj.set_mention_role(channel_id, role_id)
+
+    async def create_original_command_cache(self):
+        """Creates Unique Command objects if a json file is given."""
+        self.ex.cache.original_commands = {}
+        try:
+            async with aiofiles.open(self.ex.unique_command_file_name, "r") as file:
+                cogs = json.loads(await file.read())
+                for cog, commands in cogs.items():
+                    for command in commands:
+                        command_name = command
+                        command = commands.get(command)
+                        cog_name = f"{cog}"
+                        description = command.get("description")
+                        example_image_url = command.get("example_image_url")
+                        syntax = command.get("syntax")
+                        example_syntax = command.get("example_syntax")
+                        permissions_needed = command.get("permissions_needed")
+                        aliases = command.get("aliases")
+                        notes = command.get("note")
+                        obj = self.ex.u_objects.Command(cog_name, command_name, description, example_image_url, syntax,
+                                                        example_syntax, permissions_needed, aliases, notes)
+                        cog_original_commands = self.ex.cache.original_commands.get(cog_name)
+                        if not cog_original_commands:
+                            self.ex.cache.original_commands[cog_name] = [obj]
+                        else:
+                            cog_original_commands.append(obj)
+        except FileNotFoundError:
+            log.console(f"{self.ex.unique_command_file_name} was not found for creating unique command objects.",
+                        method=self.create_original_command_cache)
+        except Exception as e:
+            log.console(e)
 
     async def request_twitter_channel(self):
         """Fetch twitter channel and store it in cache."""
@@ -257,7 +317,7 @@ class Cache(Base):
     def apply_bold_to_braces(text: str) -> str:
         """Applys bold markdown in between braces."""
         keywords_to_not_bold = [
-            "server_prefix", "bot_id",
+            "server_prefix", "bot_id", "support_server_link",
         ]
         for keyword in keywords_to_not_bold:
             text = text.replace("{" + f"{keyword}" + "}", keyword)  # we do not want to bold these words
@@ -529,12 +589,6 @@ class Cache(Base):
         """Force get the session id, this will also set total used and the session id."""
         await self.process_session()
         return self.ex.cache.session_id
-
-    async def create_n_word_counter(self):
-        """Update NWord Cache"""
-        for user_id, n_word_counter in await self.ex.sql.s_general.fetch_n_word():
-            user = await self.ex.get_user(user_id)
-            user.n_word = n_word_counter
 
     async def create_temp_channels(self):
         """Create the cache for temp channels."""

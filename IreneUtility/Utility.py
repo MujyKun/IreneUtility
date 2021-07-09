@@ -1,14 +1,18 @@
 import concurrent.futures
 
+import asyncpg
+from discord.ext import commands
+
 from .util import u_exceptions, u_logger as log, u_local_cache
-from typing import TYPE_CHECKING
-from discord.ext.commands import Context
+from typing import TYPE_CHECKING, Optional, Union
+from discord.ext.commands import Context, AutoShardedBot
 from Weverse import WeverseClientAsync
 import discord
 import random
 import asyncio
 import os
 import tweepy
+import wavelink
 from . import models, s_sql, util, Base
 from typing import List
 
@@ -28,7 +32,7 @@ All categorized utility methods will be placed as objects prefixed with u_ as a 
 # noinspection PyBroadException,PyPep8
 class Utility:
     def __init__(self, keys=None, db_connection=None, events=None, d_py_client=None, aiohttp_session=None,
-                 weverse_client=None, create_db_structure=False):
+                 weverse_client=None):
         """
         :param keys:  Access to the key file
         :param db_connection:  DB Connection
@@ -36,16 +40,15 @@ class Utility:
         :param d_py_client: Discord.py client (Assumed to be an AutoShardedClient)
         :param aiohttp_session: Aiohttp client session
         :param weverse_client: Weverse client
-        :param create_db_structure: whether to create db structure on run.
         """
         # A lot of these properties may be created via client side
         # in order to make Utility more portable when needed and client friendly.
         self.test_bot = None  # this is changed on the client side in run.py
         self.upload_from_host = False  # this is changed on the client side in run.py
-        self.client: discord.AutoShardedClient = d_py_client  # discord.py client
+        self.client: AutoShardedBot = d_py_client  # discord.py client
+        self.wavelink: wavelink.Client = wavelink.Client(bot=self.client)
         self.session: ClientSession = aiohttp_session  # aiohttp client session
-        self.conn = db_connection  # db connection
-        self.create_db_structure: bool = create_db_structure  # whether to create db structure on run.
+        self.conn: Optional[asyncpg.pool.Pool] = db_connection  # db connection
 
         # Set to True if not on the production server (useful if testing ex.test_bot as False).
         # This was initially created to not flood datadog with incorrect input while ex.test_bot was False
@@ -59,6 +62,10 @@ class Utility:
         # Set to False if you do not want the cache to reset itself every 12 hours.
         self.reset_cache: bool = True
 
+        # file that contains more detailed command information.
+        # this file is not a requirement, but will be checked if it exists.
+        self.unique_command_file_name = "commands.json"
+
         s_sql.self.conn = self.conn  # update our SQL connection.
         util_args = {self}
 
@@ -70,7 +77,7 @@ class Utility:
         # self.thread_pool = None  # ThreadPoolExecutor for operations that block the event loop.
         self.keys: models.Keys = keys  # access to keys file
 
-        self.api: tweepy.API = None
+        self.api: Optional[tweepy.API] = None
         self.loop_count = 0
         self.recursion_limit = 10000
         self.api_issues = 0  # api issues in a given minute
@@ -84,7 +91,6 @@ class Utility:
 
         self.events = events  # Client-Sided Events class
 
-        
         """
         IMPORTANT: This design implementation is a hack for circular imports.
         The intended use is to allow a singular object to manage the entire Utility.
@@ -111,6 +117,8 @@ class Utility:
         self.u_twitch = util.u_twitch.Twitch(*util_args)
         self.u_gacha = util.u_gacha.Gacha(*util_args)
         self.u_unscramblegame = util.u_unscramblegame.UnScrambleGame(*util_args)
+        self.u_vlive = util.u_vlive.Vlive(*util_args)
+        self.u_music = util.u_music.Music(*util_args)
 
         # ensure that any models needed methods from this instance can do so without circular import problems.
         models.base_util.ex = self
@@ -180,6 +188,15 @@ class Utility:
 
         if events:
             self.events = events
+
+    async def update_db(self):
+        """Runs checks to make sure the DB is up to date."""
+        kwargs = {
+            "method_type": "Update",
+            "verbose": False
+        }
+        await self.u_cache.process_cache_time(self.sql.db_structure.create_db_structure_from_file,
+                                              "DB Structure", **kwargs)
 
     async def get_user(self, user_id) -> models.User:
         """Creates a user if not created and adds it to the cache, then returns the user object.
@@ -264,13 +281,19 @@ class Utility:
             return False
         return True
 
-    def check_if_mod(self, ctx, mode=0):  # as mode = 1, ctx is the author id.
-        """Check if the user is a bot mod/owner."""
-        if not mode:
-            user_id = ctx.author.id
-            return user_id in self.keys.mods_list or user_id == self.keys.owner_id
+    def check_if_mod(self, user: Union[commands.Context, models.User, discord.User, int]):
+        """Check if the user is a bot mod/owner.
+
+        :param user: Context, Irene User, Discord User, or User ID.
+        """
+        if isinstance(user, (models.User, discord.User)):
+            user_id = user.id
+        elif isinstance(user, commands.Context):
+            user_id = user.author.id
         else:
-            return ctx in self.keys.mods_list or ctx == self.keys.owner_id
+            user_id = user
+
+        return user_id in self.keys.mods_list or user_id == self.keys.owner_id
 
     def get_ping(self):
         """Get the client's ping."""
@@ -283,13 +306,20 @@ class Utility:
         return int(('%02X%02X%02X' % (r(), r(), r())), 16)  # must be specified to base 16 since 0x is not present
 
     async def create_embed(self, title="Irene", color=None, title_desc=None, footer_desc="Thanks for using Irene!",
-                           icon_url=None, footer_url=None):
+                           icon_url=None, footer_url=None, title_url=None):
         """Create a discord Embed."""
         icon_url = self.keys.icon_url if not icon_url else icon_url
         footer_url = self.keys.footer_url if not footer_url else footer_url
         color = self.get_random_color() if not color else color
-        embed = discord.Embed(title=title, color=color) if not title_desc \
-            else discord.Embed(title=title, color=color, description=title_desc)
+
+        if not title_desc and not title_url:
+            embed = discord.Embed(title=title, color=color)
+        elif title_desc and not title_url:
+            embed = discord.Embed(title=title, color=color, description=title_desc)
+        elif not title_desc and title_url:
+            embed = discord.Embed(title=title, color=color, url=title_url)
+        else:
+            embed = discord.Embed(title=title, color=color, description=title_desc, url=title_url)
 
         embed.set_author(name="Irene", url=self.keys.bot_website,
                          icon_url=icon_url)
@@ -475,6 +505,18 @@ class Utility:
         if inputs_to_change:
             msg = await self.replace(msg, inputs_to_change)
         return msg
+
+    def get_unique_command(self, cog_name, command_name) -> models.Command:
+        """
+        Get the unique command object.
+
+        :param cog_name: The cog name
+        :param command_name: The command name.
+        """
+        cog_commands = self.cache.original_commands.get(cog_name)
+        for command in cog_commands:
+            if command.command_name == command_name:
+                return command
 
     async def run_blocking_code(self, func, *args):
         """Run blocking code safely in a new thread.

@@ -1,5 +1,8 @@
+import random
+
 import discord
 from ..Base import Base
+from Weverse.models import Notification
 from . import u_logger as log
 import aiofiles
 import asyncio
@@ -9,6 +12,8 @@ import asyncio
 class Weverse(Base):
     def __init__(self, *args):
         super().__init__(*args)
+        self.current_notification_id = 0
+        self.notifications_already_posted = {}  # channel_id : [notification ids]
         
     async def add_weverse_channel(self, channel_id, community_name):
         """Add a channel to get updates for a community"""
@@ -42,8 +47,8 @@ class Weverse(Base):
     async def delete_weverse_channel(self, channel_id, community_name):
         """Delete a community from a channel's updates."""
         community_name = community_name.lower()
-        await self.ex.conn.execute("DELETE FROM weverse.channels WHERE channelid = $1 AND communityname = $2", channel_id,
-                              community_name)
+        await self.ex.conn.execute("DELETE FROM weverse.channels WHERE channelid = $1 AND communityname = $2",
+                                   channel_id, community_name)
         channels = await self.get_weverse_channels(community_name)
 
         if not channels:
@@ -58,8 +63,8 @@ class Weverse(Base):
 
     async def add_weverse_role(self, channel_id, community_name, role_id):
         """Add a weverse role to notify."""
-        await self.ex.conn.execute("UPDATE weverse.channels SET roleid = $1 WHERE channelid = $2 AND communityname = $3",
-                              role_id, channel_id, community_name.lower())
+        await self.ex.conn.execute("UPDATE weverse.channels SET roleid = $1 WHERE channelid = $2 AND communityname = "
+                                   "$3", role_id, channel_id, community_name.lower())
         await self.replace_cache_role_id(channel_id, community_name, role_id)
 
     async def delete_weverse_role(self, channel_id, community_name):
@@ -104,15 +109,13 @@ class Weverse(Base):
                 else:
                     channel[2] = t_disabled
 
-    async def change_weverse_media_status(self, channel_id, community_name, media_disabled, updated=False):
-        """Change a channel's subscription and whether or not they receive updates on media."""
-
     async def set_comment_embed(self, notification, embed_title):
         """Set Comment Embed for Weverse."""
-        comment_body = await self.ex.weverse_client.fetch_comment_body(notification.community_id, notification.contents_id)
+        comment_body = await self.ex.weverse_client.fetch_comment_body(notification.community_id,
+                                                                       notification.contents_id)
         if not comment_body:
             artist_comments = await self.ex.weverse_client.fetch_artist_comments(notification.community_id,
-                                                                            notification.contents_id)
+                                                                                 notification.contents_id)
             if artist_comments:
                 comment_body = (artist_comments[0]).body
             else:
@@ -140,7 +143,7 @@ class Weverse(Base):
         post = self.ex.weverse_client.get_post_by_id(notification.contents_id)
         if post:
             translation = await self.ex.weverse_client.translate(post.id, is_post=True, p_obj=post,
-                                                             community_id=notification.community_id)
+                                                                 community_id=notification.community_id)
             if not translation:
                 # translate using Irene's API instead.
                 translation_json = await self.ex.u_miscellaneous.translate(post.body, "KR", "EN") or {"code": -1}
@@ -155,29 +158,56 @@ class Weverse(Base):
             embed = await self.ex.create_embed(title=embed_title, title_desc=embed_description)
 
             # will either be file locations or image links.
+
             photos = [await self.download_weverse_post(photo.original_img_url, photo.file_name) for photo in
                       post.photos]
 
-            if self.ex.upload_from_host:
-                # file locations
-                return embed, photos
+            videos = []
+            for video in post.videos:
+                start_loc = video.video_url.find("/video/") + 7
+                if start_loc == -1:
+                    file_name = f"{post.id}_{random.randint(1, 50000000)}.mp4"
+                else:
+                    file_name = video.video_url[start_loc: len(video.video_url)]
+                videos.append(await self.download_weverse_post(video.video_url, file_name))
 
-            # image links
-            message = "\n".join(photos)
-            return embed, message
-        return None, None
+            media_files = []  # can be photos or videos
+            file_urls = []  # urls of photos or videos
+            for file in photos + videos:  # a list of lists containing the image
+                media = file[0]
+                from_host = file[1]
+
+                if from_host:
+                    # file locations
+                    media_files.append(media)
+                else:
+                    file_urls.append(media)
+
+            message = "\n".join(file_urls)
+            return embed, media_files, message
+        return None, None, None
 
     async def download_weverse_post(self, url, file_name):
         """Downloads an image url and returns image host url.
 
-        If we are to upload from host, it will return the folder location instead.
+        If we are to upload from host, it will return the folder location instead (Unless the file is more than 8mb).
+
+
+        :returns: (photos/videos)/image links and whether it is from the host.
         """
+        from_host = False
         async with self.ex.session.get(url) as resp:
-            fd = await aiofiles.open(self.ex.keys.weverse_image_folder + file_name, mode='wb')
-            await fd.write(await resp.read())
+            async with aiofiles.open(self.ex.keys.weverse_image_folder + file_name, mode='wb') as fd:
+                data = await resp.read()
+                await fd.write(data)
+                log.console(f"{len(data)} - Length of Weverse File - {file_name}")
+                if len(data) >= 8000000:  # 8 mb
+                    return [f"https://images.irenebot.com/weverse/{file_name}", from_host]
+
         if self.ex.upload_from_host:
-            return f"{self.ex.keys.weverse_image_folder}{file_name}"
-        return f"https://images.irenebot.com/weverse/{file_name}"
+            from_host = True
+            return [f"{self.ex.keys.weverse_image_folder}{file_name}", from_host]
+        return [f"https://images.irenebot.com/weverse/{file_name}", from_host]
 
     async def set_media_embed(self, notification, embed_title):
         """Set Media Embed for Weverse."""
@@ -191,7 +221,8 @@ class Weverse(Base):
             return embed, message
         return None, None
 
-    async def send_weverse_to_channel(self, channel_info, message_text, embed, is_comment, is_media, community_name):
+    async def send_weverse_to_channel(self, channel_info, message_text, embed, is_comment, is_media, community_name,
+                                      media=None):
         channel_id = channel_info[0]
         role_id = channel_info[1]
         comments_disabled = channel_info[2]
@@ -208,22 +239,23 @@ class Weverse(Base):
         except:
             # remove the channel from future updates as it cannot be found.
             return await self.delete_weverse_channel(channel_id, community_name.lower())
+
         msg_list = []
         file_list = []
+
         try:
             msg_list.append(await channel.send(embed=embed))
-            if message_text:
+            if message_text or media:
                 # Since an embed already exists, any individual content will not load
                 # as an embed -> Make it it's own message.
-                if isinstance(message_text, list):
+                if media:
                     # a list of file locations
-                    for photo_location in message_text:
+                    for photo_location in media:
                         file_list.append(discord.File(photo_location))
 
                 if role_id:
-                    message_text = f"<@&{role_id}>\n{message_text if not file_list else ''}"
-                msg_list.append(await channel.send(message_text if not file_list else None, files=(file_list or
-                                                                                                   None), allowed_mentions=discord.AllowedMentions(roles=True)))
+                    message_text = f"<@&{role_id}>\n{message_text if message_text else ''}"
+                msg_list.append(await channel.send(message_text if message_text else None, files=file_list or None), allowed_mentions=discord.AllowedMentions(roles=True))
                 log.console(f"Weverse Post for {community_name} sent to {channel_id}.",
                             method=self.send_weverse_to_channel)
         except discord.Forbidden as e:
@@ -273,3 +305,91 @@ class Weverse(Base):
             if channel[2]:
                 return await ctx.send(f"> This channel will no longer receive {post_type} from {community_name}.")
             return await ctx.send(f"> This channel will now receive {post_type} from {community_name}.")
+
+    async def send_notification(self, notification: Notification, ctx=None):
+        """Send a notification to all of the needed channels.
+
+
+        :param notification: (Weverse Notification)
+        :param ctx: Only send it to this Context.
+        """
+        is_comment = False
+        is_media = False
+        media = None
+        community_name = notification.community_name or notification.bold_element
+        if not community_name:
+            return
+        channels = await self.ex.u_weverse.get_weverse_channels(community_name.lower())
+        if not channels:
+            log.console("WARNING: There were no channels to post the Weverse notification to.")
+            return
+
+        noti_type = self.ex.weverse_client.determine_notification_type(notification.message)
+        embed_title = f"New {community_name} Notification!"
+        message_text = None
+        if noti_type == 'comment':
+            is_comment = True
+            embed = await self.ex.u_weverse.set_comment_embed(notification, embed_title)
+        elif noti_type == 'post':
+            is_media = True
+            embed, media, message_text = await self.ex.u_weverse.set_post_embed(notification, embed_title)
+        elif noti_type == 'media':
+            is_media = True
+            embed, message_text = await self.ex.u_weverse.set_media_embed(notification, embed_title)
+        elif noti_type == 'announcement':
+            return None  # not keeping track of announcements ATM
+        else:
+            return None
+
+        if not embed:
+            log.console(f"WARNING: Could not receive Weverse information for {community_name}. "
+                        f"Noti ID:{notification.id} - "
+                        f"Contents ID: {notification.contents_id} - "
+                        f"Noti Type: {notification.contents_type}")
+            return  # we do not want constant attempts to send a message.
+
+        server_text_channel_ids = []  # text channels that belong to the support server
+
+        try:
+            support_server = self.ex.client.get_guild(self.ex.keys.bot_support_server_id) or self.ex.client. \
+                fetch_guild(self.ex.keys.bot_support_server_id)
+
+            server_text_channel_ids = [channel.id for channel in support_server.text_channels]
+        except:
+            warning_msg = "WARNING: Support Server could not be found for Weverse Cache to get the text channel IDs."
+            log.console(warning_msg)
+            log.useless(warning_msg)
+
+        if ctx:
+            await self.ex.u_weverse.send_weverse_to_channel([ctx.channel.id, None, False, False], message_text,
+                                                            embed, is_comment, is_media, community_name, media=media)
+            return
+
+        for channel_info in channels:
+            channel_id = channel_info[0]
+            if self.ex.weverse_announcements and channel_id not in server_text_channel_ids:
+                # we do not want to remove the existing list of channels in the database, so we will use a filtering
+                # method instead
+                continue
+
+            # sleeping for 2 seconds before every channel post. still needs to be properly tested
+            # for rate-limits
+
+            # after testing, Irene has been rate-limited too often, so we will introduce announcement
+            # channels to the support server instead of constantly sending the same content to every channel.
+            if not self.ex.weverse_announcements:
+                await asyncio.sleep(2)
+
+            notification_ids = self.notifications_already_posted.get(channel_id)
+            if not notification_ids:
+                await self.ex.u_weverse.send_weverse_to_channel(channel_info, message_text, embed, is_comment, is_media,
+                                                                community_name, media=media)
+                self.notifications_already_posted[channel_id] = [notification.id]
+            else:
+                if notification.id in notification_ids:
+                    # it was already posted
+                    continue
+
+                self.notifications_already_posted[channel_id].append(notification.id)
+                await self.ex.u_weverse.send_weverse_to_channel(channel_info, message_text, embed,
+                                                                is_comment, is_media, community_name, media=media)

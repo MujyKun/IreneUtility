@@ -20,7 +20,6 @@ class User:
         self.notifications: list = []  # [ [guild_id, phrase], ... ]
         self.reminders: list = []  # [ [remind_id, remind_reason, remind_time], ... ]
         self.timezone: str = ""
-        self.n_word: int = 0  # amount of times the user has said the N-Word.
         self.gg_filter: bool = False
         self.gg_groups: list = []
         self.balance: int = -1
@@ -105,7 +104,6 @@ class User:
         # if our random number equals to the rob percentage value that was added,
         # then the user succeeded in robbing the user.
         return rob_percentage == random.choice(selector_values)
-
 
     async def register_currency(self):
         """Registers the user to the currency system."""

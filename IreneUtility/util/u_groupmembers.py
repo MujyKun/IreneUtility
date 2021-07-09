@@ -1,3 +1,5 @@
+from typing import Optional
+
 from ..Base import Base
 from .. import models
 from . import u_logger as log
@@ -78,7 +80,7 @@ class GroupMembers(Base):
             "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND serverid = $3 AND objectid = $4",
             alias, is_group, server_id, obj.id)
 
-    async def get_member(self, idol_id) -> models.Idol:
+    async def get_member(self, idol_id) -> Optional[models.Idol]:
         """Get a member by the idol id."""
         try:
             idol_id = int(idol_id)
@@ -90,7 +92,7 @@ class GroupMembers(Base):
             if idol.id == idol_id:
                 return idol
 
-    async def get_group(self, group_id) -> models.Group:
+    async def get_group(self, group_id) -> Optional[models.Group]:
         """Get a group by the group id."""
         try:
             group_id = int(group_id)
@@ -102,17 +104,19 @@ class GroupMembers(Base):
             if group.id == group_id:
                 return group
 
-    @staticmethod
-    async def format_card_fields(obj, card_formats):
+    async def format_card_fields(self, obj, card_formats):
         """Formats all relevant card fields to be displayed"""
         final_string = ""
         for attr_name, display_format in card_formats.items():
-            if not getattr(obj, attr_name):
+            attribute = getattr(obj, attr_name)
+            if isinstance(attribute, self.ex.u_objects.VliveChannel):
+                attribute = attribute.id
+            if not attribute:
                 continue
             if isinstance(display_format, str):
-                final_string += f"{display_format}{getattr(obj, attr_name)}\n"
+                final_string += f"{display_format}{attribute}\n"
             elif isinstance(display_format, list) and len(display_format) == 2:
-                final_string += f"{display_format[0]}{getattr(obj, attr_name)}{display_format[1]}\n"
+                final_string += f"{display_format[0]}{attribute}{display_format[1]}\n"
             else:
                 raise TypeError
         return final_string
@@ -728,7 +732,8 @@ class GroupMembers(Base):
         if guessing_game:
             # discord may have bad image loading time, so we will wait 2 seconds.
             # this is important because we want the guessing time to be matched up to when the photo appears.
-            await asyncio.sleep(2)
+            if not self.ex.upload_from_host:
+                await asyncio.sleep(2)
 
         if (not file or self.ex.upload_from_host) and r.status != 415:
             embed = await self.get_idol_post_embed(group_id, idol, image_host_url, user_id=user_id,

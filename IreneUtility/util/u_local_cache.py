@@ -1,5 +1,6 @@
 from .. import models
 from ..Base import Base
+from ..models import VliveChannel
 from typing import List
 import time
 import json
@@ -97,8 +98,14 @@ class Cache(Base):
         self.dead_image_channel = None  # Channel for all dead images to be sent to.
         self.bot_statuses = []
 
+        self.vlive_channels = {}  # Vlive Channel ID: VliveChannel object
+
         # custom server commands
         self.custom_commands = {}  # {server_id: {command_name:info, command_name:info}}
+
+        # d.py has their own attainable way for similar information, but it has been rewritten into a file.
+        # this may be used for a better help command without using the descriptions of the command cogs.
+        self.original_commands = {}  # {Cog Name: [Utility Command Objects]}
 
         # Guessing Game Objects
         self.guessing_games = {}  # {channelid: Game}
@@ -154,6 +161,10 @@ class Cache(Base):
 
         # possible levels for guessing game
         self.difficulty_levels = ['easy', 'medium', 'hard']
+
+        # discord voice regions
+        self.voice_regions = ["us_central", "us_west", "us_east", "us_south", "brazil", "europe", "hong_kong", "india",
+                              "japan", "russia", "singapore", "south_africa", "sydney"]
 
         # sets of idols for guessing game
         self.idols_female = set()

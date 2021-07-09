@@ -93,6 +93,9 @@ class Keys:
         self.postgres_options: dict = self.get_kwarg("postgres_options")  # host, database, user, and password for DB.
         self.db_conn: asyncpg.pool.Pool = self.get_kwarg("db_conn")  # connection to db
 
+        """Wavelink"""
+        self.wavelink_options: dict = self.get_kwarg("wavelink_options")  # host, port, rest_uri, password
+
         """Papago/Translator"""
         self.papago_client_id: str = self.get_kwarg("papago_client_id")  # papago client id
         self.papago_client_secret: str = self.get_kwarg("papago_client_secret")  # papago client secret
@@ -148,6 +151,10 @@ class Keys:
         self.site_port: str = self.get_kwarg("site_port")  # port of Bot Site
         self.bot_website: str = self.get_kwarg("bot_website")  # link to bot website (with slash at end)
 
+        """Vlive"""
+        self.vlive_base_url: str = self.get_kwarg("vlive_base_url")
+        self.vlive_app_id: str = self.get_kwarg("vlive_app_id")
+
     def get_kwarg(self, kwarg_name):
         """Get a kwarg"""
         return self.kwargs.get(kwarg_name)
@@ -160,5 +167,5 @@ class Keys:
         # instead of acquiring a connection from the pool, we just let the pool select a connection for us and
         # execute directly that way. this limits the amount of methods we have access to,
         # but in the case those methods are needed, just acquire the connection and use that instead.
-        self.db_conn = await asyncpg.create_pool(**self.postgres_options, command_timeout=60)
+        self.db_conn: asyncpg.pool.Pool = await asyncpg.create_pool(**self.postgres_options, command_timeout=60)
         return self.db_conn
