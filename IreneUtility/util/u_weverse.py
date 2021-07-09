@@ -244,7 +244,8 @@ class Weverse(Base):
         file_list = []
 
         try:
-            msg_list.append(await channel.send(embed=embed))
+            mention_role = f"<@&{role_id}>" if role_id else None
+            msg_list.append(await channel.send(mention_role, embed=embed))
             if message_text or media:
                 # Since an embed already exists, any individual content will not load
                 # as an embed -> Make it it's own message.
@@ -253,8 +254,6 @@ class Weverse(Base):
                     for photo_location in media:
                         file_list.append(discord.File(photo_location))
 
-                if role_id:
-                    message_text = f"<@&{role_id}>\n{message_text if message_text else ''}"
                 msg_list.append(await channel.send(message_text if message_text else None, files=file_list or None))
                 log.console(f"Weverse Post for {community_name} sent to {channel_id}.",
                             method=self.send_weverse_to_channel)
