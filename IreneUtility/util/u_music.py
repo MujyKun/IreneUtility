@@ -1,28 +1,95 @@
+from typing import Optional, Union
+
+import asyncio
 import wavelink
 import discord
+from discord.ext import commands
+
 from ..Base import Base
 from . import u_logger as log
 
 
+class LoopController(Base):
+    def __init__(self, guild_id, *args):
+        """Controls the loop for music.
+
+        Our queue is present in the players.
+        """
+        super().__init__(*args)
+        self.guild_id = guild_id
+        self.volume = 50
+        self.next = asyncio.Event()
+        self.ex.client.loop.create_task(self.controller_loop())
+
+    async def controller_loop(self):
+
+        player = self.ex.wavelink.get_player(self.guild_id)
+        await player.set_volume(self.volume)
+
+        while True:
+            played = await self.ex.u_music.play_next(player)  # play the next song.
+
+            if not played:  # no songs are queued.
+                await player.disconnect(force=True)
+                await player.destroy(force=True)
+                break
+
+            await self.next.wait()
+
+
 class Music(Base):
     def __init__(self, *args):
+        """
+        Music Utility.
+
+        We want controller logic to be hidden to client.
+        """
         super().__init__(*args)
+        self.controllers = {}  # guild_id: controller
 
     async def start_nodes(self):
         """Initiate the wavelink nodes."""
         for voice_region in self.ex.cache.voice_regions:
             try:
                 log.console(f"Started Wavelink node for {voice_region}.", method=self.start_nodes)
-                await self.ex.wavelink.initiate_node(identifier=voice_region, region=voice_region,
-                                                     **self.ex.keys.wavelink_options)
+                node = await self.ex.wavelink.initiate_node(identifier=voice_region, region=voice_region,
+                                                            **self.ex.keys.wavelink_options)
+                node.set_hook(self.on_event_hook)
             except Exception as e:
                 log.console(e, method=self.start_nodes)
+
+    async def on_event_hook(self, event):
+        """Node hook callback."""
+        if isinstance(event, (wavelink.TrackEnd, wavelink.TrackException)):
+            controller = self.get_controller(event.player)
+            controller.next.set()
+
+    def get_controller(self, value: Union[commands.Context, wavelink.Player]):
+        """Get the controller of a guild.
+
+        Will make a controller if one does not exist.
+
+        :param value: Context or a Player.
+        """
+        if isinstance(value, commands.Context):
+            guild_id = value.guild.id
+        else:
+            guild_id = value.guild_id
+        controller = self.controllers.get(guild_id)
+        if not controller:
+            controller = LoopController(guild_id)
+            self.controllers[guild_id] = controller
+
+        return controller
 
     async def play_next(self, player: wavelink.Player):
         """Play the next song in the player.
 
         :param player: The wavelink Player for the guild.
         """
+        # Create the controller. This will start the controller loop and start playing songs.
+        self.get_controller(player)
+
         if hasattr(player, "playlist"):
             if not len(player.playlist):
                 return
@@ -41,6 +108,7 @@ class Music(Base):
                     ["artist", track.author]
                 ])
                 await ctx.send(msg)
+            return True
 
     async def toggle_pause(self, ctx, pause=True) -> wavelink.Player:
         """Toggle the pause of a player.
@@ -140,3 +208,6 @@ class Music(Base):
             song_info += f" - Requested by <@{ctx.author.id}>"
         song_info += "\n"
         return song_info
+
+
+
