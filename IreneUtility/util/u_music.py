@@ -18,6 +18,8 @@ class LoopController(Base):
         super().__init__(*args)
         self.guild_id = guild_id
         self.volume = 50
+        self.skipped = False  # Whether the song has been skipped.
+        self.ignore_next = False  # decides whether the next play event is ignored.
         self.next = asyncio.Event()  # will be triggered when the next song should be played.
         self.ex.client.loop.create_task(self.controller_loop())
 
@@ -27,6 +29,18 @@ class LoopController(Base):
         await player.set_volume(self.volume)
 
         while True:
+            self.next.clear()
+
+            # avoids several event calls for a skip and when the track ends.
+            if self.ignore_next:
+                self.skipped = False
+                self.ignore_next = False
+                await self.next.wait()
+                continue
+
+            if self.skipped:
+                self.ignore_next = True
+
             played = await self.ex.u_music.play_next(player)  # play the next song.
 
             if not played:  # no songs are queued.
@@ -35,6 +49,8 @@ class LoopController(Base):
                 break
 
             await self.next.wait()
+
+        self.ex.u_music.destroy_player(player)
 
 
 class Music(Base):
@@ -53,25 +69,41 @@ class Music(Base):
             except Exception as e:
                 log.console(e, method=self.start_nodes)
 
+    def __destroy_controller(self, controller: LoopController):
+        """Removes a controller from the collection of controllers if it existed."""
+        try:
+            self.controllers.pop(controller.guild_id)
+        except KeyError:
+            pass
+
+    def destroy_player(self, player: wavelink.Player):
+        """Destroys a player and the controller associated with it."""
+        controller = self.get_controller(player, create_new=False)
+        if controller:
+            self.__destroy_controller(controller)
+        await player.disconnect(force=True)
+        await player.destroy(force=True)
+
     async def on_event_hook(self, event):
         """Node hook callback."""
         if isinstance(event, (wavelink.TrackEnd, wavelink.TrackException)):
             controller = self.get_controller(event.player)
             controller.next.set()
 
-    def get_controller(self, value: Union[commands.Context, wavelink.Player]):
+    def get_controller(self, value: Union[commands.Context, wavelink.Player], create_new=True):
         """Get the controller of a guild.
 
         Will make a controller if one does not exist.
 
         :param value: Context or a Player.
+        :param create_new: Whether to create a new instance if one is not found.
         """
         if isinstance(value, commands.Context):
             guild_id = value.guild.id
         else:
             guild_id = value.guild_id
         controller = self.controllers.get(guild_id)
-        if not controller:
+        if not controller and create_new:
             controller = LoopController(guild_id, self.ex)
             self.controllers[guild_id] = controller
 
