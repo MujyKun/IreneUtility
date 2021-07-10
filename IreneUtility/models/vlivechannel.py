@@ -65,6 +65,7 @@ class VliveChannel:
     async def check_live(self):
         """Check if the Vlive channel is live."""
         if not await self._fetch_data():
+            log.console(f"Failed to update data for VLIVE Channel {self.id}", method=self.check_live)
             return False  # we were not able to successfully update our data.
         return self._is_live
 
@@ -100,6 +101,8 @@ class VliveChannel:
                     msg_body = f"<@&{role_id}>"
 
                 try:
+                    log.console(f"Attempting to send Vlive ({self.id}) notification to {channel.id}.",
+                                method=self.send_live_to_followers)
                     await channel.send(msg_body, embed=embed)
                 except discord.Forbidden:
                     channel_ids_to_remove.append(channel.id)
