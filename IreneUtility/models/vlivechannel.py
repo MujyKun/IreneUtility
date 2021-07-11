@@ -87,13 +87,16 @@ class VliveChannel:
                         channel_ids_to_remove.append(channel)
                         log.console(f"No Permission to fetch Channel ID: {channel}. (discord.Forbidden)",
                                     method=self.send_live_to_followers)
+                        continue
                     except discord.NotFound:
                         channel_ids_to_remove.append(channel)
                         log.console(f"Failed to fetch Invalid Channel ID: {channel}. (discord.NotFound)",
                                     method=self.send_live_to_followers)
                         # invalid channel id.
+                        continue
                     except Exception as e:
                         log.console(f"{e} (Exception)", method=self.send_live_to_followers)
+                        continue
 
                 role_id = self._mention_roles.get(channel.id)
                 msg_body = None
