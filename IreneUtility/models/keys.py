@@ -20,13 +20,12 @@ class Keys:
         self.bot_id: int = self.get_kwarg("bot_id")  # bot id
         self.owner_id: int = self.get_kwarg("owner_id")  # bot owner id
         self.mods_list: list = self.get_kwarg("mods_list")  # list of mod ids
+        self.data_mods_list: list = self.get_kwarg("data_mods_list")  # list of data mod ids
         self.bot_invite_link: str = self.get_kwarg("bot_invite_link")  # bot invite
         self.bot_support_server_id: int = self.get_kwarg("bot_support_server_id")  # bot support server id
         self.bot_support_server_link: str = self.get_kwarg("bot_support_server_link")  # bot support server invite
         self.bot_prefix: str = self.get_kwarg("bot_prefix")  # main bot prefix
         self.image_host: str = self.get_kwarg("image_host")  # link to image host (with slash at end)
-        # channel id to test DCAPP posts #TODO: Remove since dc app was deleted.
-        self.dc_app_test_channel_id: int = self.get_kwarg("dc_app_test_channel_id")
         self.report_channel_id: int = self.get_kwarg("report_channel_id")  # channel id for user bug reports.
         self.suggest_channel_id: int = self.get_kwarg("suggest_channel_id")  # channel id for user suggestions.
         self.dead_image_channel_id: int = self.get_kwarg("dead_image_channel_id")  # channel id for reported images.

@@ -760,6 +760,10 @@ class Cache(Base):
         """Looped every 12 hours to update the cache in case of anything faulty."""
         while not self.ex.conn:
             await asyncio.sleep(1)
+
+        # update whether discord cache is loaded after hot-reloading the package.
+        self.ex.discord_cache_loaded = self.ex.client.is_ready()
+
         await self.create_cache(on_boot_up=not self.ex.irene_cache_loaded)
 
         # only allow the cache to be loaded up one time (boot up) if the user does not want the cache to be reset

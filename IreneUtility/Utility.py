@@ -128,13 +128,8 @@ class Utility:
         # Util Directory that contains sql methods
         self.sql = s_sql
 
-        # Modules/Cogs that contain 'ex' (Utility) and the 'conn' (DB connection).
-        # AKA -> Classes that are have inherited IreneUtility.Base.Base()
-        self.base_modules: List[Base.Base] = []
-
     def define_unique_properties(self, keys=None, events=None, weverse=False, data_dog=False, twitter=False,
-                                 aiohttp=False, d_py_client=False, db_connection=False,
-                                 base_modules: List[Base.Base] = None):
+                                 aiohttp=False, d_py_client=False, db_connection=False):
         """
         Define unique properties in Utility not defined in the constructor.
 
@@ -147,7 +142,6 @@ class Utility:
         :param aiohttp: Whether to define the aiohttp session.
         :param d_py_client: Whether to define the discord.py client.
         :param db_connection: Whether to define the db connection.
-        :param base_modules: A list of instances that have the base modules with a parent containing ex and conn
         """
         if keys:
             self.keys = keys  # set the keys
@@ -156,9 +150,6 @@ class Utility:
 
         if not keys:
             raise self.exceptions.NoKeyFound("No key access was found in Utility.define_unique_properties().")
-
-        if base_modules:
-            self.base_modules = base_modules
 
         if db_connection:
             self.u_database.set_start_up_connection.start()
@@ -177,8 +168,7 @@ class Utility:
 
         if weverse:
             # set weverse client
-            self.weverse_client = WeverseClientAsync(authorization=keys.weverse_auth_token, web_session=self.session,
-                                               verbose=True, loop=asyncio.get_event_loop())
+            self.reload_weverse(keys.weverse_auth_token)
 
         if twitter:
             # create twitter auth
@@ -188,6 +178,15 @@ class Utility:
 
         if events:
             self.events = events
+
+    def reload_weverse(self, weverse_auth_token):
+        """Reload Weverse Lib and create the client."""
+        import importlib  # used for reloading packages or modules.
+        import Weverse
+        importlib.reload(Weverse)
+        from Weverse import WeverseClientAsync
+        self.weverse_client = WeverseClientAsync(authorization=weverse_auth_token, web_session=self.session,
+                                                 verbose=True, loop=asyncio.get_event_loop())
 
     async def update_db(self):
         """Runs checks to make sure the DB is up to date."""
@@ -281,10 +280,11 @@ class Utility:
             return False
         return True
 
-    def check_if_mod(self, user: Union[commands.Context, models.User, discord.User, int]):
+    def check_if_mod(self, user: Union[commands.Context, models.User, discord.User, int], data_mod=False):
         """Check if the user is a bot mod/owner.
 
         :param user: Context, Irene User, Discord User, or User ID.
+        :param data_mod: Whether to check if the user is a data mod.
         """
         if isinstance(user, (models.User, discord.User)):
             user_id = user.id
@@ -293,7 +293,11 @@ class Utility:
         else:
             user_id = user
 
-        return user_id in self.keys.mods_list or user_id == self.keys.owner_id
+        is_bot_mod = user_id in self.keys.mods_list or user_id == self.keys.owner_id
+        is_data_mod = user_id in self.keys.data_mods_list
+        if data_mod:
+            return is_bot_mod or is_data_mod
+        return is_data_mod
 
     def get_ping(self):
         """Get the client's ping."""
