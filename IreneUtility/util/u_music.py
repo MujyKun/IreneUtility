@@ -1,6 +1,8 @@
 from typing import Union
 
 import asyncio
+
+import aiohttp.client_exceptions
 import wavelink
 import discord
 from discord.ext import commands
@@ -62,10 +64,12 @@ class Music(Base):
         """Initiate the wavelink nodes."""
         for voice_region in self.ex.cache.voice_regions:
             try:
-                log.console(f"Started Wavelink node for {voice_region}.", method=self.start_nodes)
+                log.console(f"Attempting to Start Wavelink node for {voice_region}.", method=self.start_nodes)
                 node = await self.ex.wavelink.initiate_node(identifier=voice_region, region=voice_region,
                                                             **self.ex.keys.wavelink_options)
                 node.set_hook(self.on_event_hook)
+            except aiohttp.client_exceptions.ClientConnectionError:
+                log.console(f"Failed to initiate a node for {voice_region}.")
             except Exception as e:
                 log.console(e, method=self.start_nodes)
 
