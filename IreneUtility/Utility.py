@@ -13,8 +13,7 @@ import asyncio
 import os
 import tweepy
 import wavelink
-from . import models, s_sql, util, Base
-from typing import List
+from . import models, s_sql, util
 
 
 # do not import in runtime. This is used for type-hints.
@@ -297,7 +296,7 @@ class Utility:
         is_data_mod = user_id in self.keys.data_mods_list
         if data_mod:
             return is_bot_mod or is_data_mod
-        return is_data_mod
+        return is_bot_mod
 
     def get_ping(self):
         """Get the client's ping."""
