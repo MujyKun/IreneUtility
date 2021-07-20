@@ -122,10 +122,6 @@ class Keys:
         self.lyrics_api_key: str = self.get_kwarg("lyrics_api_key")  # lyrics api key
         self.lyric_client: lyrics_client = self.get_kwarg("lyric_client")  # lyrics client
 
-        """Weverse - https://github.com/MujyKun/Weverse"""
-        self.weverse_auth_token: str = self.get_kwarg("weverse_auth_token")  # Weverse account auth token
-        self.weverse_image_folder: str = self.get_kwarg("weverse_image_folder")  # Weverse Image Directory (slash at end)
-
         """GroupMembers Directories"""
         self.idol_avatar_location: str = self.get_kwarg("idol_avatar_location")  # Idol Avatar Location (slash at end)
         self.idol_banner_location: str = self.get_kwarg("idol_banner_location")  # Idol Banner Location (slash at end)

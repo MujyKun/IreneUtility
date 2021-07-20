@@ -75,10 +75,6 @@ class DataDog(Base):
         user_copy = self.ex.cache.users.copy()
         gg_filtered_enabled = len([user for user in user_copy.values() if user.gg_filter])
 
-        weverse_groups = ["txt", "bts", "gfriend", "seventeen", "enhypen", "nu'est", "cl", "p1harmony", "weeekly",
-                          "sunmi", "henry", "dreamcatcher", "cherry bullet", "mirae", "treasure", "letteamor",
-                          "everglow", "ftisland", "woo!ah!", "ikon", "just b", "blackpink"]
-
         metric_info = {}  # contains all final data.
 
         # we classify the metrics in 4 different ways (the keys)
@@ -135,8 +131,6 @@ class DataDog(Base):
                 'discord_ping': self.ex.get_ping
             },
             'sum_length': {  # need to sum a list after getting the len()
-                'weverse_channels_following': self.ex.cache.weverse_channels.values(),
-
                 'text_channels_following_twitch': self.ex.cache.twitch_channels.values(),
                 'playing_cards': self.ex.cache.playing_cards.values(),
 
@@ -179,14 +173,6 @@ class DataDog(Base):
                 metric_info[key] = sum(len(x) for x in iterable)
             except Exception as e:
                 log.console(f"{e} (Exception) - Failed to set key of sum_iterable datadog value {key} - {iterable}.",
-                            method=self.get_metric_info)
-
-        for weverse_group in weverse_groups:
-            try:
-                metric_info[f'weverse_following_{weverse_group}'] = len(self.ex.cache.weverse_channels.get(weverse_group)
-                                                                        or [])
-            except Exception as e:
-                log.console(f"{e} (Exception) - Failed to add size of weverse group {weverse_group}.",
                             method=self.get_metric_info)
 
         return metric_info

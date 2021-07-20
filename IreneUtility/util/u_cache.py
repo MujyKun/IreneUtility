@@ -59,7 +59,6 @@ class Cache(Base):
             [self.create_dead_link_cache, "Dead Links"],
             [self.create_bot_status_cache, "Bot Status"],
             [self.create_bot_command_cache, "Custom Commands"],
-            [self.create_weverse_channel_cache, "Weverse Text Channels"],
             [self.create_self_assignable_role_cache, "Self-Assignable Roles"],
             [self.create_reminder_cache, "Reminders"],
             [self.create_timezone_cache, "Timezones"],
@@ -71,7 +70,6 @@ class Cache(Base):
             [self.create_language_cache, "User Language"],
             [self.create_playing_cards, "Playing Cards"],
             [self.create_guild_cache, "DB Guild"],
-            [self.ex.weverse_client.start, "Weverse"],
             [self.create_gg_filter_cache, "Guessing Game Filter"],
             [self.create_welcome_role_cache, "Welcome Roles"],
             [self.create_disabled_games_cache, "Disabled Games In Channels"],
@@ -91,16 +89,9 @@ class Cache(Base):
                     if not self.ex.discord_cache_loaded or on_boot_up:
                         continue
 
-                if cache_name == "Weverse":
-                    # do not load weverse cache if the bot has already been running.
-                    if not self.ex.test_bot and not self.ex.weverse_client.cache_loaded and on_boot_up:
-                        # noinspection PyUnusedLocal
-                        task = asyncio.create_task(self.process_cache_time(method, "Weverse", create_old_posts=False))
-                    continue
-
                 await self.process_cache_time(method, cache_name)
-            except:
-                log.console(f"Failed to load Cache for {method} - {cache_name}.")
+            except Exception as e:
+                log.console(f"{e} (Exception) - Failed to load Cache for {method} - {cache_name}.")
         creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
         log.console(f"Cache Completely Created in {creation_time}.", method=self.create_cache)
         if on_boot_up:
@@ -442,23 +433,6 @@ class Cache(Base):
                 cache_info['channel_id'] = channel_id
             else:
                 self.ex.cache.assignable_roles[server_id] = {'channel_id': channel_id}
-
-    async def create_weverse_channel_cache(self):
-        """Create cache for channels that are following a community on weverse."""
-        self.ex.cache.weverse_channels = {}
-
-        for channel_id, community_name, role_id, comments_disabled, media_disabled in \
-                await self.ex.sql.s_weverse.fetch_weverse():
-            await asyncio.sleep(0)  # bare yield
-            # add channel to cache
-            await self.ex.u_weverse.add_weverse_channel_to_cache(channel_id, community_name)
-            # add weverse roles
-            await self.ex.u_weverse.add_weverse_role(channel_id, community_name, role_id)
-            # create comment disabled status
-            await self.ex.u_weverse.change_weverse_comment_media_status(channel_id, community_name, comments_disabled)
-            # create media disabled status
-            await self.ex.u_weverse.change_weverse_comment_media_status(channel_id, community_name, media_disabled,
-                                                                        media=True)
 
     async def create_command_counter(self):
         """Updates Cache for command counter and sessions"""

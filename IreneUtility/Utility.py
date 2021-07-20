@@ -6,7 +6,6 @@ from discord.ext import commands
 from .util import u_exceptions, u_logger as log, u_local_cache
 from typing import TYPE_CHECKING, Optional, Union
 from discord.ext.commands import Context, AutoShardedBot
-from Weverse import WeverseClientAsync
 import discord
 import random
 import asyncio
@@ -30,15 +29,13 @@ All categorized utility methods will be placed as objects prefixed with u_ as a 
 
 # noinspection PyBroadException,PyPep8
 class Utility:
-    def __init__(self, keys=None, db_connection=None, events=None, d_py_client=None, aiohttp_session=None,
-                 weverse_client=None):
+    def __init__(self, keys=None, db_connection=None, events=None, d_py_client=None, aiohttp_session=None):
         """
         :param keys:  Access to the key file
         :param db_connection:  DB Connection
         :param events:  Client-Sided Events class
         :param d_py_client: Discord.py client (Assumed to be an AutoShardedClient)
         :param aiohttp_session: Aiohttp client session
-        :param weverse_client: Weverse client
         """
         # A lot of these properties may be created via client side
         # in order to make Utility more portable when needed and client friendly.
@@ -52,11 +49,6 @@ class Utility:
         # Set to True if not on the production server (useful if testing ex.test_bot as False).
         # This was initially created to not flood datadog with incorrect input while ex.test_bot was False
         self.dev_mode = True
-
-        # Set to True if you intend to have announcement text channels on the support server and would like
-        # the weverse updates command to be private only to the bot owner. This should be specified on client side.
-        # this will also Publish (as an announcement) every single message if set to True.
-        self.weverse_announcements: bool = False
 
         # Set to False if you do not want the cache to reset itself every 12 hours.
         self.reset_cache: bool = True
@@ -83,8 +75,6 @@ class Utility:
         self.max_idol_post_attempts = 10  # 100 was too much
         self.twitch_guild_follow_limit = 2
 
-        self.weverse_client: WeverseClientAsync = weverse_client
-
         self.exceptions = u_exceptions  # custom error handling
         self.twitch_token = None  # access tokens are set everytime the token is refreshed.
 
@@ -109,7 +99,6 @@ class Utility:
         self.u_custom_commands = util.u_customcommands.CustomCommands(*util_args)
         self.u_bias_game = util.u_biasgame.BiasGame(*util_args)
         self.u_data_dog = util.u_datadog.DataDog(*util_args)
-        self.u_weverse = util.u_weverse.Weverse(*util_args)
         self.u_self_assign_roles = util.u_selfassignroles.SelfAssignRoles(*util_args)
         self.u_reminder = util.u_reminder.Reminder(*util_args)
         self.u_guessinggame = util.u_guessinggame.GuessingGame(*util_args)
@@ -127,7 +116,7 @@ class Utility:
         # Util Directory that contains sql methods
         self.sql = s_sql
 
-    def define_unique_properties(self, keys=None, events=None, weverse=False, data_dog=False, twitter=False,
+    def define_unique_properties(self, keys=None, events=None, data_dog=False, twitter=False,
                                  aiohttp=False, d_py_client=False, db_connection=False):
         """
         Define unique properties in Utility not defined in the constructor.
@@ -135,8 +124,7 @@ class Utility:
         :param self:
         :param keys: Access to the keys file.
         :param events: Access to the client-sided events class
-        :param weverse: Whether to define weverse
-        :param data_dog: Whether to initialize weverse
+        :param data_dog: Whether to initialize datadog
         :param twitter: Whether to define the twitter api
         :param aiohttp: Whether to define the aiohttp session.
         :param d_py_client: Whether to define the discord.py client.
@@ -165,10 +153,6 @@ class Utility:
             # set aiohttp client session
             self.session = keys.client_session
 
-        if weverse:
-            # set weverse client
-            self.reload_weverse(keys.weverse_auth_token)
-
         if twitter:
             # create twitter auth
             auth = tweepy.OAuthHandler(keys.CONSUMER_KEY, keys.CONSUMER_SECRET)
@@ -177,15 +161,6 @@ class Utility:
 
         if events:
             self.events = events
-
-    def reload_weverse(self, weverse_auth_token):
-        """Reload Weverse Lib and create the client."""
-        import importlib  # used for reloading packages or modules.
-        import Weverse
-        importlib.reload(Weverse)
-        from Weverse import WeverseClientAsync
-        self.weverse_client = WeverseClientAsync(authorization=weverse_auth_token, web_session=self.session,
-                                                 verbose=True, loop=asyncio.get_event_loop())
 
     async def update_db(self):
         """Runs checks to make sure the DB is up to date."""
