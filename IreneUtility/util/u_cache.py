@@ -695,6 +695,7 @@ class Cache(Base):
         all_group_counts = await self.ex.conn.fetch(
             "SELECT g.groupid, g.groupname, COUNT(f.link) FROM groupmembers.groups g, groupmembers.member m, groupmembers.idoltogroup l, groupmembers.imagelinks f WHERE m.id = l.idolid AND g.groupid = l.groupid AND f.memberid = m.id GROUP BY g.groupid ORDER BY g.groupname")
         for group in all_group_counts:
+            await asyncio.sleep(0)  # bare yield
             self.ex.cache.group_photos[group[0]] = group[2]
 
     async def create_guild_cache(self):
@@ -727,6 +728,7 @@ class Cache(Base):
         all_idol_counts = await self.ex.conn.fetch(
             "SELECT memberid, COUNT(link) FROM groupmembers.imagelinks GROUP BY memberid")
         for idol_id, count in all_idol_counts:
+            await asyncio.sleep(0)  # bare yield
             self.ex.cache.idol_photos[idol_id] = count
 
     @tasks.loop(seconds=0, minutes=0, hours=12, reconnect=True)
