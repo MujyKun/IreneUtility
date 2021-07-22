@@ -276,12 +276,11 @@ class Music(Base):
         # searching spotify instead of soundcloud in wavelink beta version.
         # soundcloud_tracks = await self.__search_soundcloud(search_query)
 
-        spotify_tracks = await self.__search_spotify(search_query, playlist=True) or await self.__search_spotify(
-            search_query, album=True) or await self.__search_spotify(search_query)
+        tracks = await self.__search_spotify(search_query, playlist=True) or await self.__search_spotify(
+            search_query, album=True) or await self.__search_spotify(
+            search_query) or await self.__search_youtube(search_query)
 
-        youtube_tracks = await self.__search_youtube(search_query)
-
-        return spotify_tracks or youtube_tracks
+        return tracks
 
     async def __search_youtube(self, search_query: str) \
             -> Optional[Union[List[wavelink.PartialTrack], List[wavelink.Track]]]:
