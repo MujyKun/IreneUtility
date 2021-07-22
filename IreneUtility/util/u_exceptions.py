@@ -66,4 +66,3 @@ class Pass(Exception):
     def __init__(self):
         pass
 
-

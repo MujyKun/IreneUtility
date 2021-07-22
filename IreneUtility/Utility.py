@@ -11,13 +11,14 @@ import random
 import asyncio
 import os
 import tweepy
-import wavelink
 from . import models, s_sql, util
-
 
 # do not import in runtime. This is used for type-hints.
 if TYPE_CHECKING:
     from aiohttp import ClientSession
+
+from wavelink.ext import spotify
+
 
 """
 Utility.py
@@ -42,7 +43,6 @@ class Utility:
         self.test_bot = None  # this is changed on the client side in run.py
         self.upload_from_host = False  # this is changed on the client side in run.py
         self.client: AutoShardedBot = d_py_client  # discord.py client
-        self.wavelink: wavelink.Client = wavelink.Client(bot=self.client)
         self.session: ClientSession = aiohttp_session  # aiohttp client session
         self.conn: Optional[asyncpg.pool.Pool] = db_connection  # db connection
 
@@ -67,6 +67,7 @@ class Utility:
         self.running_loop = None  # current asyncio running loop
         # self.thread_pool = None  # ThreadPoolExecutor for operations that block the event loop.
         self.keys: models.Keys = keys  # access to keys file
+        self.spotify_client: Optional[spotify.SpotifyClient] = None if not self.keys else self.__create_spotify_client()
 
         self.api: Optional[tweepy.API] = None
         self.loop_count = 0
@@ -132,6 +133,7 @@ class Utility:
         """
         if keys:
             self.keys = keys  # set the keys
+            self.spotify_client = self.__create_spotify_client()  # create spotify client
         else:
             keys = self.keys  # have a fallback for no keys being passed in.
 
@@ -161,6 +163,10 @@ class Utility:
 
         if events:
             self.events = events
+
+    def __create_spotify_client(self) -> spotify.SpotifyClient:
+        """Creates a spotify client and returns it."""
+        return spotify.SpotifyClient(client_id=self.keys.spotify_client_id, client_secret=self.keys.spotify_client_secret)
 
     async def update_db(self):
         """Runs checks to make sure the DB is up to date."""

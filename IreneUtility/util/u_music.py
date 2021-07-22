@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 import asyncio
 
@@ -65,9 +65,9 @@ class Music(Base):
         for voice_region in self.ex.cache.voice_regions:
             try:
                 log.console(f"Attempting to Start Wavelink node for {voice_region}.", method=self.start_nodes)
-                node = await self.ex.wavelink.initiate_node(identifier=voice_region, region=voice_region,
-                                                            **self.ex.keys.wavelink_options)
-                node.set_hook(self.on_event_hook)
+                await wavelink.NodePool.create_node(bot=self.ex.client, bot_id=self.ex.keys.bot_id, region=voice_region,
+                                                    identifier=voice_region, spotify_client=self.ex.spotify_client,
+                                                    **self.ex.keys.wavelink_options)
             except aiohttp.client_exceptions.ClientConnectionError:
                 log.console(f"Failed to initiate a node for {voice_region}.")
             except Exception as e:
@@ -170,22 +170,37 @@ class Music(Base):
         await player.set_pause(pause)
         return await ctx.send(msg)
 
-    async def connect_to_vc(self, ctx, channel: discord.VoiceChannel = None):
+    async def connect_to_vc(self, ctx: discord.ext.commands.Context) -> Optional[wavelink.Player]:
         """Connect to a voice channel.
 
-        :param ctx: Context
-        :param channel: Voice Channel
-        """
-        if not channel:
-            try:
-                channel = ctx.author.voice.channel
-            except AttributeError:
-                await ctx.send(await self.ex.get_msg(ctx, "music", "no_channel"))
-                raise Exception  # we do not want the command to progress further than this message
+        :param ctx: (discord.ext.commands.Context)
+        :returns: Optional[wavelink.Player]
 
-        player = self.ex.wavelink.get_player(ctx.guild.id)
-        await ctx.send(await self.ex.get_msg(ctx, "music", "connecting", ["voice_channel", channel.name]))
-        await player.connect(channel.id)
+        :raises: (discord.NotFound) Author is not in a voice channel or a general exception occurred.
+        """
+        async def connect(current_channel=None):
+            if current_channel:
+                await current_channel.disconnect()
+
+            player: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
+            await ctx.send(await self.ex.get_msg(ctx, "music", "connecting", ["voice_channel",
+                                                                              ctx.author.voice_channel.name]))
+            return player
+
+        try:
+            if not ctx.voice_client:
+                return await connect()
+            else:
+                if ctx.author.voice.channel != ctx.voice_client.channel:
+                    return await connect(current_channel=ctx.voice_client)
+                vc: wavelink.Player = ctx.voice_client
+        except AttributeError:
+            await ctx.send(await self.ex.get_msg(ctx, "music", "no_channel"))
+            raise discord.NotFound  # we do not want the command to progress further than this message
+        except Exception as e:
+            await ctx.send(f"{e}")
+            raise discord.NotFound  # we do not want the command to progress further than this message
+        return vc
 
     async def create_queue_embed(self, player: wavelink.Player):
         """
