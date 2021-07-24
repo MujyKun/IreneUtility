@@ -164,18 +164,11 @@ class GroupMembers(Base):
 
     async def get_group_names_as_string(self, idol):
         """Get the group names split by a | ."""
-        # note that this used to be simplified to one line, but in the case there are groups that do not exist,
-        # a proper check and deletion of fake groups are required
         group_names = []
         for group_id in idol.groups:
             group = await self.get_group(group_id)
             if group:
                 group_names.append(f"{group.name} ({group_id})")
-            else:
-                # make sure the cache exists first before deleting.
-                if self.ex.cache.groups:
-                    # delete the group connections if it doesn't exist.
-                    await self.ex.conn.execute("DELETE FROM groupmembers.idoltogroup WHERE groupid = $1", group_id)
         return f"{' | '.join(group_names)}\n"
 
     async def check_channel_sending_photos(self, channel_id):
