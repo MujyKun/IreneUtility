@@ -367,6 +367,7 @@ class Music(Base):
 
         # do not want to enumerate since we need to confirm index at the moment the track is being set.
         for track in player.playlist:
+            await asyncio.sleep(7)  # this can get very spammy, we'd rather wait.
             if isinstance(track, spotify.PartialTrack):
                 try:
                     player.playlist[player.playlist.index(track)] = await track._search()
