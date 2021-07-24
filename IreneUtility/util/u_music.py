@@ -49,7 +49,8 @@ class LoopController(Base):
 
             if not played:  # no songs are queued.
                 await player.disconnect(force=True)
-                await player.cleanup()
+                if player:
+                    await player.cleanup()
                 break
 
             await self.next.wait()
@@ -104,7 +105,8 @@ class Music(Base):
         if controller:
             self.__destroy_controller(controller)
         await player.disconnect(force=True)
-        await player.destroy(force=True)
+        if player:
+            await player.cleanup()
 
     def get_controller(self, value: Union[commands.Context, wavelink.Player], create_new=True):
         """Get the controller of a guild.
@@ -226,7 +228,7 @@ class Music(Base):
         page_number = 1
         if hasattr(player, "playlist"):
             # get the track currently playing
-            current_track: wavelink.Track = player.source
+            current_track: Optional[wavelink.Track] = player.source
             if current_track:
                 queue_desc += f"NOW PLAYING: {await self.get_track_info(current_track)}\n"
                 # Currently playing song does not count as a queue index.
@@ -290,16 +292,19 @@ class Music(Base):
         :returns: Optional[Union[List[wavelink.PartialTrack], List[wavelink.Track]]]
         """
         search_query = search_query.strip('<>')
-        get_first_result = self.URL_REGEX.match(search_query)
 
-        if get_first_result:
-            # search Youtube Music
-            tracks = await wavelink.YouTubeMusicTrack.search(query=search_query, return_first=get_first_result)
-            if tracks:
-                return tracks
+        # youtube playlist is not currently working.
+        # get_first_result = self.URL_REGEX.match(search_query)
+
+        # if get_first_result:
+
+        # search Youtube Music
+        tracks = await wavelink.YouTubeMusicTrack.search(query=search_query, return_first=True)
+        if tracks:
+            return tracks
 
         # search regular youtube.
-        tracks = await wavelink.YouTubeTrack.search(query=search_query, return_first=get_first_result)
+        tracks = await wavelink.YouTubeTrack.search(query=search_query, return_first=True)
         if tracks:
             return tracks
 
