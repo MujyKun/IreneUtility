@@ -30,6 +30,12 @@ class User:
         self.language: str = "en_us"
         self.in_currency_game: bool = False
 
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __ne__(self, other):
+        return not self == other
+
     async def get_profile_xp(self):
         """Get the user's profile xp."""
         await self.ensure_level()
