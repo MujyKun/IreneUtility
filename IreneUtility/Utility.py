@@ -410,6 +410,8 @@ class Utility:
             game = games.pop(ctx.channel.id)
         except KeyError:
             return False
+        except Exception as e:
+            return False
 
         if game:
             if ctx.author.id == game.host_id or is_moderator:

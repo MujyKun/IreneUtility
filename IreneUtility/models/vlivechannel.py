@@ -135,13 +135,13 @@ class VliveChannel:
 
     async def _fetch_data(self):
         """Fetches and updates data."""
+
         async with base_util.ex.session.get(f"{base_util.ex.keys.vlive_base_url}/getChannelVideoList",
-                                         params=self._payload) as response:
+                                            params=self._payload) as response:
             if response.status != 200:
                 return
 
             data = await response.json(content_type=None)
-
         if not data:
             return
 

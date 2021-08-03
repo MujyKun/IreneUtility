@@ -282,10 +282,10 @@ class GroupMembers(Base):
             """Check if it is grabbing their full names or stage names."""
             if mode == "fullname":
                 embed_temp = await self.ex.set_embed_author_and_footer(embed_temp,
-                                                                  f"Type {server_prefix}members for Stage Names.")
+                                                                       f"Type {server_prefix}members for Stage Names.")
             else:
                 embed_temp = await self.ex.set_embed_author_and_footer(embed_temp,
-                                                                  f"Type {server_prefix}fullnames for Full Names.")
+                                                                       f"Type {server_prefix}fullnames for Full Names.")
             return embed_temp
 
         is_mod = self.ex.check_if_mod(ctx)
@@ -639,7 +639,8 @@ class GroupMembers(Base):
         """
         message = None
         try:
-            message = await channel.send(message_str, file=file, embed=embed, delete_after=timeout)
+            if message_str or embed or file:
+                message = await channel.send(message_str, file=file, embed=embed, delete_after=timeout)
         except discord.Forbidden:
             raise discord.Forbidden
         except Exception as e:
@@ -699,7 +700,7 @@ class GroupMembers(Base):
         async with self.ex.session.post(endpoint, headers=self.api_headers, params=api_params) as r:
             if r.status in self.successful_codes:
                 # define variables if we had a successful connection.
-                data = json.loads(await r.text())
+                data = await r.json()
                 image_host_url = data.get('final_image_link')
                 file_location = data.get('location')
                 file_name = data.get('file_name')
@@ -828,15 +829,19 @@ class GroupMembers(Base):
         msg, image_host = None, None
 
         try:
+            if isinstance(channel, discord.DMChannel):
+                await channel.send("It is not possible to receive Idol Photos in DMs.")
+                return None, None
             kwargs["guild_id"] = channel.guild.id
             msg, image_host = await self.__get_image_msg(channel, idol, **kwargs)  # post image msg
 
             await self.update_member_count(idol)  # update amount of times an idol has been called.
         except AttributeError as e:  # resolve dms
             log.console(f"{e} (AttributeError)", method=self.idol_post)
-            await channel.send("It is not possible to receive Idol Photos in DMs.")
         except discord.Forbidden:  # resolve 403
             raise discord.Forbidden  # let the client decide what to do.
+        except TypeError:
+            ...  # missing 2 required positional arguments response & message.
         except Exception as e:  # resolve all errors
             log.console(f"{e} (Exception)", method=self.idol_post)
         return msg, image_host
