@@ -90,7 +90,7 @@ class Twitter(Base):
             if not result:
                 return False
 
-            status = result[1]
+            status = result[0]
 
             await self.ex.sql.s_twitter.insert_photo_uploaded(image_id, media.media_id)
             return status.text
