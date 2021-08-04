@@ -24,7 +24,7 @@ class TwitterChannel(Subscription):
         # If the latest content is None, we will just override it and not consider it as "new"
         self.latest_tweet = None
 
-    async def _fetch_new_tweet(self) -> Optional[str]:
+    async def fetch_new_tweet(self) -> Optional[str]:
         """Attempt to fetch a new tweet.
 
         Will return the link to a tweet if found.
@@ -34,7 +34,7 @@ class TwitterChannel(Subscription):
             if not user:
                 return
         except Exception as e:
-            log.console(f"{e}", method=self._fetch_new_tweet)
+            log.console(f"{e}", method=self.fetch_new_tweet)
             return
 
         latest_tweet_id = user[0].id_str
