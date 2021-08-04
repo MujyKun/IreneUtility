@@ -64,7 +64,7 @@ class TwitterChannel(Subscription):
         for channel in self._followed_channels:
             try:
                 if isinstance(channel, int):
-                    channel = self._fetch_channel(channel)
+                    channel = await self._fetch_channel(channel)
                     if not channel:
                         continue
                     if isinstance(channel, int):

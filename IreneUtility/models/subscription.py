@@ -91,7 +91,7 @@ class Subscription:
 
         self._mention_roles[channel_id] = role_id
 
-    def _fetch_channel(self, channel_id: int) -> Optional[discord.TextChannel, int]:
+    async def _fetch_channel(self, channel_id: int) -> Optional[discord.TextChannel, int]:
         """
         Get/Fetch a discord text channel.
 
