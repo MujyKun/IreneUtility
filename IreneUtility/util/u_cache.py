@@ -77,7 +77,7 @@ class Cache(Base):
             [self.request_support_server_members, "Support Server Member"],
             [self.request_twitter_channel, "Twitter Channel"],
             [self.create_original_command_cache, "Original Commands"],
-            [self.create_vlive_followers_cache, "Vlive Text Channel Followers"]
+            [self.create_vlive_followers_cache, "Vlive Text Channel Followers"],
             [self.create_twitter_followers_cache, "Twitter Text Channel Followers"]
             # [self.create_image_cache, "Image"],
 
