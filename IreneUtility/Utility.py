@@ -69,7 +69,8 @@ class Utility:
         self.keys: models.Keys = keys  # access to keys file
         self.spotify_client: Optional[spotify.SpotifyClient] = None if not self.keys else self.__create_spotify_client()
 
-        self.api: Optional[tweepy.API] = None
+        # TODO: Change to a more reliable name such as twitter_client
+        self.api: Optional[tweepy.API] = None  # Twitter Client
         self.loop_count = 0
         self.recursion_limit = 10000
         self.api_issues = 0  # api issues in a given minute

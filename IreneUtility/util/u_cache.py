@@ -2,7 +2,7 @@ import discord
 from discord.ext import tasks
 from ..Base import Base
 from . import u_logger as log
-from ..models import VliveChannel
+from ..models import VliveChannel, TwitterChannel
 import time
 import asyncio
 import aiofiles
@@ -78,6 +78,7 @@ class Cache(Base):
             [self.request_twitter_channel, "Twitter Channel"],
             [self.create_original_command_cache, "Original Commands"],
             [self.create_vlive_followers_cache, "Vlive Text Channel Followers"]
+            [self.create_twitter_followers_cache, "Twitter Text Channel Followers"]
             # [self.create_image_cache, "Image"],
 
         ]
@@ -98,6 +99,26 @@ class Cache(Base):
             self.ex.cache.maintenance_mode = False
             self.ex.cache.maintenance_reason = None
         self.ex.irene_cache_loaded = True
+
+    async def create_twitter_followers_cache(self):
+        """Create the cache for Text Channels following an Idol or Group's Twitter.
+
+        Note that a Group or Idol does not need to exist for a Twitter channel to exist.
+        """
+        for channel_id, role_id, twitter_id in await self.ex.sql.s_twitter.fetch_followed_channels():
+            await asyncio.sleep(0)  # bare yield
+            twitter_id = twitter_id.lower()
+            twitter_obj: TwitterChannel = self.ex.cache.twitter_channels.get(twitter_id)
+            if not twitter_obj:
+                twitter_obj = TwitterChannel(twitter_id)
+                self.ex.cache.twitter_channels[twitter_id] = twitter_obj
+
+            channel = self.ex.client.get_channel(channel_id)
+            # make sure the channel wasn't already added.
+            if not twitter_obj.check_channel_followed(channel if channel else channel_id):
+                twitter_obj += channel if channel else channel_id
+                if role_id:
+                    twitter_obj.set_mention_role(channel_id, role_id)
 
     async def create_vlive_followers_cache(self):
         """Create the cache for Text Channels following an Idol or Group's Vlive.

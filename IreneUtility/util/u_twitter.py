@@ -1,7 +1,10 @@
+import discord
+
 from ..Base import Base
 from os import listdir
 from random import choice
 from . import u_logger as log
+from ..models import TwitterChannel
 
 
 class Twitter(Base):
@@ -74,3 +77,68 @@ class Twitter(Base):
         """
         return choice(listdir(self.ex.keys.idol_photo_location))
 
+    async def follow_twitter(self, channel, twitter_channel_id, role_id=None):
+        """
+        Follows a Twitter channel.
+
+        :param channel: Can be a TextChannel or a channel ID. Will attempt to make it a channel.
+        :param twitter_channel_id: Twitter username
+        :param role_id: Role ID that should be mentioned.
+
+        :returns: True if it followed successfully.
+        """
+        twitter_id, twitter_obj, channel, channel_id = self.get_necessities(channel, twitter_channel_id)
+
+        if not twitter_obj.check_channel_followed(channel):
+            await self.ex.sql.s_twitter.follow(channel_id, twitter_id, role_id)
+            twitter_obj += channel if channel else channel_id
+            return True
+
+    async def unfollow_twitter(self, channel, twitter_channel_id):
+        """
+        Unfollows a Twitter channel.
+
+        :param channel: Can be a TextChannel or a channel ID. Will attempt to make it a channel.
+        :param twitter_channel_id: Twitter username
+        """
+        twitter_id, twitter_obj, channel, channel_id = self.get_necessities(channel, twitter_channel_id)
+
+        if twitter_obj.check_channel_followed(channel):
+            twitter_obj -= channel if channel else channel_id
+            await self.ex.sql.s_twitter.unfollow(channel_id, twitter_id)
+            return True
+
+    def get_necessities(self, channel, twitter_channel_id):
+        """Used to reduce duplicated code and bring objects in their correct formats.
+
+        :param channel: Can be a TextChannel or a channel ID. Will attempt to make it a channel.
+        :param twitter_channel_id: Twitter username
+        :returns The twitter id, twitter object, TextChannel, and TextChannel id in their proper formats.
+        """
+        twitter_channel_id = twitter_channel_id.lower()
+        twitter_obj: TwitterChannel = self.ex.cache.twitter_channels.get(twitter_channel_id)
+
+        if isinstance(channel, discord.TextChannel):
+            channel_id = channel.id
+        else:  # should be int // will account for string
+            channel_id = int(channel)
+            channel = self.ex.client.get_channel(channel_id)
+
+        return twitter_channel_id, twitter_obj, channel, channel_id
+
+    async def follow_or_unfollow(self, ctx, channel, twitter_channel_id, role_id=None):
+        """
+        Will follow or unfollow based on the current status of the channel.
+
+        Will also send message to channel based on whether they followed or unfollowed.
+        """
+        # attempt to follow first, if it didn't go through, unfollow.
+        if not await self.follow_twitter(channel, twitter_channel_id, role_id=role_id):
+            # unfollow
+            await self.unfollow_twitter(channel, twitter_channel_id)
+            msg = await self.ex.get_msg(ctx, "twitter", "unfollowed", ["result", twitter_channel_id])
+            return await channel.send(msg)
+        else:
+            # follow worked.
+            msg = await self.ex.get_msg(ctx, "twitter", "followed", ["result", twitter_channel_id])
+            return await channel.send(msg)

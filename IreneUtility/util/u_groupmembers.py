@@ -6,7 +6,6 @@ from . import u_logger as log
 import datetime
 import discord
 import asyncio
-import json
 from os.path import getsize
 import random
 import time

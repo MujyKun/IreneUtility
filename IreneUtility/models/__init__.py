@@ -1,7 +1,7 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from .. import Utility
+    from ..Utility import Utility
 
 
 class BaseUtil:
@@ -12,12 +12,14 @@ class BaseUtil:
     much easier to maintain.
     """
     def __init__(self):
-        self.ex: Utility = None
+        self.ex: Optional[Utility] = None
 
 
 base_util = BaseUtil()
 
+from .subscription import Subscription
 from .file import File
+from .twitterchannel import TwitterChannel
 from .vlivechannel import VliveChannel
 from .group import Group
 from .idol import Idol

@@ -19,7 +19,6 @@ class DataDog(Base):
                 metric_info = self.get_metric_info()
 
                 # set all per minute metrics to 0 since this is a 60 second loop.
-                self.ex.cache.n_words_per_minute = 0
                 self.ex.cache.commands_per_minute = 0
                 self.ex.cache.bot_api_idol_calls = 0
                 self.ex.cache.bot_api_translation_calls = 0
@@ -90,7 +89,6 @@ class DataDog(Base):
                 'user_notifications': user_notifications,
                 'session_commands_used': self.ex.cache.current_session,
                 'commands_per_minute': self.ex.cache.commands_per_minute,
-                'n_words_per_minute': self.ex.cache.n_words_per_minute,
                 'bot_api_idol_calls': self.ex.cache.bot_api_idol_calls,
                 'bot_api_translation_calls': self.ex.cache.bot_api_translation_calls,
                 'messages_received_per_min': self.ex.cache.messages_received_per_minute,
@@ -125,13 +123,17 @@ class DataDog(Base):
                 'members_in_support_server': self.ex.cache.member_ids_in_support_server,
                 'active_unscramble_games': self.ex.cache.unscramble_games,
                 'channels_with_automatic_photos': self.ex.cache.send_idol_photos.keys(),
-                'servers_using_self_assignable_roles': self.ex.cache.assignable_roles.keys() or []
+                'servers_using_self_assignable_roles': self.ex.cache.assignable_roles.keys() or [],
             },
             'method_call': {  # we need to call a custom method to get the value.
-                'discord_ping': self.ex.get_ping
+                'discord_ping': self.ex.get_ping,
+                'text_channels_following_vlive': self.ex.u_vlive.get_total_channels_followed,
+                'text_channels_following_twitter': self.ex.u_twitter.get_total_channels_followed,
             },
             'sum_length': {  # need to sum a list after getting the len()
                 'text_channels_following_twitch': self.ex.cache.twitch_channels.values(),
+                'text_channels_following_vlive': self.ex.cache.vlive_channels.values(),
+                'text_channels_following_twitter': self.ex.cache.twitter_channels.values(),
                 'playing_cards': self.ex.cache.playing_cards.values(),
 
                 'photos_sent_automatically': self.ex.cache.send_idol_photos.values(),

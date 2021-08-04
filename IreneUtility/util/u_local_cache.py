@@ -22,7 +22,6 @@ class Cache(Base):
         self.session_time_format = None  # time format of current session for comparison
         self.bot_api_translation_calls = 0  # API Calls made directly from the bot for Translations per minute
         self.bot_api_idol_calls = 0  # API Calls made directly from the bot for Idols per minute
-        self.n_words_per_minute = 0  # N Words per minute
         self.commands_per_minute = 0  # commands used in the current minute
         self.messages_received_per_minute = 0  # messages received per minute
         self.errors_per_minute = 0  # errors per minute
@@ -99,6 +98,7 @@ class Cache(Base):
         self.bot_statuses = []
 
         self.vlive_channels = {}  # Vlive Channel ID: VliveChannel object
+        self.twitter_channels = {}  # Twitter Channel ID: TwitterChannel object
 
         # custom server commands
         self.custom_commands = {}  # {server_id: {command_name:info, command_name:info}}
