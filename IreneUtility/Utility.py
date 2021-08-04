@@ -1,5 +1,5 @@
 import concurrent.futures
-
+import functools
 import asyncpg
 from discord.ext import commands
 
@@ -505,21 +505,43 @@ class Utility:
             if command.command_name == command_name:
                 return command
 
-    async def run_blocking_code(self, func, *args):
+    async def run_blocking_code(self, funcs, *args, **kwargs) -> list:
         """Run blocking code safely in a new thread.
 
-        :param func: The blocking function that needs to be called.
+        DO NOT pass in an asynchronous function. If an asynchronous function has blocking code, the event loop will
+        also block. There were several attempts made to make it compatible with asynchronous functions, but it was a
+        headache to work with.
+
+        :param funcs: The blocking function that needs to be called.
+            May also pass in a list of functions
+            with the 0th index as the callable function,
+            the 1st index as the args for that function,
+            and the 2nd index as the kwargs for that function.
         :param args: The args to pass into the blocking function.
-        :returns: result of asyncio.Future object
+        :param kwargs: The keyword args to pass into the blocking function.
+        :returns: List of results in no particular order. Make sure the output can be managed with no specific order.
         """
         loop = asyncio.get_running_loop()
         try:
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                result = await loop.run_in_executor(pool, func, *args)
-                log.console(f'Custom Thread Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.
-                            loop)
-                return result if None else result.result()
-        except AttributeError:
-            return
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+                results = []  # a list of results
+                if not isinstance(funcs, list):
+                    funcs = [[funcs, args, kwargs]]
+
+                for func in funcs:
+                    callable_function = func[0]
+                    func_args = func[1]
+                    func_kwargs = func[2]
+                    if callable(callable_function):
+                        results.append(await loop.run_in_executor(pool, functools.partial(callable_function,
+                                                                                          *func_args, **func_kwargs)))
+
+                log.useless(f'Custom Thread Pool -> {func}', method=self.run_blocking_code)
+
+                return results
+
+        except AttributeError as e:
+            log.console(f"{e} (AttributeError)", method=self.run_blocking_code, event_loop=self.client.loop)
         except Exception as e:
             log.console(f"{e} (Exception)", method=self.run_blocking_code, event_loop=self.client.loop)
+        return []

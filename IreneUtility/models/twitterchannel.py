@@ -30,7 +30,11 @@ class TwitterChannel(Subscription):
         Will return the link to a tweet if found.
         """
         try:
-            user = base_util.ex.api.user_timeline(self.id, count=1)
+            result = await base_util.ex.run_blocking_code(base_util.ex.api.user_timeline, self.id, count=1)
+            if not result:
+                return
+
+            user = result[0]
             if not user:
                 return
         except Exception as e:
