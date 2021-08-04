@@ -27,12 +27,8 @@ class TwitterChannel(Subscription):
     async def _fetch_new_tweet(self) -> Optional[str]:
         """Attempt to fetch a new tweet.
 
-        Will not work if no discord text channels are following.
         Will return the link to a tweet if found.
         """
-        if not len(self):
-            return
-
         try:
             user = base_util.ex.api.user_timeline(self.id, count=1)
             if not user:

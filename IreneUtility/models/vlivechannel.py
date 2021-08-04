@@ -42,13 +42,7 @@ class VliveChannel(Subscription):
         self._most_recent_video = None  # Video Dic of the most recent video.
 
     async def check_live(self):
-        """Check if the Vlive channel is live.
-
-        Will not check if no discord text channels are following.
-        """
-        if not len(self):
-            return False
-
+        """Check if the Vlive channel is live."""
         if not await self._fetch_data():
             log.console(f"Failed to update data for VLIVE Channel {self.id}", method=self.check_live)
             return False  # we were not able to successfully update our data.
