@@ -12,15 +12,28 @@ class Twitter(Base):
         super().__init__(*args)
         
     async def update_status(self, context):
-        self.ex.api.update_status(status=context)
-        tweet = self.ex.api.user_timeline(user_id=f'{self.ex.keys.twitter_account_id}', count=1)[0]
+        await self.ex.run_blocking_code(self.ex.api.update_status, status=context)
+
+        result = await self.ex.run_blocking_code(self.ex.api.user_timeline,
+                                                 user_id=f'{self.ex.keys.twitter_account_id}', count=1)
+
+        if not result:
+            return
+
+        tweet = result[0][0]
+
         return f"https://twitter.com/{self.ex.keys.twitter_username}/status/{tweet.id}"
 
     async def delete_status(self, context):
-        self.ex.api.destroy_status(context)
+        await self.ex.run_blocking_code(self.ex.api.destroy_status, context)
 
     async def recent_tweets(self, context):
-        tweets = self.ex.api.user_timeline(user_id=f'{self.ex.keys.twitter_account_id}', count=context)
+        result = await self.ex.run_blocking_code(self.ex.api.user_timeline,
+                                                 user_id=f'{self.ex.keys.twitter_account_id}',  count=context)
+        if not result:
+            return
+
+        tweets = result[0]
         final_tweet = ""
         for tweet in tweets:
             final_tweet += f"> **Tweet ID:** {tweet.id} | **Tweet:** {tweet.text}\n"
@@ -33,7 +46,11 @@ class Twitter(Base):
         """
         try:
             # random_file = (self.ex.thread_pool.submit(self.get_random_idol_photo)).result()
-            random_file = await self.ex.run_blocking_code(self.get_random_idol_photo)
+            result = await self.ex.run_blocking_code(self.get_random_idol_photo)
+            if not result:
+                return False
+
+            random_file = result[0]
             if not random_file:
                 return False
 
@@ -62,8 +79,19 @@ class Twitter(Base):
                 body_message += f" - {idol.full_name} ({idol.stage_name}) [{idol.id}]"
 
             full_file_location = f"{self.ex.keys.idol_photo_location}{random_file}"
-            media = self.ex.api.media_upload(full_file_location)
-            status = self.ex.api.update_status(status=body_message, media_ids=[media.media_id])
+            result = await self.ex.run_blocking_code(self.ex.api.media_upload, full_file_location)
+
+            if not result:
+                return False
+            media = result[0]
+            result = await self.ex.run_blocking_code(self.ex.api.update_status, status=body_message,
+                                                     media_ids=[media.media_id])
+
+            if not result:
+                return False
+
+            status = result[1]
+
             await self.ex.sql.s_twitter.insert_photo_uploaded(image_id, media.media_id)
             return status.text
         except Exception as e:
