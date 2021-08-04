@@ -1,6 +1,6 @@
 from .. import models
 from ..Base import Base
-from typing import List
+from typing import List, Dict
 import time
 import json
 
@@ -12,7 +12,7 @@ class Cache(Base):
         super().__init__(*args)
 
         # dict of discord (util) User objects -> not from d.py. Stored as a dict for easier searching.
-        self.users = {}  # {user_id: User_object}
+        self.users: Dict[int, models.User] = {}  # {user_id: User_object}
         self.maintenance_mode = False  # maintenance mode enabled
         self.maintenance_reason = None  # maintenance reason
         self.session_id = None  # current session id
@@ -28,18 +28,18 @@ class Cache(Base):
         self.urban_per_minute = 0  # Urban dictionary calls per minute
         self.twitter_channel = None  # discord.TextChannel for auto twitter posts
 
-        self.idol_images = {}  # { idol_id: [IreneUtility.models.Image] }
+        self.idol_images: Dict[int, models.Image] = {}  # { idol_id: [IreneUtility.models.Image] }
 
         self.channels_with_disabled_games = []
 
         # Amount of times a command has been used.
-        self.command_counter = {}  # { command_name : amount_of_times_used }
+        self.command_counter: Dict[str, int] = {}  # { command_name : amount_of_times_used }
         # Photo Count of groups
-        self.group_photos = {}  # { group_id: photo_count }
+        self.group_photos: Dict[int, int] = {}  # { group_id: photo_count }
         # Photo Count of idols
-        self.idol_photos = {}  # { idol_id: photo_count }
+        self.idol_photos: Dict[int, int] = {}  # { idol_id: photo_count }
         # All custom server prefixes
-        self.server_prefixes = {}  # { server_id: server_prefix }
+        self.server_prefixes: Dict[int, str] = {}  # { server_id: server_prefix }
         """
         reset timer for idol photos (keeps track of command usage)
         {
@@ -80,40 +80,40 @@ class Cache(Base):
         channel_id : seconds
         }
         """
-        self.temp_channels = {}
+        self.temp_channels: Dict[int, int] = {}
 
         # TODO: convert to dict based on their idol/group id
         # list of idol objects
-        self.idols = []
+        self.idols: List[models.Idol] = []
         # list of group objects
-        self.groups = []
+        self.groups: List[models.Group] = []
 
         # dict of restricted idol photo channels
-        self.restricted_channels = {}  # {channelid : [server_id, sendall]}
+        self.restricted_channels: Dict[int, list] = {}  # {channelid : [server_id, sendall]}
         # contains all of the reported dead images
-        self.dead_image_cache = {}  # {messageid : [dead_link, userid, idolid, is_guessing_game]}
+        self.dead_image_cache: Dict[int, list] = {}  # {messageid : [dead_link, userid, idolid, is_guessing_game]}
 
         self.dead_image_channel = None  # Channel for all dead images to be sent to.
-        self.bot_statuses = []
+        self.bot_statuses: List[str] = []
 
-        self.vlive_channels = {}  # Vlive Channel ID: VliveChannel object
-        self.twitter_channels = {}  # Twitter Channel ID: TwitterChannel object
+        self.vlive_channels: Dict[str, models.VliveChannel] = {}  # Vlive Channel ID: VliveChannel object
+        self.twitter_channels: Dict[str, models.TwitterChannel] = {}  # Twitter Channel ID: TwitterChannel object
 
         # custom server commands
-        self.custom_commands = {}  # {server_id: {command_name:info, command_name:info}}
+        self.custom_commands: Dict[int, dict] = {}  # {server_id: {command_name:info, command_name:info}}
 
         # d.py has their own attainable way for similar information, but it has been rewritten into a file.
         # this may be used for a better help command without using the descriptions of the command cogs.
-        self.original_commands = {}  # {Cog Name: [Utility Command Objects]}
+        self.original_commands: Dict[str, List[models.Command]] = {}  # {Cog Name: [Utility Command Objects]}
 
         # Guessing Game Objects
-        self.guessing_games = {}  # {channelid: Game}
+        self.guessing_games: Dict[int, models.Game] = {}  # {channelid: Game}
         # Bias Game Objects
-        self.bias_games = {}  # {channelid: Game}
+        self.bias_games: Dict[int, models.Game] = {}  # {channelid: Game}
         # BlackJack Game Objects
         self.blackjack_games: List[models.BlackJackGame] = []
         # UnScramble Game Objects
-        self.unscramble_games = {}  # {channelid: Game}
+        self.unscramble_games: Dict[int: models.Game] = {}  # {channelid: Game}
 
         # languages available, also the file names
         self.languages_available = ["en_us"]
@@ -190,7 +190,7 @@ class Cache(Base):
         self.twitch_guild_to_channels = {}  # guild_id: channel_id
         self.twitch_guild_to_roles = {}  # guild_id: role_id
 
-        self.twitch_channels_is_live = {}  # twitch_username : false/true
+        self.twitch_channels_is_live = {}  # twitch_username : bool
 
         """
         User Notifications and Mod Mail are constantly iterated over, therefore we need a synced list
