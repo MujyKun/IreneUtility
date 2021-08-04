@@ -124,11 +124,11 @@ class DataDog(Base):
                 'active_unscramble_games': self.ex.cache.unscramble_games,
                 'channels_with_automatic_photos': self.ex.cache.send_idol_photos.keys(),
                 'servers_using_self_assignable_roles': self.ex.cache.assignable_roles.keys() or [],
+                "vlive_channels_followed": self.ex.cache.vlive_channels.keys() or [],
+                "twitter_channels_followed": self.ex.cache.twitter_channels.keys() or []
             },
             'method_call': {  # we need to call a custom method to get the value.
                 'discord_ping': self.ex.get_ping,
-                'text_channels_following_vlive': self.ex.u_vlive.get_total_channels_followed,
-                'text_channels_following_twitter': self.ex.u_twitter.get_total_channels_followed,
             },
             'sum_length': {  # need to sum a list after getting the len()
                 'text_channels_following_twitch': self.ex.cache.twitch_channels.values(),
