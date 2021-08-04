@@ -212,7 +212,7 @@ class Cache(Base):
             try:
                 channel = self.ex.client.get_channel(text_channel) or \
                           await self.ex.client.fetch_channel(text_channel)
-            except discord.Forbidden or discord.NotFound:
+            except (discord.Forbidden, discord.NotFound):
                 await self.ex.sql.s_groupmembers.delete_send_idol_photo_channel(text_channel)
                 continue
             except Exception as e:
