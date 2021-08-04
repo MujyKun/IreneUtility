@@ -108,7 +108,7 @@ class GroupMembers(Base):
         final_string = ""
         for attr_name, display_format in card_formats.items():
             attribute = getattr(obj, attr_name)
-            if isinstance(attribute, self.ex.u_objects.VliveChannel):
+            if isinstance(attribute, self.ex.u_objects.Subscription):  # vlive or twitter
                 attribute = attribute.id
             if not attribute:
                 continue

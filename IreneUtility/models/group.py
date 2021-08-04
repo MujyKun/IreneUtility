@@ -1,4 +1,4 @@
-from . import VliveChannel, base_util
+from . import VliveChannel, base_util, TwitterChannel
 
 
 class Group:
@@ -17,6 +17,9 @@ class Group:
         if self.vlive:
             self.vlive = VliveChannel(self.vlive)
             base_util.ex.cache.vlive_channels[self.vlive.id.lower()] = self.vlive
+        if self.twitter:
+            self.twitter = TwitterChannel(self.twitter)
+            base_util.ex.cache.twitter_channels[self.twitter.id.lower()] = self.twitter
         self.spotify = kwargs.get('spotify')
         self.fancafe = kwargs.get('fancafe')
         self.facebook = kwargs.get('facebook')
