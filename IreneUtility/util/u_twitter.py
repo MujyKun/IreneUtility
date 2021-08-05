@@ -170,7 +170,7 @@ class Twitter(Base):
 
         except Exception as e:
             log.useless(f"{e} (Exception)", method=self.get_accounts_followed_in_server)
-        return 0
+        return accounts_followed
 
 
     async def unfollow_twitter(self, channel, twitter_channel_id):
