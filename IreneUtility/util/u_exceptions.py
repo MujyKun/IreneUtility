@@ -9,8 +9,8 @@ class TooLarge(Exception):
 
 class Limit(Exception):
     """A limit was reached."""
-    def __init__(self):
-        super(Limit, self).__init__("A Limit was reached for something.")
+    def __init__(self, msg="A Limit was reached for something."):
+        super(Limit, self).__init__(msg)
 
 
 class ImproperFormat(Exception):

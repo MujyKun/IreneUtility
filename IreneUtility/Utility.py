@@ -160,7 +160,7 @@ class Utility:
             # create twitter auth
             auth = tweepy.OAuthHandler(keys.CONSUMER_KEY, keys.CONSUMER_SECRET)
             auth.set_access_token(keys.ACCESS_KEY, keys.ACCESS_SECRET)
-            self.api = tweepy.API(auth)
+            self.api = tweepy.API(auth, wait_on_rate_limit_notify=True, wait_on_rate_limit=True)
 
         if events:
             self.events = events
