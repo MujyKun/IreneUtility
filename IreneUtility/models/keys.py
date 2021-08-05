@@ -44,6 +44,8 @@ class Keys:
         self.reminder_limit: int = self.get_kwarg("reminder_limit")  # maximum amount of reminders
         # maximum amount of automatic idol photos a non-patron can be sent
         self.idol_send_limit: int = self.get_kwarg("idol_send_limit")
+        # twitter account limit for every server (for non-patrons)
+        self.twitter_update_limit: int = self.get_kwarg("twitter_update_limit")
         self.currency_name: str = self.get_kwarg("currency_name")  # name of main currency
         self.icon_url: str = self.get_kwarg("icon_url")  # embed icon url
         self.footer_url: str = self.get_kwarg("footer_url")  # embed footer url
