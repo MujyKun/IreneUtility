@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Union, Optional, List
 from . import base_util
 from ..util import u_logger as log
 
@@ -72,6 +72,17 @@ class Subscription:
                 return channel
         if channel_id in self._followed_channels:
             return channel_id
+
+    def check_channels_followed(self, channels) -> List[bool]:
+        """Checks if a list of channels is following.
+
+        :param channels: List of channel ids or text channels
+        """
+        results = []
+        for channel in channels:
+            results.append(bool(self.check_channel_followed(channel)))
+        return results
+
 
     def set_mention_role(self, channel, role):
         """Will mention a role whenever posting in a certain channel.

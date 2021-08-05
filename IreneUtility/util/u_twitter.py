@@ -5,11 +5,13 @@ from os import listdir
 from random import choice
 from . import u_logger as log
 from ..models import TwitterChannel
+from discord.ext import commands
 
 
 class Twitter(Base):
     def __init__(self, *args):
         super().__init__(*args)
+        self.twitter_update_patron_limit = self.ex.keys.twitter_update_limit * 5
         
     async def update_status(self, context):
         await self.ex.run_blocking_code(self.ex.api.update_status, status=context)
@@ -105,22 +107,71 @@ class Twitter(Base):
         """
         return choice(listdir(self.ex.keys.idol_photo_location))
 
-    async def follow_twitter(self, channel, twitter_channel_id, role_id=None):
+    async def follow_twitter(self, channel, twitter_channel_id, role_id=None, ctx=None):
         """
         Follows a Twitter channel.
 
         :param channel: Can be a TextChannel or a channel ID. Will attempt to make it a channel.
         :param twitter_channel_id: Twitter username
         :param role_id: Role ID that should be mentioned.
+        :param ctx: Context Object
 
         :returns: True if it followed successfully.
         """
         twitter_id, twitter_obj, channel, channel_id = self.get_necessities(channel, twitter_channel_id)
 
         if not twitter_obj.check_channel_followed(channel):
+            await self.check_update_requirements(ctx)
             await self.ex.sql.s_twitter.follow(channel_id, twitter_id, role_id)
             twitter_obj += channel if channel else channel_id
             return True
+
+    async def check_update_requirements(self, ctx):
+        """
+        Check patreon and server requirements for twitter updates.
+
+        :param ctx: Context object
+        :raises: (exceptions.Limit) if it surpasses the limit.
+        """
+        if not ctx:
+            return True
+
+        accounts_followed = await self.get_accounts_followed_in_server(ctx)
+
+        if accounts_followed < self.ex.keys.twitter_update_limit:
+            return True
+
+        if self.twitter_update_patron_limit > accounts_followed >= self.ex.keys.twitter_update_limit:
+            patron_status = await self.ex.u_patreon.check_if_patreon(ctx.author.id)
+            if patron_status:
+                return True
+
+        msg = await self.ex.get_msg(ctx, "twitter", "update_limit", [
+            ["integer", self.ex.keys.twitter_update_limit],
+            ["server_prefix", await self.ex.get_server_prefix(ctx)],
+            ["integer2", self.twitter_update_patron_limit]
+        ])
+        raise self.ex.exceptions.Limit(msg)
+
+    async def get_accounts_followed_in_server(self, ctx: commands.Context) -> int:
+        """
+        Get the total amount of channels followed in the server.
+
+        :param ctx: Context object
+        :returns: Total amount of accounts followed in the server.
+        """
+        accounts_followed = 0
+        try:
+            channel_ids = [channel.id for channel in ctx.guild.channels]
+            twitter_objs = self.ex.cache.twitter_channels.copy().values()
+            for twitter_obj in twitter_objs:
+                bool_results = twitter_obj.check_channels_followed(channel_ids)
+                accounts_followed += bool_results.count(True)
+
+        except Exception as e:
+            log.useless(f"{e} (Exception)", method=self.get_accounts_followed_in_server)
+        return 0
+
 
     async def unfollow_twitter(self, channel, twitter_channel_id):
         """
@@ -161,7 +212,7 @@ class Twitter(Base):
         Will also send message to channel based on whether they followed or unfollowed.
         """
         # attempt to follow first, if it didn't go through, unfollow.
-        if not await self.follow_twitter(channel, twitter_channel_id, role_id=role_id):
+        if not await self.follow_twitter(channel, twitter_channel_id, role_id=role_id, ctx=ctx):
             # unfollow
             await self.unfollow_twitter(channel, twitter_channel_id)
             msg = await self.ex.get_msg(ctx, "twitter", "unfollowed", ["result", twitter_channel_id])
