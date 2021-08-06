@@ -307,6 +307,7 @@ class Cache(Base):
     async def load_language_packs(self):
         """Create cache for language packs."""
         self.ex.cache.languages = {}
+        self.ex.cache.languages_available = []
 
         async def get_language_module_and_message():
             # get the modules and messages for each language

@@ -116,7 +116,7 @@ class Cache(Base):
         self.unscramble_games: Dict[int: models.Game] = {}  # {channelid: Game}
 
         # languages available, also the file names
-        self.languages_available = ["en_us"]
+        self.languages_available = []
 
         # Guessing Game User Scores
         self.guessing_game_counter = {}
