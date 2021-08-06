@@ -11,14 +11,29 @@ class Patreon(Base):
         return await self.ex.conn.fetch("SELECT userid from patreon.users")
 
     async def get_patreon_role_members(self, super_patron=False):
-        """Get the members in the patreon roles."""
+        """Get the members in the patreon roles.
+
+        NOTE: Translator and Proofreader roles are considered patron roles.
+        """
         support_guild = self.ex.client.get_guild(int(self.ex.keys.bot_support_server_id))
+        patrons = []
         # API call will not show role.members
         if not super_patron:
             patreon_role = support_guild.get_role(int(self.ex.keys.patreon_role_id))
+            translator_role = support_guild.get_role(int(self.ex.keys.translator_role_id))
+            proofreader_role = support_guild.get_role(int(self.ex.keys.proofreader_role_id))
+            datamod_role = support_guild.get_role(int(self.ex.keys.datamod_role_id))
+            if translator_role:
+                patrons += translator_role.members
+            if proofreader_role:
+                patrons += proofreader_role.members
+            if datamod_role:
+                patrons += datamod_role.members
         else:
             patreon_role = support_guild.get_role(int(self.ex.keys.patreon_super_role_id))
-        return patreon_role.members
+        if patreon_role:
+            patrons += patreon_role.members
+        return patrons
 
     async def check_if_patreon(self, user_id, super_patron=False):
         """Check if the user is a patreon.

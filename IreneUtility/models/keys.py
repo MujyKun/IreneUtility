@@ -114,6 +114,11 @@ class Keys:
         self.patreon_role_id: int = self.get_kwarg("patreon_role_id")  # patreon role id
         self.patreon_super_role_id: int = self.get_kwarg("patreon_super_role_id")  # patreon super role id
 
+        """Translator/Proofreader/DataMod"""
+        self.translator_role_id: int = self.get_kwarg("translator_role_id")
+        self.proofreader_role_id: int = self.get_kwarg("proofreader_role_id")
+        self.datamod_role_id: int = self.get_kwarg("datamod_role_id")
+
         """AioHTTP"""
         self.client_session: AioHTTPClient = self.get_kwarg("client_session")  # aiohttp client session
 
