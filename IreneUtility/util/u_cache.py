@@ -1,3 +1,5 @@
+import os
+
 import discord
 from discord.ext import tasks
 from ..Base import Base
@@ -315,10 +317,16 @@ class Cache(Base):
                         yield t_module, t_message_name
 
         # load the json for every language to cache
-        for file_name in self.ex.cache.languages_available:
+        directories_result = await self.ex.run_blocking_code(os.listdir("languages/"))
+        directories = directories_result[0]
+        for folder_name in directories:
+            if os.path.isdir(folder_name):
+                continue
+
             await asyncio.sleep(0)  # bare yield
-            async with aiofiles.open(f"languages/{file_name}.json") as file:
-                self.ex.cache.languages[file_name] = json.loads(await file.read())
+            self.ex.cache.languages_available.append(folder_name.lower())
+            async with aiofiles.open(f"languages/{folder_name}/messages.json") as file:
+                self.ex.cache.languages[folder_name.lower()] = json.loads(await file.read())
 
         # make the content of all curly braces bolded in all available languages.
         async for module, message_name in get_language_module_and_message():

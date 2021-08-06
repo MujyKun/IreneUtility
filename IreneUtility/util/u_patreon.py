@@ -74,6 +74,3 @@ class Patreon(Base):
         # Super Patrons also have the normal Patron role.
         if await self.check_if_patreon(ctx.author.id):
             ctx.command.reset_cooldown(ctx)
-
-
-# self.ex.u_patreon = Patreon()
