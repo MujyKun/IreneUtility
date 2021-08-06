@@ -406,20 +406,25 @@ class Utility:
         :param games: Dict of Games
         :return: False if no game was found
         """
-        is_moderator = await self.u_miscellaneous.check_if_moderator(ctx)
         try:
-            game = games.pop(ctx.channel.id)
-        except KeyError:
-            return False
-        except Exception as e:
-            return False
+            is_moderator = await self.u_miscellaneous.check_if_moderator(ctx)
+            try:
+                game = games.pop(ctx.channel.id)
+            except KeyError:
+                return False
+            except Exception as e:
+                return False
 
-        if game:
-            if ctx.author.id == game.host_id or is_moderator:
-                game.force_ended = True
-                return await game.end_game()
-            else:
-                return await ctx.send("> You must be a moderator or the host of the game in order to end the game.")
+            if game:
+                if ctx.author.id == game.host_id or is_moderator:
+                    game.force_ended = True
+                    return await game.end_game()
+                else:
+                    msg = await self.get_msg(ctx, "miscellaneous", "moderator_or_host")
+                    return await ctx.send(msg)
+        except Exception as e:
+            log.console(f"{e} (Exception)", method=self.stop_game)
+            return False
 
     async def check_user_in_support_server(self, ctx):
         """Checks if a user is in the support server.

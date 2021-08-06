@@ -83,7 +83,6 @@ class Subscription:
             results.append(bool(self.check_channel_followed(channel)))
         return results
 
-
     def set_mention_role(self, channel, role):
         """Will mention a role whenever posting in a certain channel.
 
