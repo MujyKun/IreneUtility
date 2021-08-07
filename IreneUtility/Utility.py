@@ -181,7 +181,18 @@ class Utility:
     async def get_user(self, user_id) -> models.User:
         """Creates a user if not created and adds it to the cache, then returns the user object.
 
+        This method was created as an asynchronous function to keep consistency across the already existing codebase.
+
+        :param user_id: The User ID.
         :rtype: models.User
+        """
+        return self._get_user(user_id)
+
+    def _get_user(self, user_id) -> models.User:
+        """Creates a user if not created and adds it to the cache, then returns the User object.
+
+        :param user_id: The User ID.
+        :returns: (models.User) The User object associated with the user id.
         """
         user = self.cache.users.get(user_id)
         if not user:
@@ -273,6 +284,7 @@ class Utility:
             user_id = user.author.id
         else:
             user_id = user
+        user = self._get_user(user_id)
 
         is_bot_mod = user_id in self.keys.mods_list or user_id == self.keys.owner_id
         if data_mod:
