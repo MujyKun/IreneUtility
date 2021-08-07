@@ -27,7 +27,7 @@ class User:
         self.beg_level: int = 0
         self.rob_level: int = 0
         self.daily_level: int = 0
-        self.language: str = "en_us"
+        self.language: str = "en-us"
         self.in_currency_game: bool = False
 
     def __eq__(self, other):
