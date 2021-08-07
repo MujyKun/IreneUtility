@@ -16,6 +16,8 @@ import json
 class Cache(Base):
     def __init__(self, *args):
         super().__init__(*args)
+        self.base_language_folder = "languages"
+        self.language_folders = []  # list of language directories (case-sensitive as directories).
 
     async def process_cache_time(self, method, name, *args, **kwargs):
         """Process the cache time."""
@@ -146,27 +148,30 @@ class Cache(Base):
         """Creates Unique Command objects if a json file is given."""
         self.ex.cache.original_commands = {}
         try:
-            async with aiofiles.open(self.ex.unique_command_file_name, "r") as file:
-                cogs = json.loads(await file.read())
-                for cog, commands in cogs.items():
-                    for command in commands:
-                        command_name = command
-                        command = commands.get(command)
-                        cog_name = f"{cog}"
-                        description = command.get("description")
-                        example_image_url = command.get("example_image_url")
-                        syntax = command.get("syntax")
-                        example_syntax = command.get("example_syntax")
-                        permissions_needed = command.get("permissions_needed")
-                        aliases = command.get("aliases")
-                        notes = command.get("note")
-                        obj = self.ex.u_objects.Command(cog_name, command_name, description, example_image_url, syntax,
-                                                        example_syntax, permissions_needed, aliases, notes)
-                        cog_original_commands = self.ex.cache.original_commands.get(cog_name)
-                        if not cog_original_commands:
-                            self.ex.cache.original_commands[cog_name] = [obj]
-                        else:
-                            cog_original_commands.append(obj)
+            for language in self.language_folders:
+                self.ex.cache.original_commands[language.lower()] = {}  # resets cogs inside of language
+                file_path = f"{self.base_language_folder}/{language}/{self.ex.unique_command_file_name}"
+                async with aiofiles.open(file_path, "r", encoding="UTF-8") as file:
+                    cogs = json.loads(await file.read())
+                    for cog, commands in cogs.items():
+                        for command in commands:
+                            command_name = command
+                            command = commands.get(command)
+                            cog_name = f"{cog}"
+                            description = command.get("description")
+                            example_image_url = command.get("example_image_url")
+                            syntax = command.get("syntax")
+                            example_syntax = command.get("example_syntax")
+                            permissions_needed = command.get("permissions_needed")
+                            aliases = command.get("aliases")
+                            notes = command.get("note")
+                            obj = self.ex.u_objects.Command(cog_name, command_name, description, example_image_url, syntax,
+                                                            example_syntax, permissions_needed, aliases, notes)
+                            cog_original_commands = self.ex.cache.original_commands[language.lower()].get(cog_name)
+                            if not cog_original_commands:
+                                self.ex.cache.original_commands[language.lower()][cog_name] = [obj]
+                            else:
+                                cog_original_commands.append(obj)
         except FileNotFoundError:
             log.console(f"{self.ex.unique_command_file_name} was not found for creating unique command objects.",
                         method=self.create_original_command_cache)
@@ -318,16 +323,16 @@ class Cache(Base):
                         yield t_module, t_message_name
 
         # load the json for every language to cache
-        base_language_folder = "languages"
-        directories_result = await self.ex.run_blocking_code(os.listdir, f"{base_language_folder}/")
-        directories = directories_result[0]
-        for folder_name in directories:
-            if not os.path.isdir(f"{base_language_folder}/{folder_name}"):
+        directories_result = await self.ex.run_blocking_code(os.listdir, f"{self.base_language_folder}/")
+        self.language_folders = directories_result[0]
+        for folder_name in self.language_folders:
+            if not os.path.isdir(f"{self.base_language_folder}/{folder_name}"):
                 continue
 
             await asyncio.sleep(0)  # bare yield
             self.ex.cache.languages_available.append(folder_name.lower())
-            async with aiofiles.open(f"{base_language_folder}/{folder_name}/messages.json", encoding="UTF-8") as file:
+            async with aiofiles.open(f"{self.base_language_folder}/{folder_name}/messages.json", encoding="UTF-8") \
+                    as file:
                 self.ex.cache.languages[folder_name.lower()] = json.loads(await file.read())
 
         # make the content of all curly braces bolded in all available languages.

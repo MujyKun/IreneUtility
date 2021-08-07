@@ -104,7 +104,11 @@ class Cache(Base):
 
         # d.py has their own attainable way for similar information, but it has been rewritten into a file.
         # this may be used for a better help command without using the descriptions of the command cogs.
-        self.original_commands: Dict[str, List[models.Command]] = {}  # {Cog Name: [Utility Command Objects]}
+        # This also allows better implementation of having a multi-lingual bot.
+        #
+        # {language_code: {Cog Name: [Utility Command Objects]},
+        # ...}
+        self.original_commands: Dict[str, Dict[str, List[models.Command]]] = {}
 
         # Guessing Game Objects
         self.guessing_games: Dict[int, models.Game] = {}  # {channelid: Game}
