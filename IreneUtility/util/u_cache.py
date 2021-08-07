@@ -149,29 +149,32 @@ class Cache(Base):
         self.ex.cache.original_commands = {}
         try:
             for language in self.language_folders:
-                self.ex.cache.original_commands[language.lower()] = {}  # resets cogs inside of language
-                file_path = f"{self.base_language_folder}/{language}/{self.ex.unique_command_file_name}"
-                async with aiofiles.open(file_path, "r", encoding="UTF-8") as file:
-                    cogs = json.loads(await file.read())
-                    for cog, commands in cogs.items():
-                        for command in commands:
-                            command_name = command
-                            command = commands.get(command)
-                            cog_name = f"{cog}"
-                            description = command.get("description")
-                            example_image_url = command.get("example_image_url")
-                            syntax = command.get("syntax")
-                            example_syntax = command.get("example_syntax")
-                            permissions_needed = command.get("permissions_needed")
-                            aliases = command.get("aliases")
-                            notes = command.get("note")
-                            obj = self.ex.u_objects.Command(cog_name, command_name, description, example_image_url, syntax,
-                                                            example_syntax, permissions_needed, aliases, notes)
-                            cog_original_commands = self.ex.cache.original_commands[language.lower()].get(cog_name)
-                            if not cog_original_commands:
-                                self.ex.cache.original_commands[language.lower()][cog_name] = [obj]
-                            else:
-                                cog_original_commands.append(obj)
+                try:
+                    self.ex.cache.original_commands[language.lower()] = {}  # resets cogs inside of language
+                    file_path = f"{self.base_language_folder}/{language}/{self.ex.unique_command_file_name}"
+                    async with aiofiles.open(file_path, "r", encoding="UTF-8") as file:
+                        cogs = json.loads(await file.read())
+                        for cog, commands in cogs.items():
+                            for command in commands:
+                                command_name = command
+                                command = commands.get(command)
+                                cog_name = f"{cog}"
+                                description = command.get("description")
+                                example_image_url = command.get("example_image_url")
+                                syntax = command.get("syntax")
+                                example_syntax = command.get("example_syntax")
+                                permissions_needed = command.get("permissions_needed")
+                                aliases = command.get("aliases")
+                                notes = command.get("note")
+                                obj = self.ex.u_objects.Command(cog_name, command_name, description, example_image_url, syntax,
+                                                                example_syntax, permissions_needed, aliases, notes)
+                                cog_original_commands = self.ex.cache.original_commands[language.lower()].get(cog_name)
+                                if not cog_original_commands:
+                                    self.ex.cache.original_commands[language.lower()][cog_name] = [obj]
+                                else:
+                                    cog_original_commands.append(obj)
+                except Exception as e:
+                    log.console(e, method=self.create_original_command_cache)
         except FileNotFoundError:
             log.console(f"{self.ex.unique_command_file_name} was not found for creating unique command objects.",
                         method=self.create_original_command_cache)
