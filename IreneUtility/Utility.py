@@ -275,9 +275,8 @@ class Utility:
             user_id = user
 
         is_bot_mod = user_id in self.keys.mods_list or user_id == self.keys.owner_id
-        is_data_mod = user_id in self.keys.data_mods_list
         if data_mod:
-            return is_bot_mod or is_data_mod
+            return is_bot_mod or user.is_data_mod
         return is_bot_mod
 
     def get_ping(self):

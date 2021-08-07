@@ -13,7 +13,7 @@ class Patreon(Base):
     async def get_patreon_role_members(self, super_patron=False):
         """Get the members in the patreon roles.
 
-        NOTE: Translator and Proofreader roles are considered patron roles.
+        NOTE: Translator, Proofreader, and DataMod roles are considered patron roles.
         """
         support_guild = self.ex.client.get_guild(int(self.ex.keys.bot_support_server_id))
         patrons = []
@@ -25,10 +25,19 @@ class Patreon(Base):
             datamod_role = support_guild.get_role(int(self.ex.keys.datamod_role_id))
             if translator_role:
                 patrons += translator_role.members
+                for member in translator_role.members:
+                    user = await self.ex.get_user(member.id)
+                    user.is_translator = True
             if proofreader_role:
                 patrons += proofreader_role.members
+                for member in proofreader_role.members:
+                    user = await self.ex.get_user(member.id)
+                    user.is_proofreader = True
             if datamod_role:
                 patrons += datamod_role.members
+                for member in datamod_role.members:
+                    user = await self.ex.get_user(member.id)
+                    user.is_data_mod = True
         else:
             patreon_role = support_guild.get_role(int(self.ex.keys.patreon_super_role_id))
         if patreon_role:

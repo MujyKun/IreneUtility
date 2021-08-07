@@ -29,6 +29,9 @@ class User:
         self.daily_level: int = 0
         self.language: str = "en-us"
         self.in_currency_game: bool = False
+        self.is_data_mod: bool = False
+        self.is_translator: bool = False
+        self.is_proofreader: bool = False
 
     def __eq__(self, other):
         return self.id == other.id
