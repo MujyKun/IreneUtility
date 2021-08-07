@@ -318,15 +318,16 @@ class Cache(Base):
                         yield t_module, t_message_name
 
         # load the json for every language to cache
-        directories_result = await self.ex.run_blocking_code(os.listdir("languages/"))
+        base_language_folder = "languages"
+        directories_result = await self.ex.run_blocking_code(os.listdir, f"{base_language_folder}/")
         directories = directories_result[0]
         for folder_name in directories:
-            if os.path.isdir(folder_name):
+            if not os.path.isdir(f"{base_language_folder}/{folder_name}"):
                 continue
 
             await asyncio.sleep(0)  # bare yield
             self.ex.cache.languages_available.append(folder_name.lower())
-            async with aiofiles.open(f"languages/{folder_name}/messages.json") as file:
+            async with aiofiles.open(f"{base_language_folder}/{folder_name}/messages.json", encoding="UTF-8") as file:
                 self.ex.cache.languages[folder_name.lower()] = json.loads(await file.read())
 
         # make the content of all curly braces bolded in all available languages.
