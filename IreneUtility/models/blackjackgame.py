@@ -4,7 +4,7 @@ import discord.ext.commands
 
 from . import Game as Game_Base, User, PlayingCard
 from ..util import u_logger as log
-from typing import List
+from typing import List, Optional
 import asyncio
 
 
@@ -18,7 +18,7 @@ class BlackJackGame(Game_Base):
         """
         super().__init__(*args)
         self.first_player: User = first_player
-        self.second_player: User = None
+        self.second_player: Optional[User] = None
 
         self.first_player.in_currency_game = True  # set first person to be in a game.
 
@@ -31,7 +31,7 @@ class BlackJackGame(Game_Base):
         self.second_player_stand = False
 
         # we need the display name of second player, so we will hold their Context.
-        self.second_player_ctx: discord.ext.commands.Context = None
+        self.second_player_ctx: Optional[discord.ext.commands.Context] = None
 
         # player bets
         self.first_player_bet: int = first_player_bet

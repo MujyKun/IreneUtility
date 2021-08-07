@@ -26,7 +26,10 @@ class BlackJack(Base):
             user = await self.ex.get_user(user)
 
         for blackjack_game in self.ex.cache.blackjack_games:
-            if user in [blackjack_game.first_player, blackjack_game.second_player]:
+            player_check_list = [blackjack_game.first_player]
+            if blackjack_game.second_player:
+                player_check_list.append(blackjack_game.second_player)
+            if user in player_check_list:
                 return blackjack_game
 
     async def generate_playing_cards(self):
