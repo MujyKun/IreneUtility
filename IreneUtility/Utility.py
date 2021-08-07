@@ -506,6 +506,8 @@ class Utility:
         :param language: The language to fetch.
         """
         language_commands: dict = self.cache.original_commands.get(language)
+        if not language_commands and language != "en-us":
+            language_commands = self.cache.original_commands.get("en-us")
         cog_commands = language_commands.get(cog_name)
         for command in cog_commands:
             if command.command_name == command_name:
