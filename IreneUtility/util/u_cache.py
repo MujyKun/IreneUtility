@@ -327,11 +327,9 @@ class Cache(Base):
 
         # load the json for every language to cache
         directories_result = await self.ex.run_blocking_code(os.listdir, f"{self.base_language_folder}/")
-        self.language_folders = directories_result[0]
+        self.language_folders = [folder_name for folder_name in directories_result[0]
+                                 if os.path.isdir(f"{self.base_language_folder}/{folder_name}")]
         for folder_name in self.language_folders:
-            if not os.path.isdir(f"{self.base_language_folder}/{folder_name}"):
-                continue
-
             await asyncio.sleep(0)  # bare yield
             self.ex.cache.languages_available.append(folder_name.lower())
             async with aiofiles.open(f"{self.base_language_folder}/{folder_name}/messages.json", encoding="UTF-8") \
