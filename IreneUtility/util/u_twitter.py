@@ -136,8 +136,7 @@ class Twitter(Base):
         if not ctx:
             return True
 
-        accounts_followed_results = await self.ex.run_blocking_code(self.get_accounts_followed_in_server, ctx)
-        accounts_followed = accounts_followed_results[0]
+        accounts_followed = await self.get_accounts_followed_in_server(ctx)
 
         if accounts_followed < self.ex.keys.twitter_update_limit:
             return True
