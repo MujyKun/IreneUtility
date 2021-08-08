@@ -136,7 +136,8 @@ class Twitter(Base):
         if not ctx:
             return True
 
-        accounts_followed = await self.get_accounts_followed_in_server(ctx)
+        accounts_followed_results = await self.ex.run_blocking_code(self.get_accounts_followed_in_server(ctx))
+        accounts_followed = accounts_followed_results[0]
 
         if accounts_followed < self.ex.keys.twitter_update_limit:
             return True
@@ -153,7 +154,7 @@ class Twitter(Base):
         ])
         raise self.ex.exceptions.Limit(msg)
 
-    async def get_accounts_followed_in_server(self, ctx: commands.Context) -> int:
+    def get_accounts_followed_in_server(self, ctx: commands.Context) -> int:
         """
         Get the total amount of channels followed in the server.
 
