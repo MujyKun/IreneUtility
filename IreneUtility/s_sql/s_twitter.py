@@ -1,3 +1,5 @@
+from typing import Union
+
 from . import self
 
 
@@ -47,3 +49,17 @@ async def fetch_followed_channels():
     Fetch all followed twitter channels.
     """
     return await self.conn.fetch("SELECT channelid, roleid, twitterid FROM twitter.followers")
+
+
+async def fetch_active_channel_count(channel_ids: Union[list, tuple]) -> int:
+    """Fetch the amount of channels that are active from a list.
+
+
+    This is especially useful for checking the channel IDs of a guild.
+    :param channel_ids: A list of channel IDS.
+    """
+    if isinstance(channel_ids, list):
+        channel_ids = tuple(channel_ids)
+
+    return await self.conn.fetchrow("SELECT COUNT(*) FROM twitter.followers WHERE channelid IN $1", channel_ids)[0]
+

@@ -154,24 +154,22 @@ class Twitter(Base):
         ])
         raise self.ex.exceptions.Limit(msg)
 
-    def get_accounts_followed_in_server(self, ctx: commands.Context) -> int:
+    async def get_accounts_followed_in_server(self, ctx: commands.Context) -> int:
         """
         Get the total amount of channels followed in the server.
 
         :param ctx: Context object
         :returns: Total amount of accounts followed in the server.
         """
-        accounts_followed = 0
         try:
+            # NOTE: This method used to check cache, but the process was extremely slow unless
+            # guild to channel information is provided.
+            # A DB call would be much more efficient than iterating through every TwitterChannel.
             channel_ids = [channel.id for channel in ctx.guild.channels]
-            twitter_objs = self.ex.cache.twitter_channels.copy().values()
-            for twitter_obj in twitter_objs:
-                bool_results = twitter_obj.check_channels_followed(channel_ids)
-                accounts_followed += bool_results.count(True)
-
+            return await self.ex.sql.s_twitter.fetch_active_channel_count(channel_ids)
         except Exception as e:
             log.useless(f"{e} (Exception)", method=self.get_accounts_followed_in_server)
-        return accounts_followed
+        return 0
 
     async def unfollow_twitter(self, channel, twitter_channel_id):
         """
