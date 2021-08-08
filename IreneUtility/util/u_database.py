@@ -31,6 +31,9 @@ class DataBase(Base):
     @tasks.loop(seconds=0, minutes=1, reconnect=True)
     async def show_irene_alive(self):
         """Looped every minute to send a connection to localhost:5123 to show bot is working well."""
+        while not self.ex.irene_cache_loaded:
+            await asyncio.sleep(1)
+
         source_link = "http://127.0.0.1:5123/restartBot"
         async with self.ex.session.get(source_link):
             pass

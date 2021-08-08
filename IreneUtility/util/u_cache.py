@@ -833,4 +833,7 @@ class Cache(Base):
     @tasks.loop(seconds=0, minutes=1, hours=0, reconnect=True)
     async def send_cache_data_to_data_dog(self):
         """Sends metric information about cache to data dog every minute."""
+        if not self.ex.irene_cache_loaded:
+            return
+
         await self.ex.run_blocking_code(self.ex.u_data_dog.send_metrics)
