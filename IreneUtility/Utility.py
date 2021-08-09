@@ -11,6 +11,7 @@ import random
 import asyncio
 import os
 import tweepy
+import aiofiles
 from . import models, s_sql, util
 
 # do not import in runtime. This is used for type-hints.
@@ -565,3 +566,13 @@ class Utility:
         except Exception as e:
             log.console(f"{e} (Exception)", method=self.run_blocking_code, event_loop=self.client.loop)
         return []
+
+    async def download_image(self, link, file_loc):
+        """Download an image.
+
+        :param link: Image Link to download
+        :param file_loc: Location to download the image to.
+        """
+        async with self.session.get(link) as resp:
+            fd = await aiofiles.open(file_loc, mode='wb')
+            await fd.write(await resp.read())

@@ -118,6 +118,7 @@ class Keys:
         self.translator_role_id: int = self.get_kwarg("translator_role_id")
         self.proofreader_role_id: int = self.get_kwarg("proofreader_role_id")
         self.datamod_role_id: int = self.get_kwarg("datamod_role_id")
+        self.datamod_log_channel_id: int = self.get_kwarg("datamod_log_channel_id")
 
         """AioHTTP"""
         self.client_session: AioHTTPClient = self.get_kwarg("client_session")  # aiohttp client session

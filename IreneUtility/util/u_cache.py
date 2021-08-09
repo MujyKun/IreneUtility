@@ -534,28 +534,7 @@ class Cache(Base):
 
         for idol in await self.ex.sql.s_groupmembers.fetch_all_idols():
             await asyncio.sleep(0)  # bare yield
-            idol_obj = self.ex.u_objects.Idol(**idol)
-            idol_obj.aliases, idol_obj.local_aliases = await self.ex.u_group_members.get_db_aliases(idol_obj.id)
-            # add all group ids and remove potential duplicates
-            idol_obj.groups = list(dict.fromkeys(await self.ex.u_group_members.get_db_groups_from_member(idol_obj.id)))
-            idol_obj.called = await self.ex.u_group_members.get_db_idol_called(idol_obj.id)
-            idol_obj.photo_count = self.ex.cache.idol_photos.get(idol_obj.id) or 0
-            self.ex.cache.idols.append(idol_obj)
-
-            if not idol_obj.photo_count:
-                continue
-
-            # all of the below conditions must be idols with photos.
-            if idol_obj.gender == 'f':
-                self.ex.cache.idols_female.add(idol_obj)
-            if idol_obj.gender == 'm':
-                self.ex.cache.idols_male.add(idol_obj)
-            # add all idols to the hard difficulty
-            self.ex.cache.idols_hard.add(idol_obj)
-            if idol_obj.difficulty in ['medium', 'easy']:
-                self.ex.cache.idols_medium.add(idol_obj)
-            if idol_obj.difficulty == 'easy':
-                self.ex.cache.idols_easy.add(idol_obj)
+            await self.ex.u_group_members.add_idol_to_cache(**idol)
 
         self.ex.cache.gender_selection['all'] = set(self.ex.cache.idols)
 
@@ -564,15 +543,7 @@ class Cache(Base):
         self.ex.cache.groups = []
 
         for group in await self.ex.sql.s_groupmembers.fetch_all_groups():
-            await asyncio.sleep(0)  # bare yield
-            group_obj = self.ex.u_objects.Group(**group)
-            group_obj.aliases, group_obj.local_aliases = await self.ex.u_group_members.get_db_aliases(group_obj.id,
-                                                                                                      group=True)
-            # add all idol ids and remove potential duplicates
-            group_obj.members = list(
-                dict.fromkeys(await self.ex.u_group_members.get_db_members_in_group(group_obj.id)))
-            group_obj.photo_count = self.ex.cache.group_photos.get(group_obj.id) or 0
-            self.ex.cache.groups.append(group_obj)
+            await self.ex.u_group_members.add_group_to_cache(**group)
 
     async def process_session(self):
         """Sets the new session id, total used, and time format for distinguishing days."""

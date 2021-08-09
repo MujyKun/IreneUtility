@@ -1,6 +1,16 @@
 from . import self
 
 
+IDOL_COLUMNS = ["fullname", "stagename", "formerfullname", "formerstagename", "birthdate", "birthcountry",
+                "birthcity", "gender", "description", "height", "twitter", "youtube", "melon", "instagram",
+                "vlive", "spotify", "fancafe", "facebook", "tiktok", "zodiac", "thumbnail", "banner",
+                "bloodtype", "tags", "difficulty"]
+
+GROUP_COLUMNS = ["groupname", "debutdate", "disbanddate", "description", "twitter", "youtube", "melon", "instagram",
+                 "vlive", "spotify", "fancafe", "facebook", "tiktok", "fandom", "company", "website", "thumbnail",
+                 "banner", "gender", "tags"]
+
+
 async def fetch_restricted_channels():
     """Fetch all restricted idol photo channels."""
     return await self.conn.fetch("SELECT channelid, serverid, sendhere FROM groupmembers.restricted")
@@ -20,10 +30,7 @@ async def fetch_all_images():
 
 async def fetch_all_idols():
     """Fetch all idols."""
-    return await self.conn.fetch("""SELECT id, fullname, stagename, formerfullname, formerstagename, birthdate,
-            birthcountry, birthcity, gender, description, height, twitter, youtube, melon, instagram, vlive, spotify,
-            fancafe, facebook, tiktok, zodiac, thumbnail, banner, bloodtype, tags, difficulty
-            FROM groupmembers.Member ORDER BY id""")
+    return await self.conn.fetch(f"SELECT id, {', '.join(IDOL_COLUMNS)} FROM groupmembers.member ORDER BY id")
 
 
 async def fetch_all_groups():
@@ -94,3 +101,82 @@ async def get_idol_id_by_image_id(image_id: int):
     """
     member = await self.conn.fetchrow("SELECT memberid FROM groupmembers.imagelinks WHERE id = $1", image_id)
     return None if not member else member[0]
+
+
+async def insert_new_idol(*args):
+    """
+    Insert a new idol.
+    """
+    await self.conn.execute(f"INSERT INTO groupmembers.member({IDOL_COLUMNS}) VALUES "
+                            f"({', '.join([f'${value}' for value in range(1, len(IDOL_COLUMNS) + 1)])})", *args)
+
+
+async def fetch_latest_idol(full_name, stage_name):
+    """
+    Fetch the latest idol with a specific full name and stage name.
+
+    :param full_name: Full name of the idol.
+    :param stage_name: Stage name of the idol.
+    :returns: Latest Idol Information
+    """
+    return await self.conn.fetchrow(f"SELECT id, {', '.join(IDOL_COLUMNS)} FROM groupmembers.member WHERE "
+                                    f"fullname = $1, stagename = $ 2 ORDER BY id DESC", full_name, stage_name)
+
+
+async def fetch_latest_group(group_name):
+    """
+    Fetch the latest group with a specific group name.
+
+    :param group_name: Name of the group.
+    :returns: Latest Group Information
+    """
+    return await self.conn.fetchrow(f"SELECT id, {', '.join(GROUP_COLUMNS)} FROM groupmembers.groups WHERE "
+                                    f"groupname=$1 ORDER BY id DESC", group_name)
+
+
+async def insert_new_group(*args):
+    """
+    Insert a new group.
+    """
+    await self.conn.execute(f"INSERT INTO groupmembers.groups({', '.join(GROUP_COLUMNS)}) VALUES "
+                            f"({', '.join([f'${value}' for value in range(1, len(GROUP_COLUMNS) + 1)])})", *args)
+
+
+async def set_member_banner(idol_id, image_url):
+    """
+    Set the banner of an idol.
+
+    :param idol_id: Idol ID to set the banner for.
+    :param image_url: Image url to set the banner to.
+    """
+    await self.conn.execute("UPDATE groupmembers.member SET banner = $1 WHERE id = $2", image_url, idol_id)
+
+
+async def set_member_thumbnail(idol_id, image_url):
+    """
+    Set the thumbnail of an idol.
+
+    :param idol_id: Idol ID to set the thumbnail for.
+    :param image_url: Image url to set the thumbnail to.
+    """
+    await self.conn.execute("UPDATE groupmembers.member SET thumbnail = $1 WHERE id = $2", image_url, idol_id)
+
+
+async def set_group_banner(group_id, image_url):
+    """
+    Set the banner of a group.
+
+    :param group_id: Group ID to set the banner for.
+    :param image_url: Image url to set the banner to.
+    """
+    await self.conn.execute("UPDATE groupmembers.groups SET banner = $1 WHERE groupid = $2", image_url, group_id)
+
+
+async def set_group_thumbnail(group_id, image_url):
+    """
+    Set the thumbnail of a group.
+
+    :param group_id: Group ID to set the thumbnail for.
+    :param image_url: Image url to set the thumbnail to.
+    """
+    await self.conn.execute("UPDATE groupmembers.groups SET thumbnail = $1 WHERE groupid = $2", image_url, group_id)
