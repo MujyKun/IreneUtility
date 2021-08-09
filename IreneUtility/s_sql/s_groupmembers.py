@@ -131,7 +131,7 @@ async def fetch_latest_group(group_name):
     :returns: Latest Group Information
     """
     return await self.conn.fetchrow(f"SELECT groupid, {', '.join(GROUP_COLUMNS)} FROM groupmembers.groups WHERE "
-                                    f"groupname=$1 ORDER BY id DESC", group_name)
+                                    f"groupname=$1 ORDER BY groupid DESC", group_name)
 
 
 async def insert_new_group(*args):
