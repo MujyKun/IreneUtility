@@ -141,13 +141,13 @@ class Twitter(Base):
         if accounts_followed < self.ex.keys.twitter_update_limit:
             return True
 
+        patron_status = await self.ex.u_patreon.check_if_patreon(ctx.author.id)
         if self.twitter_update_patron_limit > accounts_followed >= self.ex.keys.twitter_update_limit:
-            patron_status = await self.ex.u_patreon.check_if_patreon(ctx.author.id)
             if patron_status:
                 return True
 
         msg = await self.ex.get_msg(ctx, "twitter", "update_limit", [
-            ["integer", self.ex.keys.twitter_update_limit],
+            ["integer", self.ex.keys.twitter_update_limit if not patron_status else self.twitter_update_patron_limit],
             ["server_prefix", await self.ex.get_server_prefix(ctx)],
             ["integer2", self.twitter_update_patron_limit]
         ])
