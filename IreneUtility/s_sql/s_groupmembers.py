@@ -120,7 +120,7 @@ async def fetch_latest_idol(full_name, stage_name):
     :returns: Latest Idol Information
     """
     return await self.conn.fetchrow(f"SELECT id, {', '.join(IDOL_COLUMNS)} FROM groupmembers.member WHERE "
-                                    f"fullname = $1 AND stagename = $ 2 ORDER BY id DESC", full_name, stage_name)
+                                    f"fullname = $1 AND stagename = $2 ORDER BY id DESC", full_name, stage_name)
 
 
 async def fetch_latest_group(group_name):
