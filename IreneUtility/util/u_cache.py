@@ -543,6 +543,7 @@ class Cache(Base):
         self.ex.cache.groups = []
 
         for group in await self.ex.sql.s_groupmembers.fetch_all_groups():
+            await asyncio.sleep(0)  # bare yield
             await self.ex.u_group_members.add_group_to_cache(**group)
 
     async def process_session(self):
