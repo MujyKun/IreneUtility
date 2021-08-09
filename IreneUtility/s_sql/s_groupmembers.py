@@ -107,7 +107,7 @@ async def insert_new_idol(*args):
     """
     Insert a new idol.
     """
-    await self.conn.execute(f"INSERT INTO groupmembers.member({IDOL_COLUMNS}) VALUES "
+    await self.conn.execute(f"INSERT INTO groupmembers.member({', '.join(IDOL_COLUMNS)}) VALUES "
                             f"({', '.join([f'${value}' for value in range(1, len(IDOL_COLUMNS) + 1)])})", *args)
 
 
