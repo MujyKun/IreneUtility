@@ -1087,7 +1087,8 @@ class GroupMembers(Base):
             await self.add_idol_to_group(idol_obj.id, group_id)
             idol_obj.groups.append(group_id)
 
-        await self.fix_links()
+        if not self.ex.test_bot:
+            await self.fix_links()
         return idol_obj
 
     async def add_new_group(self, group_name, *args) -> models.Group:
@@ -1100,7 +1101,8 @@ class GroupMembers(Base):
         group_obj = await self.add_group_to_cache(
             **(await self.ex.sql.s_groupmembers.fetch_latest_group(group_name)))
 
-        await self.fix_links()
+        if not self.ex.test_bot:
+            await self.fix_links()
         return group_obj
 
     async def fix_links(self):
