@@ -1069,7 +1069,7 @@ class GroupMembers(Base):
         except:
             return None
 
-    async def add_new_idol(self, full_name, stage_name, group_ids: List[str], *args):
+    async def add_new_idol(self, full_name, stage_name, group_ids: List[str], *args) -> models.Idol:
         """Add new idol to DB and Cache.
 
         :param full_name: Full name of the Idol.
@@ -1088,8 +1088,9 @@ class GroupMembers(Base):
             idol_obj.groups.append(group_id)
 
         await self.fix_links()
+        return idol_obj
 
-    async def add_new_group(self, group_name, *args):
+    async def add_new_group(self, group_name, *args) -> models.Group:
         """Add new Group to the DB and cache.
 
         :param group_name: Group name of the group.
@@ -1100,6 +1101,7 @@ class GroupMembers(Base):
             **(await self.ex.sql.s_groupmembers.fetch_latest_group(group_name)))
 
         await self.fix_links()
+        return group_obj
 
     async def fix_links(self):
         """Fix all idol/group images that aren't located on the host."""
