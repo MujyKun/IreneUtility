@@ -130,7 +130,7 @@ async def fetch_latest_group(group_name):
     :param group_name: Name of the group.
     :returns: Latest Group Information
     """
-    return await self.conn.fetchrow(f"SELECT id, {', '.join(GROUP_COLUMNS)} FROM groupmembers.groups WHERE "
+    return await self.conn.fetchrow(f"SELECT groupid, {', '.join(GROUP_COLUMNS)} FROM groupmembers.groups WHERE "
                                     f"groupname=$1 ORDER BY id DESC", group_name)
 
 
