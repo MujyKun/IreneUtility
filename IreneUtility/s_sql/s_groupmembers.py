@@ -1,3 +1,5 @@
+from typing import List
+
 from . import self
 
 
@@ -215,7 +217,14 @@ async def delete_data_mod(user_id: int):
     await self.conn.execute("DELETE FROM groupmembers.datamods WHERE userid = $1", user_id)
 
 
-async def fetch_data_mods():
-    """Fetch data mods"""
-    return await self.conn.fetch("SELECT userid FROM groupmembers.datamods")
+async def fetch_data_mods() -> List[int]:
+    """Fetch data mods
+
+    :returns: (List[int]) A list of user ids.
+    """
+    user_ids = await self.conn.fetch("SELECT userid FROM groupmembers.datamods")
+    if not user_ids:
+        return []
+    else:
+        return [record[0] for record in user_ids]
 
