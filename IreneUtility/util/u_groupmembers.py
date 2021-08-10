@@ -1158,3 +1158,29 @@ class GroupMembers(Base):
         group_obj.photo_count = self.ex.cache.group_photos.get(group_obj.id) or 0
         self.ex.cache.groups.append(group_obj)
         return group_obj
+
+    async def update_info(self, obj_id, column, content, group=False):
+        """Update the information of an idol/group in cache and db.
+
+        :param obj_id: (int) Idol/Group ID
+        :param column: (str) Column name
+        :param content: (str) Content to update with.
+        :param group: (bool) If the object is a group.
+        """
+        if group:
+            if column.lower() not in self.ex.sql.s_groupmembers.GROUP_COLUMNS:
+                raise NotImplementedError
+        else:
+            if column.lower() not in self.ex.sql.s_groupmembers.IDOL_COLUMNS:
+                raise NotImplementedError
+
+        obj = await self.get_group(obj_id) if group else await self.get_member(obj_id)
+        if not obj:
+            raise KeyError
+
+        obj.set_attribute(column, content)
+
+        await self.ex.sql.s_groupmembers.update_info(obj_id, column, content, group)
+
+
+

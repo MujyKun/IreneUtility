@@ -57,3 +57,25 @@ class Group:
             if base_util.ex.check_file_exists(file_loc):
                 await base_util.ex.sql.s_groupmembers.set_group_banner(self.id, image_url)
                 self.banner = image_url
+
+    def set_attribute(self, column, content):
+        """Sets the attribute for a column in the DB.
+
+        :param column: Column Name in DB
+        :param content: Content to set the attribute to.
+        """
+        key_to_replace = None
+        for key, value in self.__dict__.items():
+            if column == "groupname":
+                key_to_replace = "name"
+                break
+
+            altered_key = key.replace(" ", "")
+            altered_key = altered_key.replace("_", "")
+
+            if column.lower() == altered_key:
+                key_to_replace = key
+                break  # we do not want to raise an exception of the object data changing.
+
+        if key_to_replace:
+            self.__dict__[key_to_replace] = content
