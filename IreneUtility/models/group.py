@@ -52,7 +52,7 @@ class Group:
         if self.banner:
             file_loc = f"{base_util.ex.keys.idol_banner_location}{file_name}"
             if 'images.irenebot.com' not in self.banner:
-                await base_util.download_image(self.banner, file_loc)
+                await base_util.ex.download_image(self.banner, file_loc)
             image_url = f"https://images.irenebot.com/banner/{file_name}"
             if base_util.ex.check_file_exists(file_loc):
                 await base_util.ex.sql.s_groupmembers.set_group_banner(self.id, image_url)
