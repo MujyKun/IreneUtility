@@ -1181,6 +1181,7 @@ class GroupMembers(Base):
         obj.set_attribute(column, content)
 
         await self.ex.sql.s_groupmembers.update_info(obj_id, column, content, group)
+        return obj
 
 
 
