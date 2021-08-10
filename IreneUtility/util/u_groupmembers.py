@@ -1167,6 +1167,8 @@ class GroupMembers(Base):
         :param content: (str) Content to update with.
         :param group: (bool) If the object is a group.
         """
+        obj_id = int(obj_id)
+
         if group:
             if column.lower() not in self.ex.sql.s_groupmembers.GROUP_COLUMNS:
                 raise NotImplementedError

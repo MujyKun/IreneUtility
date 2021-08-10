@@ -64,6 +64,9 @@ class Group:
         :param column: Column Name in DB
         :param content: Content to set the attribute to.
         """
+        if column.lower() == "id":
+            raise NotImplementedError
+
         key_to_replace = None
         for key, value in self.__dict__.items():
             if column == "groupname":
