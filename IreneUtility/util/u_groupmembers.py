@@ -44,6 +44,7 @@ class GroupMembers(Base):
 
     async def set_global_alias(self, obj, alias):
         """Set an idol/group alias for the bot."""
+        alias = alias.lower()
         obj.aliases.append(alias)
         is_group = int(not self.check_idol_object(obj))
         await self.ex.conn.execute("INSERT INTO groupmembers.aliases(objectid, alias, isgroup) VALUES($1, $2, $3)",
@@ -52,6 +53,7 @@ class GroupMembers(Base):
 
     async def set_local_alias(self, obj, alias, server_id):
         """Set an idol/group alias for a server"""
+        alias = alias.lower()
         local_aliases = obj.local_aliases.get(server_id)
         if local_aliases:
             local_aliases.append(alias)
@@ -1183,6 +1185,7 @@ class GroupMembers(Base):
         obj.set_attribute(column, content)
 
         await self.ex.sql.s_groupmembers.update_info(obj_id, column, content, group)
+
         return obj
 
 
