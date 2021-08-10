@@ -82,7 +82,8 @@ class Cache(Base):
             [self.request_twitter_channel, "Twitter Channel"],
             [self.create_original_command_cache, "Original Commands"],
             [self.create_vlive_followers_cache, "Vlive Text Channel Followers"],
-            [self.create_twitter_followers_cache, "Twitter Text Channel Followers"]
+            [self.create_twitter_followers_cache, "Twitter Text Channel Followers"],
+            [self.create_data_mod_cache, "Data Mods"]
             # [self.create_image_cache, "Image"],
 
         ]
@@ -103,6 +104,14 @@ class Cache(Base):
             self.ex.cache.maintenance_mode = False
             self.ex.cache.maintenance_reason = None
         self.ex.irene_cache_loaded = True
+
+    async def create_data_mod_cache(self):
+        """Create the cache for data mods."""
+
+        for user_id in await self.ex.sql.s_groupmembers.fetch_data_mods():
+            user = await self.ex.get_user(user_id)
+            user.is_data_mod = True
+            # we do not need to set their patron status because it is already in patron cache.
 
     async def create_twitter_followers_cache(self):
         """Create the cache for Text Channels following an Idol or Group's Twitter.

@@ -197,3 +197,25 @@ async def update_info(obj_id: int, column: str, content: str, group=False):
     id_name = "id" if not group else "groupid"
     await self.conn.execute(f"UPDATE groupmembers.{table_name} SET {column} = $1 WHERE {id_name} = $2",
                             content, obj_id)
+
+
+async def insert_data_mod(user_id: int):
+    """Insert a data mod.
+
+    :param user_id: User ID of the data mod to remove.
+    """
+    await self.conn.execute("INSERT INTO groupmembers.datamods(userid) VALUES($1)", user_id)
+
+
+async def delete_data_mod(user_id: int):
+    """Delete a data mod.
+
+    :param user_id: User ID of the data mod to remove.
+    """
+    await self.conn.execute("DELETE FROM groupmembers.datamods WHERE userid = $1", user_id)
+
+
+async def fetch_data_mods():
+    """Fetch data mods"""
+    return await self.conn.fetch("SELECT userid FROM groupmembers.datamods")
+

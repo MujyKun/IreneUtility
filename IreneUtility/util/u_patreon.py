@@ -37,7 +37,19 @@ class Patreon(Base):
                 patrons += datamod_role.members
                 for member in datamod_role.members:
                     user = await self.ex.get_user(member.id)
-                    user.is_data_mod = True
+                    if not user.is_data_mod:
+                        # we should have had the data mod cache load them already.
+                        try:
+                            await self.ex.sql.s_groupmembers.insert_data_mod(user.id)
+                        except:
+                            ...  # possible duplicate error.
+                        user.is_data_mod = True
+                current_data_mod_ids = [member.id for member in datamod_role.members]
+                current_cached_data_mods = [user_id for user_id in await self.ex.sql.s_groupmembers.fetch_data_mods()]
+                for data_mod_id in current_cached_data_mods:
+                    if data_mod_id not in current_data_mod_ids:
+                        await self.ex.sql.s_groupmembers.delete_data_mod(data_mod_id)
+
         else:
             patreon_role = support_guild.get_role(int(self.ex.keys.patreon_super_role_id))
         if patreon_role:
