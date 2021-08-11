@@ -1169,6 +1169,12 @@ class GroupMembers(Base):
         """
         obj_id = int(obj_id)
 
+        try:
+            # if the user passed in an integer, we should change the type to not cause db issues.
+            content = int(content)
+        except:
+            ...
+
         if group:
             if column.lower() not in self.ex.sql.s_groupmembers.GROUP_COLUMNS:
                 raise NotImplementedError

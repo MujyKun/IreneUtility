@@ -184,7 +184,7 @@ async def set_group_thumbnail(group_id, image_url):
     await self.conn.execute("UPDATE groupmembers.groups SET thumbnail = $1 WHERE groupid = $2", image_url, group_id)
 
 
-async def update_info(obj_id: int, column: str, content: str, group=False):
+async def update_info(obj_id: int, column: str, content, group=False):
     """
     Update the information of an idol/group.
 
@@ -192,7 +192,7 @@ async def update_info(obj_id: int, column: str, content: str, group=False):
 
     :param obj_id: (int) Idol/Group ID
     :param column: (str) Column name
-    :param content: (str) Content to update with.
+    :param content: Content to update with.
     :param group: (bool) If the object is a group.
     """
     table_name = "member" if not group else "groups"
