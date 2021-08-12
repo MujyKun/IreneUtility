@@ -1187,8 +1187,7 @@ class GroupMembers(Base):
 
         date = None
         if column.lower() in self.ex.sql.s_groupmembers.DATE_COLUMNS:
-            from datetime import datetime
-            date = datetime.strptime(content, "%Y-%m-%d")
+            date = datetime.datetime.strptime(content, "%Y-%m-%d")
 
         obj = await self.get_group(obj_id) if group else await self.get_member(obj_id)
         if not obj:
