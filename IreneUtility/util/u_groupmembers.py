@@ -269,11 +269,14 @@ class GroupMembers(Base):
 
     async def add_idol_to_group(self, member_id: int, group_id: int):
         (await self.ex.u_group_members.get_group(group_id)).members.append(member_id)
+        (await self.ex.u_group_members.get_member(member_id)).groups.append(group_id)
         return await self.ex.conn.execute("INSERT INTO groupmembers.idoltogroup(idolid, groupid) VALUES($1, $2)",
                                           member_id, group_id)
 
     async def remove_idol_from_group(self, member_id: int, group_id: int):
         (await self.ex.u_group_members.get_group(group_id)).members.remove(member_id)
+        (await self.ex.u_group_members.get_member(member_id)).groups.remove(group_id)
+
         return await self.ex.conn.execute("DELETE FROM groupmembers.idoltogroup WHERE idolid = $1 AND groupid = $2",
                                           member_id, group_id)
 
