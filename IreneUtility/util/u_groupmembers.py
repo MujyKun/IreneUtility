@@ -1193,7 +1193,7 @@ class GroupMembers(Base):
 
         obj.set_attribute(column, content)
 
-        await self.ex.sql.s_groupmembers.update_info(obj_id, date if date else column, content, group)
+        await self.ex.sql.s_groupmembers.update_info(obj_id, column, date if date else content, group)
 
         return obj
 
