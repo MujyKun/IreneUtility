@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 from . import self
 
@@ -44,11 +44,20 @@ async def unfollow(channel_id: int, twitter_id: str):
                             channel_id, twitter_id.lower())
 
 
-async def fetch_followed_channels():
+async def fetch_followed_channels(channel_id: Optional[int] = None):
     """
     Fetch all followed twitter channels.
+
+    Can also be used to fetch a channel's twitter channels.
+    :param channel_id: (Optional[int])
     """
-    return await self.conn.fetch("SELECT channelid, roleid, twitterid FROM twitter.followers")
+    query = "SELECT channelid, roleid, twitterid FROM twitter.followers"
+    args = {}
+    if channel_id:
+        query += " WHERE channelid = $1"
+        args = {channel_id}
+
+    return await self.conn.fetch(query, *args)
 
 
 async def fetch_active_channel_count(channel_ids: Union[list, tuple]) -> int:

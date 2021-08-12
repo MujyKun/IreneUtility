@@ -3,6 +3,9 @@ from typing import List
 from . import self
 
 
+DATE_COLUMNS = ["birthdate", "debutdate", "disbanddate"]
+
+
 IDOL_COLUMNS = ["fullname", "stagename", "formerfullname", "formerstagename", "birthdate", "birthcountry",
                 "birthcity", "gender", "description", "height", "twitter", "youtube", "melon", "instagram",
                 "vlive", "spotify", "fancafe", "facebook", "tiktok", "zodiac", "thumbnail", "banner",

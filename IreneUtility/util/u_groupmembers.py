@@ -1182,13 +1182,18 @@ class GroupMembers(Base):
             if column.lower() not in self.ex.sql.s_groupmembers.IDOL_COLUMNS:
                 raise NotImplementedError
 
+        date = None
+        if column.lower() in self.ex.sql.s_groupmembers.DATE_COLUMNS:
+            from datetime import datetime
+            date = datetime.strptime(content, "%Y-%m-%d")
+
         obj = await self.get_group(obj_id) if group else await self.get_member(obj_id)
         if not obj:
             raise KeyError
 
         obj.set_attribute(column, content)
 
-        await self.ex.sql.s_groupmembers.update_info(obj_id, column, content, group)
+        await self.ex.sql.s_groupmembers.update_info(obj_id, date if date else column, content, group)
 
         return obj
 
