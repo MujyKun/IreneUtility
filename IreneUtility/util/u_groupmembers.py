@@ -877,7 +877,7 @@ class GroupMembers(Base):
 
         :returns: (bool) True if the limit was passed.
         """
-        user = await self.ex.get_user(message_sender)
+        user = await self.ex.get_user(message_sender.id)
 
         if not user.idol_calls:
             return
@@ -898,8 +898,7 @@ class GroupMembers(Base):
                     ['bot_id', self.ex.keys.bot_id],
                     ['patreon_link', self.ex.keys.patreon_link]
                 ]))
-
-            return True
+                return True
 
     # noinspection PyPep8
     async def request_image_post(self, message, idol, channel):
@@ -935,6 +934,8 @@ class GroupMembers(Base):
                 if not await self.check_user_limit(message.author, channel):
                     # this is a successful post.
                     raise self.ex.exceptions.Pass
+
+                return  # do not need to go past this point since we raise a pass exception for success.
 
         except self.ex.exceptions.Pass:
             # an image should be posted without going through further checks.
