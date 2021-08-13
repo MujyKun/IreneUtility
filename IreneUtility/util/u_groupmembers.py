@@ -21,6 +21,12 @@ class GroupMembers(Base):
         self.successful_codes = [200, 301, 415]
 
     async def get_if_user_voted(self, user_id):
+        """
+        Check if a user voted:
+
+        :param user_id: The user's ID.
+        :returns: (bool) True if they voted in the past 24 hours.
+        """
         time_stamp = self.ex.first_result(
             await self.ex.conn.fetchrow("SELECT votetimestamp FROM general.lastvoted WHERE userid = $1", user_id))
         if time_stamp:
@@ -32,6 +38,12 @@ class GroupMembers(Base):
         log.console(f"{user_id} has not voted in the past 24 hours.", method=self.get_if_user_voted)
 
     def check_idol_object(self, obj):
+        """
+        Check if we are dealing with an Idol object
+
+        :param obj: Object to check.
+        :returns: (bool) Whether the object is an Idol.
+        """
         return isinstance(obj, self.ex.u_objects.Idol)
 
     async def send_vote_message(self, message):
@@ -47,9 +59,7 @@ class GroupMembers(Base):
         alias = alias.lower()
         obj.aliases.append(alias)
         is_group = int(not self.check_idol_object(obj))
-        await self.ex.conn.execute("INSERT INTO groupmembers.aliases(objectid, alias, isgroup) VALUES($1, $2, $3)",
-                                   obj.id,
-                                   alias, is_group)
+        await self.ex.sql.s_groupmembers.set_global_alias(obj.id, alias, is_group)
 
     async def set_local_alias(self, obj, alias, server_id):
         """Set an idol/group alias for a server"""
@@ -60,17 +70,13 @@ class GroupMembers(Base):
         else:
             obj.local_aliases[server_id] = [alias]
         is_group = int(not self.check_idol_object(obj))
-        await self.ex.conn.execute(
-            "INSERT INTO groupmembers.aliases(objectid, alias, isgroup, serverid) VALUES($1, $2, $3, $4)", obj.id,
-            alias, is_group, server_id)
+        await self.ex.sql.s_groupmembers.set_local_alias(obj.id, alias, is_group, server_id)
 
     async def remove_global_alias(self, obj, alias):
         """Remove a global idol/group alias """
         obj.aliases.remove(alias)
         is_group = int(not self.check_idol_object(obj))
-        await self.ex.conn.execute(
-            "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND objectid = $3 AND serverid IS NULL",
-            alias, is_group, obj.id)
+        await self.ex.sql.s_groupmembers.remove_global_alias(obj.id, alias, is_group)
 
     async def remove_local_alias(self, obj, alias, server_id):
         """Remove a server idol/group alias"""
@@ -78,9 +84,7 @@ class GroupMembers(Base):
         local_aliases = obj.local_aliases.get(server_id)
         if local_aliases:
             local_aliases.remove(alias)
-        await self.ex.conn.execute(
-            "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND serverid = $3 AND objectid = $4",
-            alias, is_group, server_id, obj.id)
+        await self.ex.sql.s_groupmembers.remove_local_alias(obj.id, alias, is_group, server_id)
 
     async def get_member(self, idol_id) -> Optional[models.Idol]:
         """Get a member by the idol id."""
