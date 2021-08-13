@@ -240,7 +240,7 @@ async def set_global_alias(object_id, alias, is_group):
     :param alias: The alias to add
     :param is_group: Whether we have a group as the object.
     """
-    await self.ex.conn.execute("INSERT INTO groupmembers.aliases(objectid, alias, isgroup) VALUES($1, $2, $3)",
+    await self.conn.execute("INSERT INTO groupmembers.aliases(objectid, alias, isgroup) VALUES($1, $2, $3)",
                                object_id, alias.lower(), is_group)
 
 
@@ -253,7 +253,7 @@ async def set_local_alias(object_id, alias, is_group, server_id):
     :param is_group: Whether we have a group as the object.
     :param server_id: The server ID for the local alias.
     """
-    await self.ex.conn.execute(
+    await self.conn.execute(
         "INSERT INTO groupmembers.aliases(objectid, alias, isgroup, serverid) VALUES($1, $2, $3, $4)", object_id,
         alias.lower(), is_group, server_id)
 
@@ -267,7 +267,7 @@ async def remove_global_alias(object_id, alias, is_group):
     :param is_group: Whether we have a group as the object.
 
     """
-    await self.ex.conn.execute(
+    await self.conn.execute(
         "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND objectid = $3 AND serverid IS NULL",
         alias, is_group, object_id)
 
@@ -281,6 +281,6 @@ async def remove_local_alias(object_id, alias, is_group, server_id):
     :param is_group: Whether we have a group as the object.
     :param server_id: The server ID for the local alias.
     """
-    await self.ex.conn.execute(
+    await self.conn.execute(
         "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND serverid = $3 AND objectid = $4",
         alias, is_group, server_id, object_id)
