@@ -40,13 +40,9 @@ class Cache(Base):
         self.idol_photos: Dict[int, int] = {}  # { idol_id: photo_count }
         # All custom server prefixes
         self.server_prefixes: Dict[int, str] = {}  # { server_id: server_prefix }
-        """
-        reset timer for idol photos (keeps track of command usage)
-        {
-            reset_time: date
-            userid: [commands_used, time_since_last_command]
-        }"""
-        self.commands_used = {"reset_time": time.time()}
+
+        self.last_idol_reset_time = time.time()
+
         # server to channels being logged
         """
         {

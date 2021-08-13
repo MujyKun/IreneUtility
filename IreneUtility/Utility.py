@@ -187,9 +187,9 @@ class Utility:
         :param user_id: The User ID.
         :rtype: models.User
         """
-        return self._get_user(user_id)
+        return self.get_user_main(user_id)
 
-    def _get_user(self, user_id) -> models.User:
+    def get_user_main(self, user_id) -> models.User:
         """Creates a user if not created and adds it to the cache, then returns the User object.
 
         :param user_id: The User ID.
@@ -285,7 +285,7 @@ class Utility:
             user_id = user.author.id
         else:
             user_id = user
-        user = self._get_user(user_id)
+        user = self.get_user_main(user_id)
 
         is_bot_mod = user_id in self.keys.mods_list or user_id == self.keys.owner_id
         if data_mod:

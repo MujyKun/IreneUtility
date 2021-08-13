@@ -845,6 +845,13 @@ class GroupMembers(Base):
             msg, image_host = await self.__get_image_msg(channel, idol, **kwargs)  # post image msg
 
             await self.update_member_count(idol)  # update amount of times an idol has been called.
+
+            # update amount of times a user has called an idol.
+            user_id = kwargs.get("user_id")
+            if user_id:
+                user = self.ex.get_user_main(user_id)
+                user.called_idol()
+
         except AttributeError as e:  # resolve dms
             log.console(f"{e} (AttributeError)", method=self.idol_post)
         except discord.Forbidden:  # resolve 403
@@ -856,45 +863,43 @@ class GroupMembers(Base):
         return msg, image_host
 
     def check_reset_limits(self):
-        if time.time() - self.ex.cache.commands_used['reset_time'] > 86400:  # 1 day in seconds
-            # reset the dict
-            self.ex.cache.commands_used = {"reset_time": time.time()}
-
-    def add_user_limit(self, message_sender):
-        if message_sender:
-            if message_sender.id not in self.ex.cache.commands_used:
-                self.ex.cache.commands_used[message_sender.id] = [1, time.time()]
-            else:
-                self.ex.cache.commands_used[message_sender.id] = [self.ex.cache.commands_used[message_sender.id][0] + 1,
-                                                                  time.time()]
+        if time.time() - self.ex.cache.last_idol_reset_time > 86400:  # 1 day in seconds
+            self.ex.cache.last_idol_reset_time = time.time()  # reset the time
 
     # noinspection PyPep8
     async def check_user_limit(self, message_sender, message_channel, no_vote_limit=False):
+        """
+        Check the user's idol limit.
+
+        :param message_sender: d.py Author
+        :param message_channel: d.py Text Channel
+        :param no_vote_limit: (bool) True if there is a vote limit to check for.
+
+        :returns: (bool) True if the limit was passed.
+        """
         user = await self.ex.get_user(message_sender)
-        patron_message = self.ex.cache.languages[user.language]['groupmembers']['patron_msg']
-        patron_message = await self.ex.replace(patron_message, [
-            ['idol_post_send_limit', self.ex.keys.idol_post_send_limit],
-            ['owner_super_patron_benefit', self.ex.keys.owner_super_patron_benefit],
-            ['bot_id', self.ex.keys.bot_id],
-            ['patreon_link', self.ex.keys.patreon_link]
-        ])
-        limit = self.ex.keys.idol_post_send_limit
-        if no_vote_limit:
-            # amount of votes that can be sent without voting.
-            limit = self.ex.keys.idol_no_vote_send_limit
-        if message_sender.id not in self.ex.cache.commands_used:
+
+        if not user.idol_calls:
             return
-        if not await self.ex.u_patreon.check_if_patreon(message_sender.id) and \
-                self.ex.cache.commands_used[message_sender.id][0] > limit:
-            # noinspection PyPep8
-            if not await self.ex.u_patreon.check_if_patreon(message_channel.guild.owner.id,
-                                                            super_patron=True) and not no_vote_limit:
-                return await message_channel.send(patron_message)
-            elif self.ex.cache.commands_used[message_sender.id][
-                0] > self.ex.keys.owner_super_patron_benefit and not no_vote_limit:
-                return await message_channel.send(patron_message)
-            else:
-                return True
+
+        guild_owner = await self.ex.get_user(message_channel.guild.owner.id)
+
+        limit = self.ex.keys.idol_post_send_limit if not no_vote_limit else self.ex.keys.idol_no_vote_send_limit
+
+        if not user.patron and user.idol_calls > limit:
+            # Check the server owner's super patron status and whether to provide more idol calls.
+            guild_owner_check_failed = not guild_owner.super_patron and not no_vote_limit
+            user_capped_with_benefit = user.idol_calls > self.ex.keys.owner_super_patron_benefit and not no_vote_limit
+
+            if guild_owner_check_failed or user_capped_with_benefit:
+                await message_channel.send(await self.ex.get_msg(user, "groupmembers", "patron_msg", [
+                    ['idol_post_send_limit', self.ex.keys.idol_post_send_limit],
+                    ['owner_super_patron_benefit', self.ex.keys.owner_super_patron_benefit],
+                    ['bot_id', self.ex.keys.bot_id],
+                    ['patreon_link', self.ex.keys.patreon_link]
+                ]))
+
+            return True
 
     # noinspection PyPep8
     async def request_image_post(self, message, idol, channel):
@@ -928,10 +933,11 @@ class GroupMembers(Base):
 
                 # finds out the user's current post limit and if it has been surpassed.
                 if not await self.check_user_limit(message.author, channel):
+                    # this is a successful post.
                     raise self.ex.exceptions.Pass
 
         except self.ex.exceptions.Pass:
-            # an image should be posted without going through further checcks.
+            # an image should be posted without going through further checks.
             pass
 
         except Exception as e:

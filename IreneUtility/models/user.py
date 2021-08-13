@@ -1,3 +1,4 @@
+import datetime
 import random
 from decimal import Decimal
 from math import log10
@@ -32,12 +33,19 @@ class User:
         self.is_data_mod: bool = False
         self.is_translator: bool = False
         self.is_proofreader: bool = False
+        self.idol_calls: int = 0
+        self.last_idol_call = None
 
     def __eq__(self, other):
         return self.id == other.id
 
     def __ne__(self, other):
         return not self == other
+
+    def called_idol(self):
+        """Increment the amount of idol calls and update the time for the call."""
+        self.idol_calls += 1
+        self.last_idol_call = datetime.datetime.now()
 
     async def get_profile_xp(self):
         """Get the user's profile xp."""
