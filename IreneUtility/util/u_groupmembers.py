@@ -1206,6 +1206,9 @@ class GroupMembers(Base):
 
         obj.set_attribute(column, content)
 
+        if column.lower() in self.ex.sql.s_groupmembers.IMAGE_COLUMNS:
+            await obj.send_images_to_host()
+
         await self.ex.sql.s_groupmembers.update_info(obj_id, column, date if date else content, group)
 
         return obj

@@ -2,7 +2,7 @@ from typing import List
 
 from . import self
 
-
+IMAGE_COLUMNS = ["thumbnail", "banner"]
 DATE_COLUMNS = ["birthdate", "debutdate", "disbanddate"]
 
 
