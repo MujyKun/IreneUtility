@@ -56,8 +56,8 @@ class Idol:
                     image_url = f"{base_util.ex.keys.image_host}avatar/{file_name}"
                     await base_util.ex.sql.s_groupmembers.set_member_thumbnail(self.id, image_url)
                     self.thumbnail = image_url
-            self.thumbnail.replace("https://", "")
-            self.thumbnail = "https://" + self.thumbnail.replace("//", "/")
+            thumbnail = self.thumbnail.replace("https://", "")
+            self.thumbnail = "https://" + thumbnail.replace("//", "/")
 
         if self.banner:
             file_loc = f"{base_util.ex.keys.idol_banner_location}{file_name}"
