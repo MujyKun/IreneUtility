@@ -284,3 +284,34 @@ async def remove_local_alias(object_id, alias, is_group, server_id):
     await self.conn.execute(
         "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND serverid = $3 AND objectid = $4",
         alias, is_group, server_id, object_id)
+
+
+async def add_idol_to_group(idol_id, group_id):
+    """
+    Add an Idol to a group.
+
+    :param idol_id: Idol ID to add to Group
+    :param group_id: Group ID to add Idol to.
+    """
+    await self.conn.execute("INSERT INTO groupmembers.idoltogroup(idolid, groupid) VALUES($1, $2)", idol_id, group_id)
+
+
+async def remove_idol_from_group(idol_id, group_id):
+    """
+    Remove an Idol from a group.
+
+    :param idol_id: Idol ID to remove from a Group
+    :param group_id: Group ID to remove an Idol from.
+    """
+    await self.conn.execute("DELETE FROM groupmembers.idoltogroup WHERE idolid = $1 AND groupid = $2",
+                            idol_id, group_id)
+
+
+async def fetch_db_groups_from_member(idol_id):
+    """Fetch all the group ids that belong to a member.
+
+    :param idol_id: Idol ID
+    """
+    return await self.conn.fetch("SELECT groupid FROM groupmembers.idoltogroup WHERE idolid = $1", idol_id)
+
+

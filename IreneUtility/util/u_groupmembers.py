@@ -268,21 +268,26 @@ class GroupMembers(Base):
 
     async def get_db_groups_from_member(self, member_id):
         """Return all the group ids an idol is in from the database."""
-        groups = await self.ex.conn.fetch("SELECT groupid FROM groupmembers.idoltogroup WHERE idolid = $1", member_id)
+        groups = await self.ex.sql.s_groupmembers.fetch_db_groups_from_member(member_id)
         return [group[0] for group in groups]
 
     async def add_idol_to_group(self, member_id: int, group_id: int):
-        (await self.ex.u_group_members.get_group(group_id)).members.append(member_id)
-        (await self.ex.u_group_members.get_member(member_id)).groups.append(group_id)
-        return await self.ex.conn.execute("INSERT INTO groupmembers.idoltogroup(idolid, groupid) VALUES($1, $2)",
-                                          member_id, group_id)
+        group = await self.ex.u_group_members.get_group(group_id)
+        member = await self.ex.u_group_members.get_member(member_id)
+
+        if member_id not in group.members:
+            group.members.append(member_id)
+
+        if group_id not in member.groups:
+            member.groups.append(group_id)
+
+        await self.ex.sql.s_groupmembers.add_idol_to_group(member_id, group_id)
 
     async def remove_idol_from_group(self, member_id: int, group_id: int):
         (await self.ex.u_group_members.get_group(group_id)).members.remove(member_id)
         (await self.ex.u_group_members.get_member(member_id)).groups.remove(group_id)
 
-        return await self.ex.conn.execute("DELETE FROM groupmembers.idoltogroup WHERE idolid = $1 AND groupid = $2",
-                                          member_id, group_id)
+        await self.ex.sql.s_groupmembers.remove_idol_from_group(member_id, group_id)
 
     async def send_names(self, ctx, mode, user_page_number=1, group_ids=None):
         """Send the names of all idols in an embed with many pages."""
