@@ -876,7 +876,7 @@ class GroupMembers(Base):
         if time.time() - self.ex.cache.last_idol_reset_time > 86400:  # 1 day in seconds
             self.ex.cache.last_idol_reset_time = time.time()  # reset the time
             # reset user idol calls.
-            await self.ex.run_blocking_code(self.reset_user_idol_calls)
+            asyncio.create_task(self.ex.run_blocking_code(self.reset_user_idol_calls))
 
     def reset_user_idol_calls(self):
         """Resets all user idol calls to zero."""
