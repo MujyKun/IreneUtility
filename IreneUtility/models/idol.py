@@ -67,8 +67,8 @@ class Idol:
                 if base_util.ex.check_file_exists(file_loc):
                     await base_util.ex.sql.s_groupmembers.set_member_banner(self.id, image_url)
                     self.banner = image_url
-            self.banner.replace("https://", "")
-            self.banner = "https://" + self.banner.replace("//", "/")
+            banner = self.banner.replace("https://", "")
+            self.banner = "https://" + banner.replace("//", "/")
 
     def set_attribute(self, column, content):
         """Sets the attribute for a column in the DB.
