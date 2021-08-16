@@ -56,7 +56,8 @@ class Idol:
                     image_url = f"{base_util.ex.keys.image_host}avatar/{file_name}"
                     await base_util.ex.sql.s_groupmembers.set_member_thumbnail(self.id, image_url)
                     self.thumbnail = image_url
-            self.thumbnail = self.thumbnail.replace("//", "/")
+            self.thumbnail.replace("https://", "")
+            self.thumbnail = "https://" + self.thumbnail.replace("//", "/")
 
         if self.banner:
             file_loc = f"{base_util.ex.keys.idol_banner_location}{file_name}"
@@ -66,7 +67,8 @@ class Idol:
                 if base_util.ex.check_file_exists(file_loc):
                     await base_util.ex.sql.s_groupmembers.set_member_banner(self.id, image_url)
                     self.banner = image_url
-            self.banner = self.banner.replace("//", "/")
+            self.banner.replace("https://", "")
+            self.banner = "https://" + self.banner.replace("//", "/")
 
     def set_attribute(self, column, content):
         """Sets the attribute for a column in the DB.

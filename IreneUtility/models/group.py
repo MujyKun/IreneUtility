@@ -45,18 +45,23 @@ class Group:
             file_loc = f"{base_util.ex.keys.idol_avatar_location}{file_name}"
             if 'images.irenebot.com' not in self.thumbnail:
                 await base_util.ex.download_image(self.thumbnail, file_loc)
-            image_url = f"https://images.irenebot.com/avatar/{file_name}"
-            if base_util.ex.check_file_exists(file_loc):
-                await base_util.ex.sql.s_groupmembers.set_group_thumbnail(self.id, image_url)
-                self.thumbnail = image_url
+                image_url = f"https://images.irenebot.com/avatar/{file_name}"
+                if base_util.ex.check_file_exists(file_loc):
+                    await base_util.ex.sql.s_groupmembers.set_group_thumbnail(self.id, image_url)
+                    self.thumbnail = image_url
+            self.thumbnail.replace("https://", "")
+            self.thumbnail = "https://" + self.thumbnail.replace("//", "/")
+
         if self.banner:
             file_loc = f"{base_util.ex.keys.idol_banner_location}{file_name}"
             if 'images.irenebot.com' not in self.banner:
                 await base_util.ex.download_image(self.banner, file_loc)
-            image_url = f"https://images.irenebot.com/banner/{file_name}"
-            if base_util.ex.check_file_exists(file_loc):
-                await base_util.ex.sql.s_groupmembers.set_group_banner(self.id, image_url)
-                self.banner = image_url
+                image_url = f"https://images.irenebot.com/banner/{file_name}"
+                if base_util.ex.check_file_exists(file_loc):
+                    await base_util.ex.sql.s_groupmembers.set_group_banner(self.id, image_url)
+                    self.banner = image_url
+            self.banner.replace("https://", "")
+            self.banner = "https://" + self.banner.replace("//", "/")
 
     def set_attribute(self, column, content):
         """Sets the attribute for a column in the DB.
