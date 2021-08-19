@@ -17,7 +17,7 @@ repo_dependencies = [
 
 setup(
     name='IreneUtility',
-    version='1.04.2',
+    version='1.04.3',
     packages=find_packages(),
     install_requires=parse_requirements("requirements.txt") + repo_dependencies,
     url='https://github.com/MujyKun/IreneUtility/',
