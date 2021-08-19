@@ -11,14 +11,50 @@ class Patreon(Base):
         return await self.ex.conn.fetch("SELECT userid from patreon.users")
 
     async def get_patreon_role_members(self, super_patron=False):
-        """Get the members in the patreon roles."""
+        """Get the members in the patreon roles.
+
+        NOTE: Translator, Proofreader, and DataMod roles are considered patron roles.
+        """
         support_guild = self.ex.client.get_guild(int(self.ex.keys.bot_support_server_id))
+        patrons = []
         # API call will not show role.members
         if not super_patron:
             patreon_role = support_guild.get_role(int(self.ex.keys.patreon_role_id))
+            translator_role = support_guild.get_role(int(self.ex.keys.translator_role_id))
+            proofreader_role = support_guild.get_role(int(self.ex.keys.proofreader_role_id))
+            datamod_role = support_guild.get_role(int(self.ex.keys.datamod_role_id))
+            if translator_role:
+                patrons += translator_role.members
+                for member in translator_role.members:
+                    user = await self.ex.get_user(member.id)
+                    user.is_translator = True
+            if proofreader_role:
+                patrons += proofreader_role.members
+                for member in proofreader_role.members:
+                    user = await self.ex.get_user(member.id)
+                    user.is_proofreader = True
+            if datamod_role:
+                patrons += datamod_role.members
+                for member in datamod_role.members:
+                    user = await self.ex.get_user(member.id)
+                    if not user.is_data_mod:
+                        # we should have had the data mod cache load them already.
+                        try:
+                            await self.ex.sql.s_groupmembers.insert_data_mod(user.id)
+                        except:
+                            ...  # possible duplicate error.
+                        user.is_data_mod = True
+                current_data_mod_ids = [member.id for member in datamod_role.members]
+                current_cached_data_mods = [user_id for user_id in await self.ex.sql.s_groupmembers.fetch_data_mods()]
+                for data_mod_id in current_cached_data_mods:
+                    if data_mod_id not in current_data_mod_ids:
+                        await self.ex.sql.s_groupmembers.delete_data_mod(data_mod_id)
+
         else:
             patreon_role = support_guild.get_role(int(self.ex.keys.patreon_super_role_id))
-        return patreon_role.members
+        if patreon_role:
+            patrons += patreon_role.members
+        return patrons
 
     async def check_if_patreon(self, user_id, super_patron=False):
         """Check if the user is a patreon.
@@ -59,6 +95,3 @@ class Patreon(Base):
         # Super Patrons also have the normal Patron role.
         if await self.check_if_patreon(ctx.author.id):
             ctx.command.reset_cooldown(ctx)
-
-
-# self.ex.u_patreon = Patreon()

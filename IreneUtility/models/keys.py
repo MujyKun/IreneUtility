@@ -20,13 +20,12 @@ class Keys:
         self.bot_id: int = self.get_kwarg("bot_id")  # bot id
         self.owner_id: int = self.get_kwarg("owner_id")  # bot owner id
         self.mods_list: list = self.get_kwarg("mods_list")  # list of mod ids
+        self.data_mods_list: list = self.get_kwarg("data_mods_list")  # list of data mod ids
         self.bot_invite_link: str = self.get_kwarg("bot_invite_link")  # bot invite
         self.bot_support_server_id: int = self.get_kwarg("bot_support_server_id")  # bot support server id
         self.bot_support_server_link: str = self.get_kwarg("bot_support_server_link")  # bot support server invite
         self.bot_prefix: str = self.get_kwarg("bot_prefix")  # main bot prefix
         self.image_host: str = self.get_kwarg("image_host")  # link to image host (with slash at end)
-        # channel id to test DCAPP posts #TODO: Remove since dc app was deleted.
-        self.dc_app_test_channel_id: int = self.get_kwarg("dc_app_test_channel_id")
         self.report_channel_id: int = self.get_kwarg("report_channel_id")  # channel id for user bug reports.
         self.suggest_channel_id: int = self.get_kwarg("suggest_channel_id")  # channel id for user suggestions.
         self.dead_image_channel_id: int = self.get_kwarg("dead_image_channel_id")  # channel id for reported images.
@@ -45,6 +44,8 @@ class Keys:
         self.reminder_limit: int = self.get_kwarg("reminder_limit")  # maximum amount of reminders
         # maximum amount of automatic idol photos a non-patron can be sent
         self.idol_send_limit: int = self.get_kwarg("idol_send_limit")
+        # twitter account limit for every server (for non-patrons)
+        self.twitter_update_limit: int = self.get_kwarg("twitter_update_limit")
         self.currency_name: str = self.get_kwarg("currency_name")  # name of main currency
         self.icon_url: str = self.get_kwarg("icon_url")  # embed icon url
         self.footer_url: str = self.get_kwarg("footer_url")  # embed footer url
@@ -93,6 +94,9 @@ class Keys:
         self.postgres_options: dict = self.get_kwarg("postgres_options")  # host, database, user, and password for DB.
         self.db_conn: asyncpg.pool.Pool = self.get_kwarg("db_conn")  # connection to db
 
+        """Wavelink"""
+        self.wavelink_options: dict = self.get_kwarg("wavelink_options")  # host, port, rest_uri, password
+
         """Papago/Translator"""
         self.papago_client_id: str = self.get_kwarg("papago_client_id")  # papago client id
         self.papago_client_secret: str = self.get_kwarg("papago_client_secret")  # papago client secret
@@ -110,6 +114,12 @@ class Keys:
         self.patreon_role_id: int = self.get_kwarg("patreon_role_id")  # patreon role id
         self.patreon_super_role_id: int = self.get_kwarg("patreon_super_role_id")  # patreon super role id
 
+        """Translator/Proofreader/DataMod"""
+        self.translator_role_id: int = self.get_kwarg("translator_role_id")
+        self.proofreader_role_id: int = self.get_kwarg("proofreader_role_id")
+        self.datamod_role_id: int = self.get_kwarg("datamod_role_id")
+        self.datamod_log_channel_id: int = self.get_kwarg("datamod_log_channel_id")
+
         """AioHTTP"""
         self.client_session: AioHTTPClient = self.get_kwarg("client_session")  # aiohttp client session
 
@@ -119,10 +129,6 @@ class Keys:
         """Lyrics API - https://github.com/KSoft-Si/ksoftapi.py"""
         self.lyrics_api_key: str = self.get_kwarg("lyrics_api_key")  # lyrics api key
         self.lyric_client: lyrics_client = self.get_kwarg("lyric_client")  # lyrics client
-
-        """Weverse - https://github.com/MujyKun/Weverse"""
-        self.weverse_auth_token: str = self.get_kwarg("weverse_auth_token")  # Weverse account auth token
-        self.weverse_image_folder: str = self.get_kwarg("weverse_image_folder")  # Weverse Image Directory (slash at end)
 
         """GroupMembers Directories"""
         self.idol_avatar_location: str = self.get_kwarg("idol_avatar_location")  # Idol Avatar Location (slash at end)
@@ -148,6 +154,10 @@ class Keys:
         self.site_port: str = self.get_kwarg("site_port")  # port of Bot Site
         self.bot_website: str = self.get_kwarg("bot_website")  # link to bot website (with slash at end)
 
+        """Vlive"""
+        self.vlive_base_url: str = self.get_kwarg("vlive_base_url")
+        self.vlive_app_id: str = self.get_kwarg("vlive_app_id")
+
     def get_kwarg(self, kwarg_name):
         """Get a kwarg"""
         return self.kwargs.get(kwarg_name)
@@ -160,5 +170,5 @@ class Keys:
         # instead of acquiring a connection from the pool, we just let the pool select a connection for us and
         # execute directly that way. this limits the amount of methods we have access to,
         # but in the case those methods are needed, just acquire the connection and use that instead.
-        self.db_conn = await asyncpg.create_pool(**self.postgres_options, command_timeout=60)
+        self.db_conn: asyncpg.pool.Pool = await asyncpg.create_pool(**self.postgres_options, command_timeout=60)
         return self.db_conn

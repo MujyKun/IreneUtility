@@ -1,7 +1,10 @@
+import os
+
 import discord
 from discord.ext import tasks
 from ..Base import Base
 from . import u_logger as log
+from ..models import VliveChannel, TwitterChannel
 import time
 import asyncio
 import aiofiles
@@ -13,14 +16,20 @@ import json
 class Cache(Base):
     def __init__(self, *args):
         super().__init__(*args)
+        self.base_language_folder = "languages"
+        self.language_folders = []  # list of language directories (case-sensitive as directories).
 
     async def process_cache_time(self, method, name, *args, **kwargs):
         """Process the cache time."""
         past_time = time.time()
+        method_type = "Cache"
+        if kwargs.get("method_type"):
+            method_type = kwargs.pop("method_type") or "Cache"
+
         result = await method(*args, **kwargs)
         if result is None or result:  # expecting False on methods that fail to load, do not simplify None.
             creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
-            log.console(f"Cache for {name} Created in {creation_time}.", method=self.process_cache_time)
+            log.console(f"{method_type} for {name} Created in {creation_time}.", method=self.process_cache_time)
         return result
 
     async def create_cache(self, on_boot_up=True):
@@ -47,7 +56,6 @@ class Cache(Base):
             [self.create_server_prefixes, "Server Prefixes"],
             [self.create_welcome_message_cache, "Welcome Messages"],
             [self.create_temp_channels, "Temp Channels"],
-            [self.create_n_word_counter, "NWord Counter"],
             [self.create_command_counter, "Command Counter"],
             [self.create_idol_cache, "Idol Objects"],
             [self.create_group_cache, "Group Objects"],
@@ -55,7 +63,6 @@ class Cache(Base):
             [self.create_dead_link_cache, "Dead Links"],
             [self.create_bot_status_cache, "Bot Status"],
             [self.create_bot_command_cache, "Custom Commands"],
-            [self.create_weverse_channel_cache, "Weverse Text Channels"],
             [self.create_self_assignable_role_cache, "Self-Assignable Roles"],
             [self.create_reminder_cache, "Reminders"],
             [self.create_timezone_cache, "Timezones"],
@@ -67,37 +74,121 @@ class Cache(Base):
             [self.create_language_cache, "User Language"],
             [self.create_playing_cards, "Playing Cards"],
             [self.create_guild_cache, "DB Guild"],
-            [self.ex.weverse_client.start, "Weverse"],
             [self.create_gg_filter_cache, "Guessing Game Filter"],
             [self.create_welcome_role_cache, "Welcome Roles"],
             [self.create_disabled_games_cache, "Disabled Games In Channels"],
             [self.create_send_idol_photo_cache, "Send Idol Photo"],
             [self.request_support_server_members, "Support Server Member"],
-            [self.request_twitter_channel, "Twitter Channel"]
+            [self.request_twitter_channel, "Twitter Channel"],
+            [self.create_original_command_cache, "Original Commands"],
+            [self.create_vlive_followers_cache, "Vlive Text Channel Followers"],
+            [self.create_twitter_followers_cache, "Twitter Text Channel Followers"],
+            [self.create_data_mod_cache, "Data Mods"]
             # [self.create_image_cache, "Image"],
 
         ]
         for method, cache_name in cache_info:
-            if cache_name in ["DB Guild", "Patrons"]:
-                # if the discord cache is loaded, make sure to update the patreon cache since our user objects
-                # are reset every time this function is called.
-                if not self.ex.discord_cache_loaded or on_boot_up:
-                    continue
+            try:
+                if cache_name in ["DB Guild", "Patrons"]:
+                    # if the discord cache is loaded, make sure to update the patreon cache since our user objects
+                    # are reset every time this function is called.
+                    if not self.ex.discord_cache_loaded or on_boot_up:
+                        continue
 
-            if cache_name == "Weverse":
-                # do not load weverse cache if the bot has already been running.
-                if not self.ex.test_bot and not self.ex.weverse_client.cache_loaded and on_boot_up:
-                    # noinspection PyUnusedLocal
-                    task = asyncio.create_task(self.process_cache_time(method, "Weverse", create_old_posts=False))
-                continue
-
-            await self.process_cache_time(method, cache_name)
+                await self.process_cache_time(method, cache_name)
+            except Exception as e:
+                log.console(f"{e} (Exception) - Failed to load Cache for {method} - {cache_name}.")
         creation_time = await self.ex.u_miscellaneous.get_cooldown_time(time.time() - past_time)
         log.console(f"Cache Completely Created in {creation_time}.", method=self.create_cache)
         if on_boot_up:
             self.ex.cache.maintenance_mode = False
             self.ex.cache.maintenance_reason = None
         self.ex.irene_cache_loaded = True
+
+    async def create_data_mod_cache(self):
+        """Create the cache for data mods."""
+
+        for user_id in await self.ex.sql.s_groupmembers.fetch_data_mods():
+            user = await self.ex.get_user(user_id)
+            user.is_data_mod = True
+            # we do not need to set their patron status because it is already in patron cache.
+
+    async def create_twitter_followers_cache(self):
+        """Create the cache for Text Channels following an Idol or Group's Twitter.
+
+        Note that a Group or Idol does not need to exist for a Twitter channel to exist.
+        """
+        for channel_id, role_id, twitter_id in await self.ex.sql.s_twitter.fetch_followed_channels():
+            await asyncio.sleep(0)  # bare yield
+            twitter_id = twitter_id.lower()
+            twitter_obj: TwitterChannel = self.ex.cache.twitter_channels.get(twitter_id)
+            if not twitter_obj:
+                twitter_obj = TwitterChannel(twitter_id)
+                self.ex.cache.twitter_channels[twitter_id] = twitter_obj
+
+            channel = self.ex.client.get_channel(channel_id)
+            # make sure the channel wasn't already added.
+            if not twitter_obj.check_channel_followed(channel if channel else channel_id):
+                twitter_obj += channel if channel else channel_id
+                if role_id:
+                    twitter_obj.set_mention_role(channel_id, role_id)
+
+    async def create_vlive_followers_cache(self):
+        """Create the cache for Text Channels following an Idol or Group's Vlive.
+
+        Note that a Group or Idol does not need to exist for a vlive channel to exist.
+        """
+        for channel_id, role_id, vlive_id in await self.ex.sql.s_vlive.fetch_followed_channels():
+            await asyncio.sleep(0)  # bare yield
+            vlive_id = vlive_id.lower()
+            vlive_obj: VliveChannel = self.ex.cache.vlive_channels.get(vlive_id)
+            if not vlive_obj:
+                vlive_obj = VliveChannel(vlive_id)
+                self.ex.cache.vlive_channels[vlive_id] = vlive_obj
+
+            channel = self.ex.client.get_channel(channel_id)
+            # make sure the channel wasn't already added.
+            if not vlive_obj.check_channel_followed(channel if channel else channel_id):
+                vlive_obj += channel if channel else channel_id
+                if role_id:
+                    vlive_obj.set_mention_role(channel_id, role_id)
+
+    async def create_original_command_cache(self):
+        """Creates Unique Command objects if a json file is given."""
+        self.ex.cache.original_commands = {}
+        try:
+            for language in self.language_folders:
+                try:
+                    self.ex.cache.original_commands[language.lower()] = {}  # resets cogs inside of language
+                    file_path = f"{self.base_language_folder}/{language}/{self.ex.unique_command_file_name}"
+                    async with aiofiles.open(file_path, "r", encoding="UTF-8") as file:
+                        cogs = json.loads(await file.read())
+                        for cog, commands in cogs.items():
+                            for command in commands:
+                                command_name = command
+                                command = commands.get(command)
+                                cog_name = f"{cog}"
+                                description = command.get("description")
+                                example_image_url = command.get("example_image_url")
+                                syntax = command.get("syntax")
+                                example_syntax = command.get("example_syntax")
+                                permissions_needed = command.get("permissions_needed")
+                                aliases = command.get("aliases")
+                                notes = command.get("note")
+                                obj = self.ex.u_objects.Command(cog_name, command_name, description, example_image_url, syntax,
+                                                                example_syntax, permissions_needed, aliases, notes)
+                                cog_original_commands = self.ex.cache.original_commands[language.lower()].get(cog_name)
+                                if not cog_original_commands:
+                                    self.ex.cache.original_commands[language.lower()][cog_name] = [obj]
+                                else:
+                                    cog_original_commands.append(obj)
+                except Exception as e:
+                    log.console(e, method=self.create_original_command_cache)
+        except FileNotFoundError:
+            log.console(f"{self.ex.unique_command_file_name} was not found for creating unique command objects.",
+                        method=self.create_original_command_cache)
+        except Exception as e:
+            log.console(e)
 
     async def request_twitter_channel(self):
         """Fetch twitter channel and store it in cache."""
@@ -140,7 +231,7 @@ class Cache(Base):
             try:
                 channel = self.ex.client.get_channel(text_channel) or \
                           await self.ex.client.fetch_channel(text_channel)
-            except discord.Forbidden or discord.NotFound:
+            except (discord.Forbidden, discord.NotFound):
                 await self.ex.sql.s_groupmembers.delete_send_idol_photo_channel(text_channel)
                 continue
             except Exception as e:
@@ -233,6 +324,7 @@ class Cache(Base):
     async def load_language_packs(self):
         """Create cache for language packs."""
         self.ex.cache.languages = {}
+        self.ex.cache.languages_available = []
 
         async def get_language_module_and_message():
             # get the modules and messages for each language
@@ -243,10 +335,15 @@ class Cache(Base):
                         yield t_module, t_message_name
 
         # load the json for every language to cache
-        for file_name in self.ex.cache.languages_available:
+        directories_result = await self.ex.run_blocking_code(os.listdir, f"{self.base_language_folder}/")
+        self.language_folders = [folder_name for folder_name in directories_result[0]
+                                 if os.path.isdir(f"{self.base_language_folder}/{folder_name}")]
+        for folder_name in self.language_folders:
             await asyncio.sleep(0)  # bare yield
-            async with aiofiles.open(f"languages/{file_name}.json") as file:
-                self.ex.cache.languages[file_name] = json.loads(await file.read())
+            self.ex.cache.languages_available.append(folder_name.lower())
+            async with aiofiles.open(f"{self.base_language_folder}/{folder_name}/messages.json", encoding="UTF-8") \
+                    as file:
+                self.ex.cache.languages[folder_name.lower()] = json.loads(await file.read())
 
         # make the content of all curly braces bolded in all available languages.
         async for module, message_name in get_language_module_and_message():
@@ -257,7 +354,7 @@ class Cache(Base):
     def apply_bold_to_braces(text: str) -> str:
         """Applys bold markdown in between braces."""
         keywords_to_not_bold = [
-            "server_prefix", "bot_id",
+            "server_prefix", "bot_id", "support_server_link",
         ]
         for keyword in keywords_to_not_bold:
             text = text.replace("{" + f"{keyword}" + "}", keyword)  # we do not want to bold these words
@@ -383,23 +480,6 @@ class Cache(Base):
             else:
                 self.ex.cache.assignable_roles[server_id] = {'channel_id': channel_id}
 
-    async def create_weverse_channel_cache(self):
-        """Create cache for channels that are following a community on weverse."""
-        self.ex.cache.weverse_channels = {}
-
-        for channel_id, community_name, role_id, comments_disabled, media_disabled in \
-                await self.ex.sql.s_weverse.fetch_weverse():
-            await asyncio.sleep(0)  # bare yield
-            # add channel to cache
-            await self.ex.u_weverse.add_weverse_channel_to_cache(channel_id, community_name)
-            # add weverse roles
-            await self.ex.u_weverse.add_weverse_role(channel_id, community_name, role_id)
-            # create comment disabled status
-            await self.ex.u_weverse.change_weverse_comment_media_status(channel_id, community_name, comments_disabled)
-            # create media disabled status
-            await self.ex.u_weverse.change_weverse_comment_media_status(channel_id, community_name, media_disabled,
-                                                                        media=True)
-
     async def create_command_counter(self):
         """Updates Cache for command counter and sessions"""
         self.ex.cache.command_counter = {}
@@ -463,28 +543,7 @@ class Cache(Base):
 
         for idol in await self.ex.sql.s_groupmembers.fetch_all_idols():
             await asyncio.sleep(0)  # bare yield
-            idol_obj = self.ex.u_objects.Idol(**idol)
-            idol_obj.aliases, idol_obj.local_aliases = await self.ex.u_group_members.get_db_aliases(idol_obj.id)
-            # add all group ids and remove potential duplicates
-            idol_obj.groups = list(dict.fromkeys(await self.ex.u_group_members.get_db_groups_from_member(idol_obj.id)))
-            idol_obj.called = await self.ex.u_group_members.get_db_idol_called(idol_obj.id)
-            idol_obj.photo_count = self.ex.cache.idol_photos.get(idol_obj.id) or 0
-            self.ex.cache.idols.append(idol_obj)
-
-            if not idol_obj.photo_count:
-                continue
-
-            # all of the below conditions must be idols with photos.
-            if idol_obj.gender == 'f':
-                self.ex.cache.idols_female.add(idol_obj)
-            if idol_obj.gender == 'm':
-                self.ex.cache.idols_male.add(idol_obj)
-            # add all idols to the hard difficulty
-            self.ex.cache.idols_hard.add(idol_obj)
-            if idol_obj.difficulty in ['medium', 'easy']:
-                self.ex.cache.idols_medium.add(idol_obj)
-            if idol_obj.difficulty == 'easy':
-                self.ex.cache.idols_easy.add(idol_obj)
+            await self.ex.u_group_members.add_idol_to_cache(**idol)
 
         self.ex.cache.gender_selection['all'] = set(self.ex.cache.idols)
 
@@ -494,14 +553,7 @@ class Cache(Base):
 
         for group in await self.ex.sql.s_groupmembers.fetch_all_groups():
             await asyncio.sleep(0)  # bare yield
-            group_obj = self.ex.u_objects.Group(**group)
-            group_obj.aliases, group_obj.local_aliases = await self.ex.u_group_members.get_db_aliases(group_obj.id,
-                                                                                                      group=True)
-            # add all idol ids and remove potential duplicates
-            group_obj.members = list(
-                dict.fromkeys(await self.ex.u_group_members.get_db_members_in_group(group_obj.id)))
-            group_obj.photo_count = self.ex.cache.group_photos.get(group_obj.id) or 0
-            self.ex.cache.groups.append(group_obj)
+            await self.ex.u_group_members.add_group_to_cache(**group)
 
     async def process_session(self):
         """Sets the new session id, total used, and time format for distinguishing days."""
@@ -529,12 +581,6 @@ class Cache(Base):
         """Force get the session id, this will also set total used and the session id."""
         await self.process_session()
         return self.ex.cache.session_id
-
-    async def create_n_word_counter(self):
-        """Update NWord Cache"""
-        for user_id, n_word_counter in await self.ex.sql.s_general.fetch_n_word():
-            user = await self.ex.get_user(user_id)
-            user.n_word = n_word_counter
 
     async def create_temp_channels(self):
         """Create the cache for temp channels."""
@@ -667,6 +713,7 @@ class Cache(Base):
         all_group_counts = await self.ex.conn.fetch(
             "SELECT g.groupid, g.groupname, COUNT(f.link) FROM groupmembers.groups g, groupmembers.member m, groupmembers.idoltogroup l, groupmembers.imagelinks f WHERE m.id = l.idolid AND g.groupid = l.groupid AND f.memberid = m.id GROUP BY g.groupid ORDER BY g.groupname")
         for group in all_group_counts:
+            await asyncio.sleep(0)  # bare yield
             self.ex.cache.group_photos[group[0]] = group[2]
 
     async def create_guild_cache(self):
@@ -699,6 +746,7 @@ class Cache(Base):
         all_idol_counts = await self.ex.conn.fetch(
             "SELECT memberid, COUNT(link) FROM groupmembers.imagelinks GROUP BY memberid")
         for idol_id, count in all_idol_counts:
+            await asyncio.sleep(0)  # bare yield
             self.ex.cache.idol_photos[idol_id] = count
 
     @tasks.loop(seconds=0, minutes=0, hours=12, reconnect=True)
@@ -706,6 +754,10 @@ class Cache(Base):
         """Looped every 12 hours to update the cache in case of anything faulty."""
         while not self.ex.conn:
             await asyncio.sleep(1)
+
+        # update whether discord cache is loaded after hot-reloading the package.
+        self.ex.discord_cache_loaded = self.ex.client.is_ready()
+
         await self.create_cache(on_boot_up=not self.ex.irene_cache_loaded)
 
         # only allow the cache to be loaded up one time (boot up) if the user does not want the cache to be reset
@@ -762,4 +814,7 @@ class Cache(Base):
     @tasks.loop(seconds=0, minutes=1, hours=0, reconnect=True)
     async def send_cache_data_to_data_dog(self):
         """Sends metric information about cache to data dog every minute."""
+        if not self.ex.irene_cache_loaded:
+            return
+
         await self.ex.run_blocking_code(self.ex.u_data_dog.send_metrics)

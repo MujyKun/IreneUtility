@@ -1,10 +1,11 @@
+from typing import Optional, List
+
 from ..Base import Base
 from .. import models
 from . import u_logger as log
 import datetime
 import discord
 import asyncio
-import json
 from os.path import getsize
 import random
 import time
@@ -20,6 +21,12 @@ class GroupMembers(Base):
         self.successful_codes = [200, 301, 415]
 
     async def get_if_user_voted(self, user_id):
+        """
+        Check if a user voted:
+
+        :param user_id: The user's ID.
+        :returns: (bool) True if they voted in the past 24 hours.
+        """
         time_stamp = self.ex.first_result(
             await self.ex.conn.fetchrow("SELECT votetimestamp FROM general.lastvoted WHERE userid = $1", user_id))
         if time_stamp:
@@ -31,6 +38,12 @@ class GroupMembers(Base):
         log.console(f"{user_id} has not voted in the past 24 hours.", method=self.get_if_user_voted)
 
     def check_idol_object(self, obj):
+        """
+        Check if we are dealing with an Idol object
+
+        :param obj: Object to check.
+        :returns: (bool) Whether the object is an Idol.
+        """
         return isinstance(obj, self.ex.u_objects.Idol)
 
     async def send_vote_message(self, message):
@@ -43,30 +56,27 @@ class GroupMembers(Base):
 
     async def set_global_alias(self, obj, alias):
         """Set an idol/group alias for the bot."""
+        alias = alias.lower()
         obj.aliases.append(alias)
         is_group = int(not self.check_idol_object(obj))
-        await self.ex.conn.execute("INSERT INTO groupmembers.aliases(objectid, alias, isgroup) VALUES($1, $2, $3)", obj.id,
-                              alias, is_group)
+        await self.ex.sql.s_groupmembers.set_global_alias(obj.id, alias, is_group)
 
     async def set_local_alias(self, obj, alias, server_id):
         """Set an idol/group alias for a server"""
+        alias = alias.lower()
         local_aliases = obj.local_aliases.get(server_id)
         if local_aliases:
             local_aliases.append(alias)
         else:
             obj.local_aliases[server_id] = [alias]
         is_group = int(not self.check_idol_object(obj))
-        await self.ex.conn.execute(
-            "INSERT INTO groupmembers.aliases(objectid, alias, isgroup, serverid) VALUES($1, $2, $3, $4)", obj.id,
-            alias, is_group, server_id)
+        await self.ex.sql.s_groupmembers.set_local_alias(obj.id, alias, is_group, server_id)
 
     async def remove_global_alias(self, obj, alias):
         """Remove a global idol/group alias """
         obj.aliases.remove(alias)
         is_group = int(not self.check_idol_object(obj))
-        await self.ex.conn.execute(
-            "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND objectid = $3 AND serverid IS NULL",
-            alias, is_group, obj.id)
+        await self.ex.sql.s_groupmembers.remove_global_alias(obj.id, alias, is_group)
 
     async def remove_local_alias(self, obj, alias, server_id):
         """Remove a server idol/group alias"""
@@ -74,11 +84,9 @@ class GroupMembers(Base):
         local_aliases = obj.local_aliases.get(server_id)
         if local_aliases:
             local_aliases.remove(alias)
-        await self.ex.conn.execute(
-            "DELETE FROM groupmembers.aliases WHERE alias = $1 AND isgroup = $2 AND serverid = $3 AND objectid = $4",
-            alias, is_group, server_id, obj.id)
+        await self.ex.sql.s_groupmembers.remove_local_alias(obj.id, alias, is_group, server_id)
 
-    async def get_member(self, idol_id) -> models.Idol:
+    async def get_member(self, idol_id) -> Optional[models.Idol]:
         """Get a member by the idol id."""
         try:
             idol_id = int(idol_id)
@@ -90,7 +98,7 @@ class GroupMembers(Base):
             if idol.id == idol_id:
                 return idol
 
-    async def get_group(self, group_id) -> models.Group:
+    async def get_group(self, group_id) -> Optional[models.Group]:
         """Get a group by the group id."""
         try:
             group_id = int(group_id)
@@ -102,17 +110,19 @@ class GroupMembers(Base):
             if group.id == group_id:
                 return group
 
-    @staticmethod
-    async def format_card_fields(obj, card_formats):
+    async def format_card_fields(self, obj, card_formats):
         """Formats all relevant card fields to be displayed"""
         final_string = ""
         for attr_name, display_format in card_formats.items():
-            if not getattr(obj, attr_name):
+            attribute = getattr(obj, attr_name)
+            if isinstance(attribute, self.ex.u_objects.Subscription):  # vlive or twitter
+                attribute = attribute.id
+            if not attribute:
                 continue
             if isinstance(display_format, str):
-                final_string += f"{display_format}{getattr(obj, attr_name)}\n"
+                final_string += f"{display_format}{attribute}\n"
             elif isinstance(display_format, list) and len(display_format) == 2:
-                final_string += f"{display_format[0]}{getattr(obj, attr_name)}{display_format[1]}\n"
+                final_string += f"{display_format[0]}{attribute}{display_format[1]}\n"
             else:
                 raise TypeError
         return final_string
@@ -160,18 +170,11 @@ class GroupMembers(Base):
 
     async def get_group_names_as_string(self, idol):
         """Get the group names split by a | ."""
-        # note that this used to be simplified to one line, but in the case there are groups that do not exist,
-        # a proper check and deletion of fake groups are required
         group_names = []
         for group_id in idol.groups:
             group = await self.get_group(group_id)
             if group:
                 group_names.append(f"{group.name} ({group_id})")
-            else:
-                # make sure the cache exists first before deleting.
-                if self.ex.cache.groups:
-                    # delete the group connections if it doesn't exist.
-                    await self.ex.conn.execute("DELETE FROM groupmembers.idoltogroup WHERE groupid = $1", group_id)
         return f"{' | '.join(group_names)}\n"
 
     async def check_channel_sending_photos(self, channel_id):
@@ -189,14 +192,14 @@ class GroupMembers(Base):
             if r_channel[1] == send_all:
                 self.ex.cache.restricted_channels.pop(channel_id)
 
-    async def check_server_sending_photos(self,server_id):
+    async def check_server_sending_photos(self, server_id):
         """Checks a server to see if it has a specific channel to send idol photos to"""
         for channel in self.ex.cache.restricted_channels:
             channel_info = self.ex.cache.restricted_channels.get(channel)
             if channel_info[0] == server_id and channel_info[1] == 1:
                 return True  # returns True if they are supposed to send it to a specific channel.
 
-    async def get_channel_sending_photos(self,server_id):
+    async def get_channel_sending_photos(self, server_id):
         """Returns a text channel from a server that requires idol photos to be sent to a specific text channel."""
         for channel_id in self.ex.cache.restricted_channels:
             channel_info = self.ex.cache.restricted_channels.get(channel_id)
@@ -230,6 +233,7 @@ class GroupMembers(Base):
 
     async def get_db_members_in_group(self, group_id):
         """Get the members in a specific group from the database."""
+
         async def get_member_ids_in_group():
             try:
                 for idol_id in await self.ex.sql.s_groupmembers.fetch_members_in_group(group_id):
@@ -264,18 +268,26 @@ class GroupMembers(Base):
 
     async def get_db_groups_from_member(self, member_id):
         """Return all the group ids an idol is in from the database."""
-        groups = await self.ex.conn.fetch("SELECT groupid FROM groupmembers.idoltogroup WHERE idolid = $1", member_id)
+        groups = await self.ex.sql.s_groupmembers.fetch_db_groups_from_member(member_id)
         return [group[0] for group in groups]
 
     async def add_idol_to_group(self, member_id: int, group_id: int):
-        (await self.ex.u_group_members.get_group(group_id)).members.append(member_id)
-        return await self.ex.conn.execute("INSERT INTO groupmembers.idoltogroup(idolid, groupid) VALUES($1, $2)",
-                                     member_id, group_id)
+        group = await self.ex.u_group_members.get_group(group_id)
+        member = await self.ex.u_group_members.get_member(member_id)
+
+        if member_id not in group.members:
+            group.members.append(member_id)
+
+        if group_id not in member.groups:
+            member.groups.append(group_id)
+
+        await self.ex.sql.s_groupmembers.add_idol_to_group(member_id, group_id)
 
     async def remove_idol_from_group(self, member_id: int, group_id: int):
         (await self.ex.u_group_members.get_group(group_id)).members.remove(member_id)
-        return await self.ex.conn.execute("DELETE FROM groupmembers.idoltogroup WHERE idolid = $1 AND groupid = $2",
-                                     member_id, group_id)
+        (await self.ex.u_group_members.get_member(member_id)).groups.remove(group_id)
+
+        await self.ex.sql.s_groupmembers.remove_idol_from_group(member_id, group_id)
 
     async def send_names(self, ctx, mode, user_page_number=1, group_ids=None):
         """Send the names of all idols in an embed with many pages."""
@@ -285,10 +297,10 @@ class GroupMembers(Base):
             """Check if it is grabbing their full names or stage names."""
             if mode == "fullname":
                 embed_temp = await self.ex.set_embed_author_and_footer(embed_temp,
-                                                                  f"Type {server_prefix}members for Stage Names.")
+                                                                       f"Type {server_prefix}members for Stage Names.")
             else:
                 embed_temp = await self.ex.set_embed_author_and_footer(embed_temp,
-                                                                  f"Type {server_prefix}fullnames for Full Names.")
+                                                                       f"Type {server_prefix}fullnames for Full Names.")
             return embed_temp
 
         is_mod = self.ex.check_if_mod(ctx)
@@ -344,7 +356,8 @@ class GroupMembers(Base):
         embed_list = []
         count = 0
         page_number = 1
-        embed = discord.Embed(title=f"{name} Aliases Page {page_number}", description="", color=self.ex.get_random_color())
+        embed = discord.Embed(title=f"{name} Aliases Page {page_number}", description="",
+                              color=self.ex.get_random_color())
         for member in members:
             aliases = ', '.join(member.aliases)
             local_aliases = member.local_aliases.get(server_id)
@@ -377,7 +390,8 @@ class GroupMembers(Base):
         """Send the names of all aliases in an embed with many pages."""
 
         def create_embed():
-            return discord.Embed(title=f"{mode} Global/Local Aliases Page {page_number}", color=self.ex.get_random_color())
+            return discord.Embed(title=f"{mode} Global/Local Aliases Page {page_number}",
+                                 color=self.ex.get_random_color())
 
         if mode == "Group":
             all_info = self.ex.cache.groups
@@ -424,12 +438,12 @@ class GroupMembers(Base):
                 def image_check(user_reaction, reaction_user):
                     """check the user that reacted to it and which emoji it was."""
                     user_check = (reaction_user == user_msg.author) or (
-                                reaction_user.id == self.ex.keys.owner_id) or reaction_user.id in self.ex.keys.mods_list
+                            reaction_user.id == self.ex.keys.owner_id) or reaction_user.id in self.ex.keys.mods_list
                     dead_link_check = str(user_reaction.emoji) == dead_link_emoji
                     reload_image_check = str(user_reaction.emoji) == reload_image_emoji
                     guessing_game_check = user_check and dead_link_check and user_reaction.message.id == message.id
                     idol_post_check = user_check and (
-                                dead_link_check or reload_image_check) and user_reaction.message.id == message.id
+                            dead_link_check or reload_image_check) and user_reaction.message.id == message.id
                     if guessing_game:
                         return guessing_game_check
                     return idol_post_check
@@ -468,12 +482,13 @@ class GroupMembers(Base):
         return await self.ex.conn.fetch("SELECT deadlink, messageid, idolid FROM groupmembers.deadlinkfromuser")
 
     async def delete_dead_link(self, link, idol_id):
-        return await self.ex.conn.execute("DELETE FROM groupmembers.deadlinkfromuser WHERE deadlink = $1 AND idolid = $2",
-                                     link, idol_id)
+        return await self.ex.conn.execute(
+            "DELETE FROM groupmembers.deadlinkfromuser WHERE deadlink = $1 AND idolid = $2",
+            link, idol_id)
 
     async def set_forbidden_link(self, link, idol_id):
         return await self.ex.conn.execute("INSERT INTO groupmembers.forbiddenlinks(link, idolid) VALUES($1, $2)", link,
-                                     idol_id)
+                                          idol_id)
 
     async def send_dead_image(self, channel, link, user, idol, is_guessing_game):
         channel = channel or self.ex.cache.dead_image_channel
@@ -642,7 +657,8 @@ class GroupMembers(Base):
         """
         message = None
         try:
-            message = await channel.send(message_str, file=file, embed=embed, delete_after=timeout)
+            if message_str or embed or file:
+                message = await channel.send(message_str, file=file, embed=embed, delete_after=timeout)
         except discord.Forbidden:
             raise discord.Forbidden
         except Exception as e:
@@ -702,7 +718,7 @@ class GroupMembers(Base):
         async with self.ex.session.post(endpoint, headers=self.api_headers, params=api_params) as r:
             if r.status in self.successful_codes:
                 # define variables if we had a successful connection.
-                data = json.loads(await r.text())
+                data = await r.json()
                 image_host_url = data.get('final_image_link')
                 file_location = data.get('location')
                 file_name = data.get('file_name')
@@ -728,7 +744,8 @@ class GroupMembers(Base):
         if guessing_game:
             # discord may have bad image loading time, so we will wait 2 seconds.
             # this is important because we want the guessing time to be matched up to when the photo appears.
-            await asyncio.sleep(2)
+            if not self.ex.upload_from_host:
+                await asyncio.sleep(2)
 
         if (not file or self.ex.upload_from_host) and r.status != 415:
             embed = await self.get_idol_post_embed(group_id, idol, image_host_url, user_id=user_id,
@@ -830,56 +847,75 @@ class GroupMembers(Base):
         msg, image_host = None, None
 
         try:
+            if isinstance(channel, discord.DMChannel):
+                await channel.send("It is not possible to receive Idol Photos in DMs.")
+                return None, None
             kwargs["guild_id"] = channel.guild.id
             msg, image_host = await self.__get_image_msg(channel, idol, **kwargs)  # post image msg
 
             await self.update_member_count(idol)  # update amount of times an idol has been called.
+
+            # update amount of times a user has called an idol.
+            user_id = kwargs.get("user_id")
+            if user_id:
+                user = self.ex.get_user_main(user_id)
+                user.called_idol()
+
         except AttributeError as e:  # resolve dms
             log.console(f"{e} (AttributeError)", method=self.idol_post)
-            await channel.send("It is not possible to receive Idol Photos in DMs.")
         except discord.Forbidden:  # resolve 403
             raise discord.Forbidden  # let the client decide what to do.
+        except TypeError:
+            ...  # missing 2 required positional arguments response & message.
         except Exception as e:  # resolve all errors
             log.console(f"{e} (Exception)", method=self.idol_post)
         return msg, image_host
 
     def check_reset_limits(self):
-        if time.time() - self.ex.cache.commands_used['reset_time'] > 86400:  # 1 day in seconds
-            # reset the dict
-            self.ex.cache.commands_used = {"reset_time": time.time()}
+        """Checks if the user idol calls needs to be reset back to 0."""
+        if time.time() - self.ex.cache.last_idol_reset_time > 86400:  # 1 day in seconds
+            self.ex.cache.last_idol_reset_time = time.time()  # reset the time
+            # reset user idol calls.
+            asyncio.create_task(self.ex.run_blocking_code(self.reset_user_idol_calls))
 
-    def add_user_limit(self, message_sender):
-        if message_sender:
-            if message_sender.id not in self.ex.cache.commands_used:
-                self.ex.cache.commands_used[message_sender.id] = [1, time.time()]
-            else:
-                self.ex.cache.commands_used[message_sender.id] = [self.ex.cache.commands_used[message_sender.id][0] + 1, time.time()]
+    def reset_user_idol_calls(self):
+        """Resets all user idol calls to zero."""
+        users = self.ex.cache.users.copy()
+        for user in users.values():
+            user.idol_calls = 0
 
     # noinspection PyPep8
     async def check_user_limit(self, message_sender, message_channel, no_vote_limit=False):
-        user = await self.ex.get_user(message_sender)
-        patron_message = self.ex.cache.languages[user.language]['groupmembers']['patron_msg']
-        patron_message = await self.ex.replace(patron_message, [
-            ['idol_post_send_limit', self.ex.keys.idol_post_send_limit],
-            ['owner_super_patron_benefit', self.ex.keys.owner_super_patron_benefit],
-            ['bot_id', self.ex.keys.bot_id],
-            ['patreon_link', self.ex.keys.patreon_link]
-        ])
-        limit = self.ex.keys.idol_post_send_limit
-        if no_vote_limit:
-            # amount of votes that can be sent without voting.
-            limit = self.ex.keys.idol_no_vote_send_limit
-        if message_sender.id not in self.ex.cache.commands_used:
+        """
+        Check the user's idol limit.
+
+        :param message_sender: d.py Author
+        :param message_channel: d.py Text Channel
+        :param no_vote_limit: (bool) True if there is a vote limit to check for.
+
+        :returns: (bool) True if the limit was passed.
+        """
+        user = await self.ex.get_user(message_sender.id)
+
+        if not user.idol_calls:
             return
-        if not await self.ex.u_patreon.check_if_patreon(message_sender.id) and \
-                self.ex.cache.commands_used[message_sender.id][0] > limit:
-            # noinspection PyPep8
-            if not await self.ex.u_patreon.check_if_patreon(message_channel.guild.owner.id,
-                                                            super_patron=True) and not no_vote_limit:
-                return await message_channel.send(patron_message)
-            elif self.ex.cache.commands_used[message_sender.id][0] > self.ex.keys.owner_super_patron_benefit and not no_vote_limit:
-                return await message_channel.send(patron_message)
-            else:
+
+        guild_owner = await self.ex.get_user(message_channel.guild.owner.id)
+
+        limit = self.ex.keys.idol_post_send_limit if not no_vote_limit else self.ex.keys.idol_no_vote_send_limit
+
+        if not user.patron and user.idol_calls > limit:
+            # Check the server owner's super patron status and whether to provide more idol calls.
+            guild_owner_check_failed = not guild_owner.super_patron and not no_vote_limit
+            user_capped_with_benefit = user.idol_calls > self.ex.keys.owner_super_patron_benefit and not no_vote_limit
+
+            if guild_owner_check_failed or user_capped_with_benefit:
+                await message_channel.send(await self.ex.get_msg(user, "groupmembers", "patron_msg", [
+                    ['idol_post_send_limit', self.ex.keys.idol_post_send_limit],
+                    ['owner_super_patron_benefit', self.ex.keys.owner_super_patron_benefit],
+                    ['bot_id', self.ex.keys.bot_id],
+                    ['patreon_link', self.ex.keys.patreon_link]
+                ]))
                 return True
 
     # noinspection PyPep8
@@ -914,10 +950,13 @@ class GroupMembers(Base):
 
                 # finds out the user's current post limit and if it has been surpassed.
                 if not await self.check_user_limit(message.author, channel):
+                    # this is a successful post.
                     raise self.ex.exceptions.Pass
 
+                return  # do not need to go past this point since we raise a pass exception for success.
+
         except self.ex.exceptions.Pass:
-            # an image should be posted without going through further checcks.
+            # an image should be posted without going through further checks.
             pass
 
         except Exception as e:
@@ -996,7 +1035,7 @@ class GroupMembers(Base):
         channel = self.ex.client.get_channel(text_channel_id)  # we do not need to fetch here since its ok if its None
 
         # cache may store ID or discord.TextChannel
-        current_idol_ids: list = self.ex.cache.send_idol_photos.get(text_channel_id) or self.ex.\
+        current_idol_ids: list = self.ex.cache.send_idol_photos.get(text_channel_id) or self.ex. \
             cache.send_idol_photos.get(text_channel)
 
         # check if the text channel does not have any idols.
@@ -1059,3 +1098,134 @@ class GroupMembers(Base):
             return idol
         except:
             return None
+
+    async def add_new_idol(self, full_name, stage_name, group_ids: List[str], *args) -> models.Idol:
+        """Add new idol to DB and Cache.
+
+        :param full_name: Full name of the Idol.
+        :param stage_name: Stage name of the Idol.
+        :param group_ids: Group IDs to add to the Idol.
+        """
+        await self.ex.sql.s_groupmembers.insert_new_idol(*args)
+
+        idol_obj = await self.add_idol_to_cache(
+            **(await self.ex.sql.s_groupmembers.fetch_latest_idol(full_name, stage_name)))
+
+        for group_id in group_ids:
+            group_id.replace(" ", "")
+            group_id = int(group_id)
+            await self.add_idol_to_group(idol_obj.id, group_id)
+            idol_obj.groups.append(group_id)
+
+        await idol_obj.send_images_to_host()
+        return idol_obj
+
+    async def add_new_group(self, group_name, *args) -> models.Group:
+        """Add new Group to the DB and cache.
+
+        :param group_name: Group name of the group.
+        """
+        await self.ex.sql.s_groupmembers.insert_new_group(*args)
+
+        group_obj = await self.add_group_to_cache(
+            **(await self.ex.sql.s_groupmembers.fetch_latest_group(group_name)))
+
+        await group_obj.send_images_to_host()
+        return group_obj
+
+    async def fix_links(self):
+        """Fix all idol/group images that aren't located on the host."""
+        for idol in self.ex.cache.idols:
+            await asyncio.sleep(0)  # bare yield
+            await idol.send_images_to_host()
+
+        for group in self.ex.cache.groups:
+            await asyncio.sleep(0)  # bare yield
+            await group.send_images_to_host()
+
+    async def add_idol_to_cache(self, **kwargs) -> models.Idol:
+        """Add new idol to Cache.
+
+        :returns: (models.Idol) The Idol object that was created.
+        """
+        idol_obj = self.ex.u_objects.Idol(**kwargs)
+        idol_obj.aliases, idol_obj.local_aliases = await self.ex.u_group_members.get_db_aliases(idol_obj.id)
+        # add all group ids and remove potential duplicates
+        idol_obj.groups = list(dict.fromkeys(await self.ex.u_group_members.get_db_groups_from_member(idol_obj.id)))
+        idol_obj.called = await self.ex.u_group_members.get_db_idol_called(idol_obj.id)
+        idol_obj.photo_count = self.ex.cache.idol_photos.get(idol_obj.id) or 0
+        self.ex.cache.idols.append(idol_obj)
+
+        if not idol_obj.photo_count:
+            return idol_obj
+
+        # all of the below conditions must be idols with photos.
+        if idol_obj.gender == 'f':
+            self.ex.cache.idols_female.add(idol_obj)
+        if idol_obj.gender == 'm':
+            self.ex.cache.idols_male.add(idol_obj)
+        # add all idols to the hard difficulty
+        self.ex.cache.idols_hard.add(idol_obj)
+        if idol_obj.difficulty in ['medium', 'easy']:
+            self.ex.cache.idols_medium.add(idol_obj)
+        if idol_obj.difficulty == 'easy':
+            self.ex.cache.idols_easy.add(idol_obj)
+        return idol_obj
+
+    async def add_group_to_cache(self, **kwargs) -> models.Group:
+        """Add new group to Cache.
+
+        :returns: (models.Group) The Group object that was created.
+        """
+        group_obj = self.ex.u_objects.Group(**kwargs)
+        group_obj.aliases, group_obj.local_aliases = await self.get_db_aliases(group_obj.id, group=True)
+        # add all idol ids and remove potential duplicates
+        group_obj.members = list(
+            dict.fromkeys(await self.get_db_members_in_group(group_obj.id)))
+
+        group_obj.photo_count = self.ex.cache.group_photos.get(group_obj.id) or 0
+        self.ex.cache.groups.append(group_obj)
+        return group_obj
+
+    async def update_info(self, obj_id, column, content, group=False):
+        """Update the information of an idol/group in cache and db.
+
+        :param obj_id: (int) Idol/Group ID
+        :param column: (str) Column name
+        :param content: (str) Content to update with.
+        :param group: (bool) If the object is a group.
+        """
+        obj_id = int(obj_id)
+
+        try:
+            # if the user passed in an integer, we should change the type to not cause db issues.
+            content = int(content)
+        except:
+            ...
+
+        if group:
+            if column.lower() not in self.ex.sql.s_groupmembers.GROUP_COLUMNS:
+                raise NotImplementedError
+        else:
+            if column.lower() not in self.ex.sql.s_groupmembers.IDOL_COLUMNS:
+                raise NotImplementedError
+
+        date = None
+        if column.lower() in self.ex.sql.s_groupmembers.DATE_COLUMNS:
+            date = datetime.datetime.strptime(content, "%Y-%m-%d")
+
+        obj = await self.get_group(obj_id) if group else await self.get_member(obj_id)
+        if not obj:
+            raise KeyError
+
+        obj.set_attribute(column, content)
+
+        if column.lower() in self.ex.sql.s_groupmembers.IMAGE_COLUMNS:
+            await obj.send_images_to_host()
+
+        await self.ex.sql.s_groupmembers.update_info(obj_id, column, date if date else content, group)
+
+        return obj
+
+
+

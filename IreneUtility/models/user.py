@@ -1,3 +1,4 @@
+import datetime
 import random
 from decimal import Decimal
 from math import log10
@@ -20,7 +21,6 @@ class User:
         self.notifications: list = []  # [ [guild_id, phrase], ... ]
         self.reminders: list = []  # [ [remind_id, remind_reason, remind_time], ... ]
         self.timezone: str = ""
-        self.n_word: int = 0  # amount of times the user has said the N-Word.
         self.gg_filter: bool = False
         self.gg_groups: list = []
         self.balance: int = -1
@@ -28,8 +28,24 @@ class User:
         self.beg_level: int = 0
         self.rob_level: int = 0
         self.daily_level: int = 0
-        self.language: str = "en_us"
+        self.language: str = "en-us"
         self.in_currency_game: bool = False
+        self.is_data_mod: bool = False
+        self.is_translator: bool = False
+        self.is_proofreader: bool = False
+        self.idol_calls: int = 0
+        self.last_idol_call = None
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __ne__(self, other):
+        return not self == other
+
+    def called_idol(self):
+        """Increment the amount of idol calls and update the time for the call."""
+        self.idol_calls += 1
+        self.last_idol_call = datetime.datetime.now()
 
     async def get_profile_xp(self):
         """Get the user's profile xp."""
@@ -105,7 +121,6 @@ class User:
         # if our random number equals to the rob percentage value that was added,
         # then the user succeeded in robbing the user.
         return rob_percentage == random.choice(selector_values)
-
 
     async def register_currency(self):
         """Registers the user to the currency system."""

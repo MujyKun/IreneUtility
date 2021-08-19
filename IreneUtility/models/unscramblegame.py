@@ -76,6 +76,7 @@ class UnScrambleGame(Game_Base):
                 self.force_ended = True
                 return
             elif message_lower in self.ex.cache.skip_phrases:
+                await self.print_answer()
                 return
             else:
                 # the only time this code is reached is when a prefix was changed in the middle of a round.
@@ -169,9 +170,10 @@ class UnScrambleGame(Game_Base):
             await self.ex.u_unscramblegame.update_user_unscramble_game_score(self.difficulty, user_id=user_id,
                                                                              score=self.players.get(user_id))
 
-    async def print_answer(self):
+    async def print_answer(self, skipped=False):
         """Prints the current round's answer."""
-        await self.channel.send(f"The correct answer was {self.correct_answer}", delete_after=15)
+        await self.channel.send(f"{'Skipped. ' if skipped else ''}The correct answer was {self.correct_answer}",
+                                delete_after=15)
 
     async def create_acceptable_answers(self):
         """Create acceptable answers."""
@@ -180,8 +182,8 @@ class UnScrambleGame(Game_Base):
         if self.difficulty in ["easy", "medium", "hard"]:
             possible_answers.append(self.idol.stage_name)
 
-        elif self.difficulty in ["medium", "hard"]:
-            for group_id in self.idol:
+        if self.difficulty in ["medium", "hard"]:
+            for group_id in self.idol.groups:
                 await asyncio.sleep(0)  # bare yield
                 group = await self.ex.u_group_members.get_group(group_id)
                 if group.name == "NULL":  # we do not want a test group to be represented as the final question.
@@ -190,7 +192,7 @@ class UnScrambleGame(Game_Base):
 
             possible_answers.append(self.idol.full_name)
 
-        elif self.difficulty in ["hard"]:
+        if self.difficulty in ["hard"]:
             if self.idol.former_full_name:
                 possible_answers.append(self.idol.former_full_name)
             if self.idol.former_stage_name:
@@ -199,10 +201,6 @@ class UnScrambleGame(Game_Base):
                 for alias in self.idol.aliases:
                     await asyncio.sleep(0)  # bare yield
                     possible_answers.append(alias)
-
-        else:
-            raise self.ex.exceptions.ShouldNotBeHere(f"Difficulty: {self.difficulty} - "
-                                                     f"unscramblegame.create_acceptable_answers")
 
         self.correct_answer = (random.choice(possible_answers))  # we do not worry/care about case-sensitivity here.
 

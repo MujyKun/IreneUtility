@@ -1,21 +1,25 @@
 import concurrent.futures
+import functools
+import asyncpg
+from discord.ext import commands
 
 from .util import u_exceptions, u_logger as log, u_local_cache
-from typing import TYPE_CHECKING
-from discord.ext.commands import Context
-from Weverse import WeverseClientAsync
+from typing import TYPE_CHECKING, Optional, Union
+from discord.ext.commands import Context, AutoShardedBot
 import discord
 import random
 import asyncio
 import os
 import tweepy
-from . import models, s_sql, util, Base
-from typing import List
-
+import aiofiles
+from . import models, s_sql, util
 
 # do not import in runtime. This is used for type-hints.
 if TYPE_CHECKING:
     from aiohttp import ClientSession
+
+from wavelink.ext import spotify
+
 
 """
 Utility.py
@@ -27,37 +31,32 @@ All categorized utility methods will be placed as objects prefixed with u_ as a 
 
 # noinspection PyBroadException,PyPep8
 class Utility:
-    def __init__(self, keys=None, db_connection=None, events=None, d_py_client=None, aiohttp_session=None,
-                 weverse_client=None, create_db_structure=False):
+    def __init__(self, keys=None, db_connection=None, events=None, d_py_client=None, aiohttp_session=None):
         """
         :param keys:  Access to the key file
         :param db_connection:  DB Connection
         :param events:  Client-Sided Events class
         :param d_py_client: Discord.py client (Assumed to be an AutoShardedClient)
         :param aiohttp_session: Aiohttp client session
-        :param weverse_client: Weverse client
-        :param create_db_structure: whether to create db structure on run.
         """
         # A lot of these properties may be created via client side
         # in order to make Utility more portable when needed and client friendly.
         self.test_bot = None  # this is changed on the client side in run.py
         self.upload_from_host = False  # this is changed on the client side in run.py
-        self.client: discord.AutoShardedClient = d_py_client  # discord.py client
+        self.client: AutoShardedBot = d_py_client  # discord.py client
         self.session: ClientSession = aiohttp_session  # aiohttp client session
-        self.conn = db_connection  # db connection
-        self.create_db_structure: bool = create_db_structure  # whether to create db structure on run.
+        self.conn: Optional[asyncpg.pool.Pool] = db_connection  # db connection
 
         # Set to True if not on the production server (useful if testing ex.test_bot as False).
         # This was initially created to not flood datadog with incorrect input while ex.test_bot was False
         self.dev_mode = True
 
-        # Set to True if you intend to have announcement text channels on the support server and would like
-        # the weverse updates command to be private only to the bot owner. This should be specified on client side.
-        # this will also Publish (as an announcement) every single message if set to True.
-        self.weverse_announcements: bool = False
-
         # Set to False if you do not want the cache to reset itself every 12 hours.
         self.reset_cache: bool = True
+
+        # file that contains more detailed command information.
+        # this file is not a requirement, but will be checked if it exists.
+        self.unique_command_file_name = "commands.json"
 
         s_sql.self.conn = self.conn  # update our SQL connection.
         util_args = {self}
@@ -69,22 +68,21 @@ class Utility:
         self.running_loop = None  # current asyncio running loop
         # self.thread_pool = None  # ThreadPoolExecutor for operations that block the event loop.
         self.keys: models.Keys = keys  # access to keys file
+        self.spotify_client: Optional[spotify.SpotifyClient] = None if not self.keys else self.__create_spotify_client()
 
-        self.api: tweepy.API = None
+        # TODO: Change to a more reliable name such as twitter_client
+        self.api: Optional[tweepy.API] = None  # Twitter Client
         self.loop_count = 0
         self.recursion_limit = 10000
         self.api_issues = 0  # api issues in a given minute
         self.max_idol_post_attempts = 10  # 100 was too much
         self.twitch_guild_follow_limit = 2
 
-        self.weverse_client: WeverseClientAsync = weverse_client
-
         self.exceptions = u_exceptions  # custom error handling
         self.twitch_token = None  # access tokens are set everytime the token is refreshed.
 
         self.events = events  # Client-Sided Events class
 
-        
         """
         IMPORTANT: This design implementation is a hack for circular imports.
         The intended use is to allow a singular object to manage the entire Utility.
@@ -104,13 +102,14 @@ class Utility:
         self.u_custom_commands = util.u_customcommands.CustomCommands(*util_args)
         self.u_bias_game = util.u_biasgame.BiasGame(*util_args)
         self.u_data_dog = util.u_datadog.DataDog(*util_args)
-        self.u_weverse = util.u_weverse.Weverse(*util_args)
         self.u_self_assign_roles = util.u_selfassignroles.SelfAssignRoles(*util_args)
         self.u_reminder = util.u_reminder.Reminder(*util_args)
         self.u_guessinggame = util.u_guessinggame.GuessingGame(*util_args)
         self.u_twitch = util.u_twitch.Twitch(*util_args)
         self.u_gacha = util.u_gacha.Gacha(*util_args)
         self.u_unscramblegame = util.u_unscramblegame.UnScrambleGame(*util_args)
+        self.u_vlive = util.u_vlive.Vlive(*util_args)
+        self.u_music = util.u_music.Music(*util_args)
 
         # ensure that any models needed methods from this instance can do so without circular import problems.
         models.base_util.ex = self
@@ -120,37 +119,28 @@ class Utility:
         # Util Directory that contains sql methods
         self.sql = s_sql
 
-        # Modules/Cogs that contain 'ex' (Utility) and the 'conn' (DB connection).
-        # AKA -> Classes that are have inherited IreneUtility.Base.Base()
-        self.base_modules: List[Base.Base] = []
-
-    def define_unique_properties(self, keys=None, events=None, weverse=False, data_dog=False, twitter=False,
-                                 aiohttp=False, d_py_client=False, db_connection=False,
-                                 base_modules: List[Base.Base] = None):
+    def define_unique_properties(self, keys=None, events=None, data_dog=False, twitter=False,
+                                 aiohttp=False, d_py_client=False, db_connection=False):
         """
         Define unique properties in Utility not defined in the constructor.
 
         :param self:
         :param keys: Access to the keys file.
         :param events: Access to the client-sided events class
-        :param weverse: Whether to define weverse
-        :param data_dog: Whether to initialize weverse
+        :param data_dog: Whether to initialize datadog
         :param twitter: Whether to define the twitter api
         :param aiohttp: Whether to define the aiohttp session.
         :param d_py_client: Whether to define the discord.py client.
         :param db_connection: Whether to define the db connection.
-        :param base_modules: A list of instances that have the base modules with a parent containing ex and conn
         """
         if keys:
             self.keys = keys  # set the keys
+            self.spotify_client = self.__create_spotify_client()  # create spotify client
         else:
             keys = self.keys  # have a fallback for no keys being passed in.
 
         if not keys:
             raise self.exceptions.NoKeyFound("No key access was found in Utility.define_unique_properties().")
-
-        if base_modules:
-            self.base_modules = base_modules
 
         if db_connection:
             self.u_database.set_start_up_connection.start()
@@ -167,24 +157,43 @@ class Utility:
             # set aiohttp client session
             self.session = keys.client_session
 
-        if weverse:
-            # set weverse client
-            self.weverse_client = WeverseClientAsync(authorization=keys.weverse_auth_token, web_session=self.session,
-                                               verbose=True, loop=asyncio.get_event_loop())
-
         if twitter:
             # create twitter auth
             auth = tweepy.OAuthHandler(keys.CONSUMER_KEY, keys.CONSUMER_SECRET)
             auth.set_access_token(keys.ACCESS_KEY, keys.ACCESS_SECRET)
-            self.api = tweepy.API(auth)
+            self.api = tweepy.API(auth, wait_on_rate_limit_notify=True, wait_on_rate_limit=True)
 
         if events:
             self.events = events
 
+    def __create_spotify_client(self) -> spotify.SpotifyClient:
+        """Creates a spotify client and returns it."""
+        return spotify.SpotifyClient(client_id=self.keys.spotify_client_id, client_secret=self.keys.spotify_client_secret)
+
+    async def update_db(self):
+        """Runs checks to make sure the DB is up to date."""
+        kwargs = {
+            "method_type": "Update",
+            "verbose": False
+        }
+        await self.u_cache.process_cache_time(self.sql.db_structure.create_db_structure_from_file,
+                                              "DB Structure", **kwargs)
+
     async def get_user(self, user_id) -> models.User:
         """Creates a user if not created and adds it to the cache, then returns the user object.
 
+        This method was created as an asynchronous function to keep consistency across the already existing codebase.
+
+        :param user_id: The User ID.
         :rtype: models.User
+        """
+        return self.get_user_main(user_id)
+
+    def get_user_main(self, user_id) -> models.User:
+        """Creates a user if not created and adds it to the cache, then returns the User object.
+
+        :param user_id: The User ID.
+        :returns: (models.User) The User object associated with the user id.
         """
         user = self.cache.users.get(user_id)
         if not user:
@@ -264,13 +273,24 @@ class Utility:
             return False
         return True
 
-    def check_if_mod(self, ctx, mode=0):  # as mode = 1, ctx is the author id.
-        """Check if the user is a bot mod/owner."""
-        if not mode:
-            user_id = ctx.author.id
-            return user_id in self.keys.mods_list or user_id == self.keys.owner_id
+    def check_if_mod(self, user: Union[commands.Context, models.User, discord.User, int], data_mod=False):
+        """Check if the user is a bot mod/owner.
+
+        :param user: Context, Irene User, Discord User, or User ID.
+        :param data_mod: Whether to check if the user is a data mod.
+        """
+        if isinstance(user, (models.User, discord.User)):
+            user_id = user.id
+        elif isinstance(user, commands.Context):
+            user_id = user.author.id
         else:
-            return ctx in self.keys.mods_list or ctx == self.keys.owner_id
+            user_id = user
+        user = self.get_user_main(user_id)
+
+        is_bot_mod = user_id in self.keys.mods_list or user_id == self.keys.owner_id
+        if data_mod:
+            return is_bot_mod or user.is_data_mod
+        return is_bot_mod
 
     def get_ping(self):
         """Get the client's ping."""
@@ -283,13 +303,20 @@ class Utility:
         return int(('%02X%02X%02X' % (r(), r(), r())), 16)  # must be specified to base 16 since 0x is not present
 
     async def create_embed(self, title="Irene", color=None, title_desc=None, footer_desc="Thanks for using Irene!",
-                           icon_url=None, footer_url=None):
+                           icon_url=None, footer_url=None, title_url=None):
         """Create a discord Embed."""
         icon_url = self.keys.icon_url if not icon_url else icon_url
         footer_url = self.keys.footer_url if not footer_url else footer_url
         color = self.get_random_color() if not color else color
-        embed = discord.Embed(title=title, color=color) if not title_desc \
-            else discord.Embed(title=title, color=color, description=title_desc)
+
+        if not title_desc and not title_url:
+            embed = discord.Embed(title=title, color=color)
+        elif title_desc and not title_url:
+            embed = discord.Embed(title=title, color=color, description=title_desc)
+        elif not title_desc and title_url:
+            embed = discord.Embed(title=title, color=color, url=title_url)
+        else:
+            embed = discord.Embed(title=title, color=color, description=title_desc, url=title_url)
 
         embed.set_author(name="Irene", url=self.keys.bot_website,
                          icon_url=icon_url)
@@ -391,18 +418,25 @@ class Utility:
         :param games: Dict of Games
         :return: False if no game was found
         """
-        is_moderator = await self.u_miscellaneous.check_if_moderator(ctx)
         try:
-            game = games.pop(ctx.channel.id)
-        except KeyError:
-            return False
+            is_moderator = await self.u_miscellaneous.check_if_moderator(ctx)
+            try:
+                game = games.pop(ctx.channel.id)
+            except KeyError:
+                return False
+            except Exception as e:
+                return False
 
-        if game:
-            if ctx.author.id == game.host_id or is_moderator:
-                game.force_ended = True
-                return await game.end_game()
-            else:
-                return await ctx.send("> You must be a moderator or the host of the game in order to end the game.")
+            if game:
+                if ctx.author.id == game.host_id or is_moderator:
+                    game.force_ended = True
+                    return await game.end_game()
+                else:
+                    msg = await self.get_msg(ctx, "miscellaneous", "moderator_or_host")
+                    return await ctx.send(msg)
+        except Exception as e:
+            log.console(f"{e} (Exception)", method=self.stop_game)
+            return False
 
     async def check_user_in_support_server(self, ctx):
         """Checks if a user is in the support server.
@@ -476,21 +510,69 @@ class Utility:
             msg = await self.replace(msg, inputs_to_change)
         return msg
 
-    async def run_blocking_code(self, func, *args):
+    def get_unique_command(self, cog_name, command_name, language="en-us") -> models.Command:
+        """
+        Get the unique command object.
+
+        :param cog_name: The cog name
+        :param command_name: The command name.
+        :param language: The language to fetch.
+        """
+        language_commands: dict = self.cache.original_commands.get(language)
+        if not language_commands and language != "en-us":
+            language_commands = self.cache.original_commands.get("en-us")
+        cog_commands = language_commands.get(cog_name)
+        for command in cog_commands:
+            if command.command_name == command_name:
+                return command
+
+    async def run_blocking_code(self, funcs, *args, **kwargs) -> list:
         """Run blocking code safely in a new thread.
 
-        :param func: The blocking function that needs to be called.
+        DO NOT pass in an asynchronous function. If an asynchronous function has blocking code, the event loop will
+        also block. There were several attempts made to make it compatible with asynchronous functions, but it was a
+        headache to work with.
+
+        :param funcs: The blocking function that needs to be called.
+            May also pass in a list of functions
+            with the 0th index as the callable function,
+            the 1st index as the args for that function,
+            and the 2nd index as the kwargs for that function.
         :param args: The args to pass into the blocking function.
-        :returns: result of asyncio.Future object
+        :param kwargs: The keyword args to pass into the blocking function.
+        :returns: List of results in no particular order. Make sure the output can be managed with no specific order.
         """
         loop = asyncio.get_running_loop()
         try:
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                result = await loop.run_in_executor(pool, func, *args)
-                log.console(f'Custom Thread Pool -> {func}', method=self.run_blocking_code, event_loop=self.client.
-                            loop)
-                return result if None else result.result()
-        except AttributeError:
-            return
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+                results = []  # a list of results
+                if not isinstance(funcs, list):
+                    funcs = [[funcs, args, kwargs]]
+
+                for func in funcs:
+                    callable_function = func[0]
+                    func_args = func[1]
+                    func_kwargs = func[2]
+                    if callable(callable_function):
+                        results.append(await loop.run_in_executor(pool, functools.partial(callable_function,
+                                                                                          *func_args, **func_kwargs)))
+
+                log.useless(f'Custom Thread Pool -> {func}', method=self.run_blocking_code)
+
+                return results
+
+        except AttributeError as e:
+            log.console(f"{e} (AttributeError)", method=self.run_blocking_code, event_loop=self.client.loop)
         except Exception as e:
             log.console(f"{e} (Exception)", method=self.run_blocking_code, event_loop=self.client.loop)
+        return []
+
+    async def download_image(self, link, file_loc):
+        """Download an image.
+
+        :param link: Image Link to download
+        :param file_loc: Location to download the image to.
+        """
+        async with self.session.get(link) as resp:
+            fd = await aiofiles.open(file_loc, mode='wb')
+            await fd.write(await resp.read())
