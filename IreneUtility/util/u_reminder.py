@@ -54,20 +54,20 @@ class Reminder(Base):
     async def process_relative_time_input(self, time_input):
         """Returns the relative time of the input in seconds"""
         remind_time = 0  # in seconds
-        input_elements = re.findall(r"[^\W\d_]+|\d+", time_input)
+        input_elements = re.findall(r"[^\W\d\._]+|\d*\.?\d+", time_input)
 
         if not any(alias in input_elements for alias in self.ex.cache.all_time_aliases):
             raise self.ex.exceptions.ImproperFormat
 
         for time_element in input_elements:
             try:
-                int(time_element)
+                float(time_element)
             except:
                 # purposefully creating an error to locate which elements are words vs integers.
-                for time_unit in self.ex.cache.time_units:
-                    if time_element in time_unit[0]:
-                        remind_time += time_unit[1] * int(input_elements[input_elements.index(time_element) - 1])
-        return remind_time
+                for time_in_seconds, time_unit_name in self.ex.cache.time_units:
+                    if time_element in time_unit_name:
+                        remind_time += time_in_seconds * float(input_elements[input_elements.index(time_element) - 1])
+        return int(remind_time)
 
     async def process_absolute_time_input(self, time_input, user_id):
         """Returns the absolute date time of the input"""
