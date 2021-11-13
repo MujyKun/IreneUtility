@@ -64,7 +64,7 @@ class Reminder(Base):
                 float(time_element)
             except:
                 # purposefully creating an error to locate which elements are words vs integers.
-                for time_in_seconds, time_unit_name in self.ex.cache.time_units:
+                for time_unit_name, time_in_seconds in self.ex.cache.time_units:
                     if time_element in time_unit_name:
                         remind_time += time_in_seconds * float(input_elements[input_elements.index(time_element) - 1])
         return int(remind_time)
